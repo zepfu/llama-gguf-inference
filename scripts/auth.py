@@ -26,7 +26,7 @@ Environment Variables:
 
 Keys File Format:
     key_id:api_key
-    
+
     Example:
         production:sk-prod-abc123def456
         alice-laptop:sk-alice-xyz789
@@ -61,17 +61,13 @@ class APIKeyValidator:
         )
         self.keys = self._load_keys()  # Maps api_key -> key_id
         self.rate_limiter = defaultdict(list)  # Maps key_id -> [timestamps]
-        self.max_requests_per_minute = int(
-            os.environ.get("MAX_REQUESTS_PER_MINUTE", "100")
-        )
+        self.max_requests_per_minute = int(os.environ.get("MAX_REQUESTS_PER_MINUTE", "100"))
 
         if self.enabled:
             if self.keys:
                 print(f"✅ Authentication enabled with {len(self.keys)} key(s)")
             else:
-                print(
-                    "⚠️  Authentication enabled but no keys configured. Allowing all requests."
-                )
+                print("⚠️  Authentication enabled but no keys configured. Allowing all requests.")
                 print(f"   Create keys file at: {self.keys_file}")
         else:
             print("⚠️  Authentication disabled! All requests will be accepted.")
@@ -83,7 +79,7 @@ class APIKeyValidator:
         File format:
             key_id:api_key
             # Comments allowed
-            
+
         Returns:
             dict mapping api_key -> key_id for reverse lookup
             Example: {"sk-prod-abc123": "production", "sk-alice-xyz": "alice-laptop"}
@@ -93,8 +89,8 @@ class APIKeyValidator:
 
         if not os.path.exists(self.keys_file):
             print(f"⚠️  AUTH_ENABLED=true but keys file not found: {self.keys_file}")
-            print(f"    Create file with format: key_id:api_key")
-            print(f"    WARNING: Accepting all requests until keys file is configured!")
+            print("    Create file with format: key_id:api_key")
+            print("    WARNING: Accepting all requests until keys file is configured!")
             return {}
 
         try:
@@ -109,9 +105,7 @@ class APIKeyValidator:
 
                     # Parse key_id:api_key
                     if ":" not in line:
-                        print(
-                            f"⚠️  Line {line_num}: Invalid format (missing ':'), skipping"
-                        )
+                        print(f"⚠️  Line {line_num}: Invalid format (missing ':'), skipping")
                         continue
 
                     parts = line.split(":", 1)
@@ -124,9 +118,7 @@ class APIKeyValidator:
 
                     # Validate key_id
                     if not key_id or not all(c.isalnum() or c in "-_" for c in key_id):
-                        print(
-                            f"⚠️  Line {line_num}: Invalid key_id '{key_id}', skipping"
-                        )
+                        print(f"⚠️  Line {line_num}: Invalid key_id '{key_id}', skipping")
                         continue
 
                     # Validate api_key format
@@ -153,9 +145,7 @@ class APIKeyValidator:
                 print(f"   Key IDs: {', '.join(key_ids)}")
                 return keys
             else:
-                print(
-                    f"⚠️  Keys file exists but contains no valid keys: {self.keys_file}"
-                )
+                print(f"⚠️  Keys file exists but contains no valid keys: {self.keys_file}")
                 return {}
         except Exception as e:
             print(f"❌ Error loading keys from {self.keys_file}: {e}")
@@ -239,9 +229,7 @@ class APIKeyValidator:
         minute_ago = now - 60
 
         # Clean old requests (older than 1 minute)
-        self.rate_limiter[key_id] = [
-            ts for ts in self.rate_limiter[key_id] if ts > minute_ago
-        ]
+        self.rate_limiter[key_id] = [ts for ts in self.rate_limiter[key_id] if ts > minute_ago]
 
         # Check if under limit
         if len(self.rate_limiter[key_id]) >= self.max_requests_per_minute:
@@ -279,9 +267,7 @@ class APIKeyValidator:
 api_validator = APIKeyValidator()
 
 
-async def authenticate_request(
-    writer: asyncio.StreamWriter, headers: dict
-) -> Optional[str]:
+async def authenticate_request(writer: asyncio.StreamWriter, headers: dict) -> Optional[str]:
     """
     Authenticate an incoming request.
 

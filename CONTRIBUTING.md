@@ -112,12 +112,12 @@ def process_request(
 ) -> Response:
     """
     Process an HTTP request.
-    
+
     Args:
         method: HTTP method (GET, POST, etc.)
         path: Request path
         headers: Request headers
-        
+
     Returns:
         Response object
     """
@@ -172,10 +172,10 @@ When adding new features:
 # Example test function
 test_new_feature() {
     test_start "New feature works correctly"
-    
+
     local response
     response=$(curl -s -o /dev/null -w "%{http_code}" "$URL/feature")
-    
+
     if [[ "$response" == "200" ]]; then
         test_pass
     else

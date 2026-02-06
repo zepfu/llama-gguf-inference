@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gateway.py — Async HTTP gateway for llama.cpp llama-server
+gateway.py – Async HTTP gateway for llama.cpp llama-server
 
 Features:
 - API key authentication with health endpoint exemption
@@ -37,6 +37,7 @@ from typing import Optional
 # Import authentication module
 try:
     from auth import api_validator, authenticate_request, log_access
+
     AUTH_AVAILABLE = True
 except ImportError:
     print("[gateway] Warning: auth.py not found, authentication disabled")
@@ -108,7 +109,11 @@ async def backend_health_check() -> dict:
             asyncio.open_connection(BACKEND_HOST, BACKEND_PORT), timeout=HEALTH_TIMEOUT
         )
 
-        request = f"GET /health HTTP/1.1\r\nHost: {BACKEND_HOST}:{BACKEND_PORT}\r\nConnection: close\r\n\r\n"
+        request = (
+            f"GET /health HTTP/1.1\r\n"
+            f"Host: {BACKEND_HOST}:{BACKEND_PORT}\r\n"
+            f"Connection: close\r\n\r\n"
+        )
         writer.write(request.encode())
         await writer.drain()
 
@@ -121,9 +126,7 @@ async def backend_health_check() -> dict:
 
         # Extract status code
         first_line = response_str.split("\r\n")[0]
-        status_code = (
-            int(first_line.split()[1]) if len(first_line.split()) > 1 else 0
-        )
+        status_code = int(first_line.split()[1]) if len(first_line.split()) > 1 else 0
 
         # Extract body (after \r\n\r\n)
         if "\r\n\r\n" in response_str:
@@ -240,9 +243,11 @@ async def proxy_request(
             backend_reader, backend_writer = await asyncio.wait_for(
                 asyncio.open_connection(BACKEND_HOST, BACKEND_PORT), timeout=5.0
             )
-        except (asyncio.TimeoutError, OSError) as e:
+        except (asyncio.TimeoutError, OSError):
             metrics.requests_error += 1
-            error_response = "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            error_response = (
+                "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            )
             writer.write(error_response.encode())
             await writer.drain()
             # Log failed request
@@ -257,7 +262,13 @@ async def proxy_request(
         header_lines = [f"Host: {BACKEND_HOST}:{BACKEND_PORT}"]
         for key, value in headers.items():
             key_lower = key.lower()
-            if key_lower in ("host", "connection", "keep-alive", "transfer-encoding", "authorization"):
+            if key_lower in (
+                "host",
+                "connection",
+                "keep-alive",
+                "transfer-encoding",
+                "authorization",
+            ):
                 continue  # Skip authorization header
             header_lines.append(f"{key}: {value}")
         header_lines.append("Connection: close")
@@ -273,9 +284,7 @@ async def proxy_request(
         # Read and forward response headers
         response_headers = b""
         while True:
-            line = await asyncio.wait_for(
-                backend_reader.readline(), timeout=REQUEST_TIMEOUT
-            )
+            line = await asyncio.wait_for(backend_reader.readline(), timeout=REQUEST_TIMEOUT)
             response_headers += line
             if line == b"\r\n" or line == b"":
                 break
@@ -288,9 +297,7 @@ async def proxy_request(
         bytes_sent = 0
         try:
             while True:
-                chunk = await asyncio.wait_for(
-                    backend_reader.read(8192), timeout=REQUEST_TIMEOUT
-                )
+                chunk = await asyncio.wait_for(backend_reader.read(8192), timeout=REQUEST_TIMEOUT)
                 if not chunk:
                     break
                 writer.write(chunk)
@@ -313,10 +320,12 @@ async def proxy_request(
         metrics.requests_error += 1
         log(f"Proxy error: {e}")
         try:
-            error_response = "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            error_response = (
+                "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            )
             writer.write(error_response.encode())
             await writer.drain()
-        except:
+        except Exception:
             pass
         # Log error
         if AUTH_AVAILABLE:
@@ -396,7 +405,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         try:
             writer.close()
             await writer.wait_closed()
-        except:
+        except Exception:
             pass
 
 
