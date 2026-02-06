@@ -52,7 +52,7 @@ FATAL: Model file not found: /data/models/my-model.gguf
    ```bash
    # Local Docker
    docker run -v /path/to/models:/data/models ...
-   
+
    # Should see your files at /data/models/
    ```
 

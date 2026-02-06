@@ -1,0 +1,68 @@
+# API Keys Configuration for llama-gguf-inference
+#
+# Location: Place this file at $DATA_DIR/api_keys.txt
+#           Or set AUTH_KEYS_FILE=/path/to/your/keys.txt
+#
+# Format: key_id:api_key
+#   key_id  - Identifier for this key (used in logs and metrics)
+#   api_key - The actual secret key used for authentication
+#
+# Key IDs should be:
+#   - Descriptive (who/what is using this key)
+#   - Alphanumeric plus hyphens and underscores only
+#   - Examples: production, dev-team, alice-scripts, staging
+#
+# API keys should be:
+#   - 32-128 characters long
+#   - Alphanumeric plus hyphens and underscores only
+#   - Generate with: openssl rand -hex 32
+#   - Or use: python3 -c "import secrets; print('sk-' + secrets.token_hex(32))"
+#
+# Lines starting with # are comments
+# Blank lines are ignored
+#
+# ==============================================================================
+# IMPORTANT SECURITY NOTES:
+# - Keep this file secure (chmod 600)
+# - Never commit this file to version control
+# - Rotate keys regularly
+# - Use unique keys per environment/user
+# ==============================================================================
+
+# Production systems
+production:sk-prod-REPLACE_WITH_YOUR_KEY_HERE
+production-backup:sk-prod-backup-REPLACE_WITH_YOUR_KEY_HERE
+
+# Development environments
+development:sk-dev-REPLACE_WITH_YOUR_KEY_HERE
+staging:sk-staging-REPLACE_WITH_YOUR_KEY_HERE
+
+# Individual users (for tracking and rate limiting)
+alice-laptop:sk-alice-REPLACE_WITH_YOUR_KEY_HERE
+bob-scripts:sk-bob-REPLACE_WITH_YOUR_KEY_HERE
+
+# Testing (remove or disable in production)
+# testing:sk-test-12345
+
+# ==============================================================================
+# HOW TO GENERATE SECURE KEYS:
+# ==============================================================================
+#
+# Method 1: OpenSSL (recommended)
+#   openssl rand -hex 32
+#   Output: 64 random hex characters
+#   Use as: sk-prod-<output>
+#
+# Method 2: Python
+#   python3 -c "import secrets; print('sk-' + secrets.token_hex(32))"
+#   Output: sk-<64 hex chars>
+#
+# Method 3: Online (use with caution)
+#   https://randomkeygen.com/
+#   Select "504-bit WPA Key" and add sk- prefix
+#
+# ==============================================================================
+# EXAMPLE SECURE KEYS (DO NOT USE THESE - GENERATE YOUR OWN):
+# ==============================================================================
+# production:sk-prod-a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcd
+# development:sk-dev-x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4j3i2h1g0f9e8d7c6b5a
