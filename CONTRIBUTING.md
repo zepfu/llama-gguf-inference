@@ -18,15 +18,22 @@ Thank you for your interest in contributing! This guide will help you get starte
 git clone --recursive https://github.com/zepfu/llama-gguf-inference.git
 cd llama-gguf-inference
 
-# 2. Install pre-commit
+# 2. Set executable permissions for scripts (one-time setup)
+bash set_permissions.sh
+git add -u
+git commit -m "Set executable permissions"
+
+# 3. Install pre-commit
 pip install pre-commit
 
-# 3. Install git hooks
+# 4. Install git hooks
 pre-commit install
 
-# 4. Test pre-commit
+# 5. Test pre-commit
 pre-commit run --all-files
 ```
+
+**Note:** After step 2, Git will track executable permissions. Anyone who clones after you push won't need to run `set_permissions.sh`.
 
 ## Development Workflow
 
@@ -105,12 +112,12 @@ def process_request(
 ) -> Response:
     """
     Process an HTTP request.
-
+    
     Args:
         method: HTTP method (GET, POST, etc.)
         path: Request path
         headers: Request headers
-
+        
     Returns:
         Response object
     """
@@ -165,10 +172,10 @@ When adding new features:
 # Example test function
 test_new_feature() {
     test_start "New feature works correctly"
-
+    
     local response
     response=$(curl -s -o /dev/null -w "%{http_code}" "$URL/feature")
-
+    
     if [[ "$response" == "200" ]]; then
         test_pass
     else

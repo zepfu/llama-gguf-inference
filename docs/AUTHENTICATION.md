@@ -188,12 +188,12 @@ GET  /v1/models
    - Extract key from header (with or without "Bearer " prefix)
    - Check if key exists in loaded keys
    - Check rate limit for this key_id
-
+   
 3a. If valid:
    - Record request for rate limiting
    - Log access with key_id
    - Forward request to backend
-
+   
 3b. If invalid:
    - Return 401 Unauthorized
    - Log unauthorized attempt

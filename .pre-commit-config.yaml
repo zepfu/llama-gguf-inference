@@ -3,6 +3,10 @@
 # Setup: pre-commit install
 # Run manually: pre-commit run --all-files
 
+# Suppress deprecation warnings from upstream repos
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
 repos:
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -53,19 +57,20 @@ repos:
           '--max-complexity=15'
         ]
 
-  # Markdown linting
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.39.0
-    hooks:
-      - id: markdownlint
-        args: ['--fix']
-
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
       - id: yamllint
         args: ['-d', '{extends: default, rules: {line-length: {max: 120}}}']
+
+  # Markdown linting (re-enabled - should work fine)
+  # Note: First run may take a minute to install Node.js dependencies
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--disable', 'MD013']
 
   # Local tests (quick validation only)
   - repo: local

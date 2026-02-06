@@ -4,7 +4,7 @@
 # Shell scripts must have LF endings
 *.sh text eol=lf
 
-# Python files
+# Python files must have LF endings  
 *.py text eol=lf
 
 # Markdown

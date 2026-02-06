@@ -22,14 +22,14 @@ PORT = int(os.environ.get("PORT_HEALTH", "8001"))
 
 class HealthHandler(BaseHTTPRequestHandler):
     """Minimal health check handler - just returns 200 OK."""
-    
+
     def do_GET(self):
         """Handle GET requests - all paths return 200."""
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.send_header("Content-Length", "0")
         self.end_headers()
-    
+
     def log_message(self, format, *args):
         """Suppress request logging to reduce noise."""
         pass
@@ -38,9 +38,9 @@ class HealthHandler(BaseHTTPRequestHandler):
 def main():
     """Start the health server."""
     print(f"[health] Starting health server on 0.0.0.0:{PORT}", file=sys.stderr, flush=True)
-    
+
     server = HTTPServer(("0.0.0.0", PORT), HealthHandler)
-    
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
