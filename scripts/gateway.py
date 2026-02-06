@@ -9,6 +9,10 @@ Features:
 - Basic metrics tracking
 - Graceful error handling
 
+Note: /ping returns 200 immediately without backend checks to avoid
+preventing scale-to-zero in serverless environments. Use /health for
+detailed backend status checks.
+
 Environment Variables:
     GATEWAY_PORT    - Port to listen on (default: 8000)
     BACKEND_HOST    - llama-server host (default: 127.0.0.1)
@@ -117,13 +121,11 @@ async def backend_health_check() -> dict:
 async def handle_ping(writer: asyncio.StreamWriter):
     """
     Handle /ping endpoint for RunPod health checks.
-    Returns 200 if backend is ready, 204 if still initializing.
-    """
-    if backend_tcp_ready():
-        response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-    else:
-        response = "HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    Always returns 200 OK without probing backend to avoid keeping worker "active".
     
+    For detailed backend status, use /health endpoint instead.
+    """
+    response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
     writer.write(response.encode())
     await writer.drain()
 

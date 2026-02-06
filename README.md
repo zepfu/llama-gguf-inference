@@ -66,6 +66,7 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 | `NGL` | `99` | GPU layers to offload (99 = all, 0 = CPU only) |
 | `CTX` | `16384` | Context length |
 | `PORT` | `8000` | Public gateway port |
+| `PORT_HEALTH` | `8001` | Health check port (for platform monitoring) |
 | `BACKEND_PORT` | `8080` | Internal llama-server port |
 | `LOG_NAME` | `llama` | Log folder name |
 | `THREADS` | `0` | CPU threads (0 = auto) |
@@ -87,12 +88,14 @@ $DATA_DIR/
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /ping` | Health check (200=ready, 204=loading) |
-| `GET /health` | Detailed health status (JSON) |
+| `GET /ping` | Quick health check (always returns 200) |
+| `GET /health` | Detailed health status with backend info (JSON) |
 | `GET /metrics` | Basic metrics (JSON) |
 | `POST /v1/chat/completions` | Chat completions (OpenAI format) |
 | `POST /v1/completions` | Text completions |
 | `GET /v1/models` | List models |
+
+**Note:** For serverless deployments, platform health checks should use `PORT_HEALTH` (default 8001) instead of `/ping` to enable proper scale-to-zero behavior.
 
 ## Platform-Specific Setup
 
@@ -120,6 +123,15 @@ MODEL_NAME=your-model.gguf
 
 The container auto-detects `/runpod-volume` and uses it for models and logs.
 
+**For scale-to-zero behavior:**
+- Set `Active Workers` to 0 in endpoint settings
+- Configure `Idle Timeout` (e.g., 5 seconds)
+- Expose ports: 8000 (API), 8001 (health checks)
+- Set `PORT_HEALTH=8001` environment variable
+- Configure RunPod to use port 8001 for health checks
+
+This setup separates platform health checks from your actual API traffic, allowing the worker to properly scale to zero when idle.
+
 ### RunPod Pods / Vast.ai
 
 Environment variables:
@@ -140,6 +152,13 @@ MODEL_NAME=your-model.gguf
 ## Architecture
 
 ```
+┌─────────────────────────────────────────────────┐
+│       Health Server (port 8001)                 │
+│  - Minimal health checks for platform           │
+│  - No backend interaction                       │
+│  - Enables scale-to-zero                        │
+└─────────────────────────────────────────────────┘
+
 ┌─────────────────────────────────────────────────┐
 │              Gateway (port 8000)                 │
 │  - Health checks (/ping, /health)               │

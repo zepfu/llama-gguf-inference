@@ -6,8 +6,9 @@
 #   1. Runs boot diagnostics (written to DATA_DIR if available)
 #   2. Resolves the model path
 #   3. Starts llama-server on BACKEND_PORT (default 8080)
-#   4. Starts gateway.py on PORT (default 8000) with health endpoints
-#   5. Handles graceful shutdown on SIGTERM/SIGINT
+#   4. Starts health_server.py on PORT_HEALTH (default 8001) for platform checks
+#   5. Starts gateway.py on PORT (default 8000) with API endpoints
+#   6. Handles graceful shutdown on SIGTERM/SIGINT
 #
 # Environment Variables (see docs/configuration.md for details):
 #   MODEL_NAME     - (required) Model filename in MODELS_DIR
@@ -16,6 +17,7 @@
 #   NGL            - GPU layers to offload (default: 99 = all)
 #   CTX            - Context length (default: 16384)
 #   PORT           - Public port for gateway (default: 8000)
+#   PORT_HEALTH    - Health check port for platform (default: 8001)
 #
 # ==============================================================================
 set -euo pipefail
@@ -48,6 +50,7 @@ MODELS_DIR="${MODELS_DIR:-$DATA_DIR/models}"
 # Server configuration
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
+PORT_HEALTH="${PORT_HEALTH:-8001}"
 BACKEND_PORT="${BACKEND_PORT:-8080}"
 NGL="${NGL:-99}"
 CTX="${CTX:-16384}"
@@ -66,10 +69,12 @@ INSTANCE_ID="${INSTANCE_ID//[^a-zA-Z0-9._-]/_}"
 # Paths
 LLAMA_BIN="/app/llama-server"
 GATEWAY_PY="/opt/app/scripts/gateway.py"
+HEALTH_SERVER_PY="/opt/app/scripts/health_server.py"
 
 # Process tracking
 LLAMA_PID=""
 GATEWAY_PID=""
+HEALTH_PID=""
 SHUTDOWN_IN_PROGRESS=0
 
 # ==============================================================================
@@ -139,7 +144,7 @@ log "MODEL_NAME=${MODEL_NAME:-<unset>}"
 log "MODEL_PATH=${MODEL_PATH:-<unset>}"
 log "MODELS_DIR=$MODELS_DIR"
 log "NGL=$NGL CTX=$CTX"
-log "PORT=$PORT BACKEND_PORT=$BACKEND_PORT"
+log "PORT=$PORT PORT_HEALTH=$PORT_HEALTH BACKEND_PORT=$BACKEND_PORT"
 log "LOG_NAME=$LOG_NAME"
 
 # ==============================================================================
@@ -254,6 +259,11 @@ shutdown() {
         kill -TERM "$GATEWAY_PID" 2>/dev/null || true
     fi
     
+    if [[ -n "$HEALTH_PID" ]] && kill -0 "$HEALTH_PID" 2>/dev/null; then
+        log "Stopping health server (PID $HEALTH_PID)..."
+        kill -TERM "$HEALTH_PID" 2>/dev/null || true
+    fi
+    
     log "Shutdown complete"
     exit 0
 }
@@ -339,6 +349,32 @@ if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
 fi
 
 # ==============================================================================
+# START HEALTH SERVER
+# ==============================================================================
+
+log ""
+log "========================================"
+log "Starting health server"
+log "========================================"
+
+if [[ ! -f "$HEALTH_SERVER_PY" ]]; then
+    die "Health server not found: $HEALTH_SERVER_PY"
+fi
+
+PORT_HEALTH="$PORT_HEALTH" \
+python3 -u "$HEALTH_SERVER_PY" &
+HEALTH_PID=$!
+
+log "Health server PID: $HEALTH_PID (port $PORT_HEALTH)"
+
+sleep 1
+
+if ! kill -0 "$HEALTH_PID" 2>/dev/null; then
+    log "WARNING: Health server failed to start (non-fatal)"
+    HEALTH_PID=""
+fi
+
+# ==============================================================================
 # START GATEWAY
 # ==============================================================================
 
@@ -374,13 +410,21 @@ log ""
 log "========================================"
 log "Services running"
 log "========================================"
-log "llama-server: PID $LLAMA_PID (port $BACKEND_PORT)"
-log "gateway:      PID $GATEWAY_PID (port $PORT)"
+log "llama-server:   PID $LLAMA_PID (port $BACKEND_PORT)"
+log "gateway:        PID $GATEWAY_PID (port $PORT)"
+if [[ -n "$HEALTH_PID" ]]; then
+    log "health server:  PID $HEALTH_PID (port $PORT_HEALTH)"
+fi
 log ""
 log "Endpoints:"
 log "  Health:      http://0.0.0.0:$PORT/ping"
+log "  Status:      http://0.0.0.0:$PORT/health"
 log "  Chat:        http://0.0.0.0:$PORT/v1/chat/completions"
 log "  Completions: http://0.0.0.0:$PORT/v1/completions"
+if [[ -n "$HEALTH_PID" ]]; then
+    log ""
+    log "Platform health checks should use: http://0.0.0.0:$PORT_HEALTH/"
+fi
 log ""
 log "Waiting for processes..."
 
