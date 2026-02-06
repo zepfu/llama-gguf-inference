@@ -5,7 +5,7 @@
 # This script:
 #   1. Runs boot diagnostics (written to DATA_DIR if available)
 #   2. Resolves the model path
-#   3. Starts llama-server on BACKEND_PORT (default 8080)
+#   3. Starts llama-server on PORT_BACKEND (default 8080)
 #   4. Starts health_server.py on PORT_HEALTH (default 8001) for platform checks
 #   5. Starts gateway.py on PORT (default 8000) with API endpoints
 #   6. Handles graceful shutdown on SIGTERM/SIGINT
@@ -18,6 +18,10 @@
 #   CTX            - Context length (default: 16384)
 #   PORT           - Public port for gateway (default: 8000)
 #   PORT_HEALTH    - Health check port for platform (default: 8001)
+#   PORT_BACKEND   - Internal llama-server port (default: 8080)
+#   WORKER_TYPE    - Optional worker classification (e.g., "instruct", "coder", "omni")
+#   AUTH_ENABLED   - Enable API key authentication (default: true)
+#   AUTH_KEYS_FILE - Path to API keys file (default: $DATA_DIR/api_keys.txt)
 #
 # ==============================================================================
 set -euo pipefail
@@ -51,16 +55,37 @@ MODELS_DIR="${MODELS_DIR:-$DATA_DIR/models}"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 PORT_HEALTH="${PORT_HEALTH:-8001}"
-BACKEND_PORT="${BACKEND_PORT:-8080}"
+
+# Support both PORT_BACKEND (new) and BACKEND_PORT (old, deprecated)
+if [[ -n "${BACKEND_PORT:-}" ]]; then
+    log "WARNING: BACKEND_PORT is deprecated, use PORT_BACKEND instead"
+    PORT_BACKEND="${BACKEND_PORT}"
+else
+    PORT_BACKEND="${PORT_BACKEND:-8080}"
+fi
+
 NGL="${NGL:-99}"
 CTX="${CTX:-16384}"
 THREADS="${THREADS:-0}"
 EXTRA_ARGS="${EXTRA_ARGS:-}"
 
 # Logging configuration
-LOG_NAME="${LOG_NAME:-llama}"
+WORKER_TYPE="${WORKER_TYPE:-}"
+WORKER_TYPE="${WORKER_TYPE//[^A-Za-z0-9_-]/_}"  # Sanitize (allow hyphens)
+
+# Construct log directory name based on worker type
+if [[ -n "$WORKER_TYPE" ]]; then
+    LOG_NAME="llama-${WORKER_TYPE}"
+else
+    LOG_NAME="${LOG_NAME:-llama}"
+fi
 LOG_NAME="${LOG_NAME//[^A-Za-z0-9_.-]/_}"  # Sanitize
 LOG_DIR="${LOG_DIR:-$DATA_DIR/logs}"
+
+# Authentication configuration
+AUTH_ENABLED="${AUTH_ENABLED:-true}"
+AUTH_KEYS_FILE="${AUTH_KEYS_FILE:-$DATA_DIR/api_keys.txt}"
+MAX_REQUESTS_PER_MINUTE="${MAX_REQUESTS_PER_MINUTE:-100}"
 
 # Instance identity
 INSTANCE_ID="${INSTANCE_ID:-${HOSTNAME:-unknown}}"
@@ -116,9 +141,10 @@ BOOT_LOG=""
 if [[ -d "$DATA_DIR" ]] || mkdir -p "$DATA_DIR" 2>/dev/null; then
     BOOT_DIR="$DATA_DIR/logs/_boot"
     mkdir -p "$BOOT_DIR" 2>/dev/null || true
-    BOOT_LOG="$BOOT_DIR/boot_${INSTANCE_ID}_$(date +%Y%m%d_%H%M%S).log"
+    # Timestamp-first format for chronological sorting
+    BOOT_LOG="$BOOT_DIR/$(date +%Y%m%d_%H%M%S)_boot_${INSTANCE_ID}.log"
     echo "$BOOT_LOG" > "$BOOT_DIR/latest.txt" 2>/dev/null || true
-    
+
     # Mirror output to boot log
     exec > >(tee -a "$BOOT_LOG") 2>&1 || true
 fi
@@ -144,8 +170,12 @@ log "MODEL_NAME=${MODEL_NAME:-<unset>}"
 log "MODEL_PATH=${MODEL_PATH:-<unset>}"
 log "MODELS_DIR=$MODELS_DIR"
 log "NGL=$NGL CTX=$CTX"
-log "PORT=$PORT PORT_HEALTH=$PORT_HEALTH BACKEND_PORT=$BACKEND_PORT"
+log "PORT=$PORT PORT_HEALTH=$PORT_HEALTH PORT_BACKEND=$PORT_BACKEND"
+log "WORKER_TYPE=${WORKER_TYPE:-<unset>}"
 log "LOG_NAME=$LOG_NAME"
+log "AUTH_ENABLED=$AUTH_ENABLED"
+log "AUTH_KEYS_FILE=$AUTH_KEYS_FILE"
+log "MAX_REQUESTS_PER_MINUTE=$MAX_REQUESTS_PER_MINUTE"
 
 # ==============================================================================
 # MODEL RESOLUTION
@@ -157,7 +187,7 @@ resolve_model() {
         echo "$MODEL_PATH"
         return 0
     fi
-    
+
     # If MODEL_NAME is set, look in MODELS_DIR
     if [[ -n "$MODEL_NAME" ]]; then
         if [[ -z "$MODELS_DIR" ]]; then
@@ -166,7 +196,7 @@ resolve_model() {
         echo "$MODELS_DIR/$MODEL_NAME"
         return 0
     fi
-    
+
     # No model specified
     return 1
 }
@@ -222,6 +252,25 @@ else
 fi
 
 # ==============================================================================
+# AUTHENTICATION CHECK
+# ==============================================================================
+
+log "--- Authentication ---"
+if is_truthy "$AUTH_ENABLED"; then
+    log "Authentication: ENABLED"
+    if [[ -f "$AUTH_KEYS_FILE" ]]; then
+        KEY_COUNT=$(grep -v "^#" "$AUTH_KEYS_FILE" | grep -v "^$" | wc -l)
+        log "Keys file: $AUTH_KEYS_FILE ($KEY_COUNT keys)"
+    else
+        log "WARNING: AUTH_ENABLED=true but keys file not found: $AUTH_KEYS_FILE"
+        log "         Create keys file or all requests will be accepted!"
+    fi
+else
+    log "Authentication: DISABLED"
+    log "WARNING: All requests will be accepted without authentication!"
+fi
+
+# ==============================================================================
 # GRACEFUL SHUTDOWN HANDLER
 # ==============================================================================
 
@@ -230,40 +279,40 @@ shutdown() {
         return
     fi
     SHUTDOWN_IN_PROGRESS=1
-    
+
     log ""
     log "========================================"
     log "Shutdown signal received"
     log "========================================"
-    
+
     # Give llama-server time to finish in-flight requests
     if [[ -n "$LLAMA_PID" ]] && kill -0 "$LLAMA_PID" 2>/dev/null; then
         log "Sending SIGTERM to llama-server (PID $LLAMA_PID)..."
         kill -TERM "$LLAMA_PID" 2>/dev/null || true
-        
+
         # Wait up to 30 seconds for graceful shutdown
         local count=0
         while kill -0 "$LLAMA_PID" 2>/dev/null && [[ $count -lt 30 ]]; do
             sleep 1
             ((count++))
         done
-        
+
         if kill -0 "$LLAMA_PID" 2>/dev/null; then
             log "llama-server didn't exit gracefully, sending SIGKILL..."
             kill -KILL "$LLAMA_PID" 2>/dev/null || true
         fi
     fi
-    
+
     if [[ -n "$GATEWAY_PID" ]] && kill -0 "$GATEWAY_PID" 2>/dev/null; then
         log "Stopping gateway (PID $GATEWAY_PID)..."
         kill -TERM "$GATEWAY_PID" 2>/dev/null || true
     fi
-    
+
     if [[ -n "$HEALTH_PID" ]] && kill -0 "$HEALTH_PID" 2>/dev/null; then
         log "Stopping health server (PID $HEALTH_PID)..."
         kill -TERM "$HEALTH_PID" 2>/dev/null || true
     fi
-    
+
     log "Shutdown complete"
     exit 0
 }
@@ -277,7 +326,7 @@ trap shutdown SIGTERM SIGINT EXIT
 LLAMA_ARGS=(
     -m "$MODEL"
     --host "$HOST"
-    --port "$BACKEND_PORT"
+    --port "$PORT_BACKEND"
     -c "$CTX"
     -ngl "$NGL"
 )
@@ -306,10 +355,11 @@ log "Command: $LLAMA_BIN ${LLAMA_ARGS[*]}"
 if [[ -d "$DATA_DIR" ]]; then
     LLAMA_LOG_DIR="$LOG_DIR/$LOG_NAME"
     mkdir -p "$LLAMA_LOG_DIR" 2>/dev/null || true
-    LLAMA_LOG="$LLAMA_LOG_DIR/server_${INSTANCE_ID}_$(date +%Y%m%d_%H%M%S).log"
+    # Timestamp-first format for chronological sorting
+    LLAMA_LOG="$LLAMA_LOG_DIR/$(date +%Y%m%d_%H%M%S)_server_${INSTANCE_ID}.log"
     echo "$LLAMA_LOG" > "$LLAMA_LOG_DIR/latest.txt" 2>/dev/null || true
     log "Log file: $LLAMA_LOG"
-    
+
     # Start with output to both console and file
     "$LLAMA_BIN" "${LLAMA_ARGS[@]}" 2>&1 | tee -a "$LLAMA_LOG" &
     LLAMA_PID=$!
@@ -328,13 +378,13 @@ if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
     # Try to get exit code
     wait "$LLAMA_PID" 2>/dev/null || true
     EXIT_CODE=$?
-    
+
     log ""
     log "========================================"
     log "FATAL: llama-server failed to start"
     log "========================================"
     log "Exit code: $EXIT_CODE"
-    
+
     case $EXIT_CODE in
         0)   log "Exit 0 but process gone - check logs above" ;;
         1)   log "General error - check model path and arguments" ;;
@@ -344,7 +394,7 @@ if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
         139) log "SIGSEGV - segmentation fault" ;;
         *)   log "Unknown exit code" ;;
     esac
-    
+
     exit 1
 fi
 
@@ -387,13 +437,19 @@ if [[ ! -f "$GATEWAY_PY" ]]; then
     die "Gateway not found: $GATEWAY_PY"
 fi
 
-GATEWAY_PORT="$PORT" \
-BACKEND_HOST="127.0.0.1" \
-BACKEND_PORT="$BACKEND_PORT" \
+# Export environment for gateway
+export GATEWAY_PORT="$PORT"
+export BACKEND_HOST="127.0.0.1"
+export PORT_BACKEND="$PORT_BACKEND"
+export AUTH_ENABLED="$AUTH_ENABLED"
+export AUTH_KEYS_FILE="$AUTH_KEYS_FILE"
+export MAX_REQUESTS_PER_MINUTE="$MAX_REQUESTS_PER_MINUTE"
+export DATA_DIR="$DATA_DIR"
+
 python3 -u "$GATEWAY_PY" &
 GATEWAY_PID=$!
 
-log "Gateway PID: $GATEWAY_PID (port $PORT -> backend $BACKEND_PORT)"
+log "Gateway PID: $GATEWAY_PID (port $PORT -> backend $PORT_BACKEND)"
 
 sleep 1
 
@@ -410,20 +466,31 @@ log ""
 log "========================================"
 log "Services running"
 log "========================================"
-log "llama-server:   PID $LLAMA_PID (port $BACKEND_PORT)"
+log "llama-server:   PID $LLAMA_PID (port $PORT_BACKEND)"
 log "gateway:        PID $GATEWAY_PID (port $PORT)"
 if [[ -n "$HEALTH_PID" ]]; then
     log "health server:  PID $HEALTH_PID (port $PORT_HEALTH)"
 fi
 log ""
 log "Endpoints:"
-log "  Health:      http://0.0.0.0:$PORT/ping"
-log "  Status:      http://0.0.0.0:$PORT/health"
-log "  Chat:        http://0.0.0.0:$PORT/v1/chat/completions"
-log "  Completions: http://0.0.0.0:$PORT/v1/completions"
+log "  Health (no auth):  http://0.0.0.0:$PORT/ping"
+log "  Status (no auth):  http://0.0.0.0:$PORT/health"
+log "  Metrics (no auth): http://0.0.0.0:$PORT/metrics"
+if is_truthy "$AUTH_ENABLED"; then
+    log "  Chat (auth req):   http://0.0.0.0:$PORT/v1/chat/completions"
+    log "  Complete (auth):   http://0.0.0.0:$PORT/v1/completions"
+else
+    log "  Chat (no auth):    http://0.0.0.0:$PORT/v1/chat/completions"
+    log "  Complete (no auth): http://0.0.0.0:$PORT/v1/completions"
+fi
 if [[ -n "$HEALTH_PID" ]]; then
     log ""
     log "Platform health checks should use: http://0.0.0.0:$PORT_HEALTH/"
+fi
+if [[ -n "$WORKER_TYPE" ]]; then
+    log ""
+    log "Worker type: $WORKER_TYPE"
+    log "Logs directory: $LOG_DIR/$LOG_NAME/"
 fi
 log ""
 log "Waiting for processes..."
