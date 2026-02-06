@@ -87,6 +87,24 @@ If missing, verify:
 - GPU is allocated to the endpoint/pod
 - NVIDIA drivers are loaded
 
+### Worker Won't Scale to Zero (Serverless)
+
+**Symptoms:** Worker stays "active" even with no requests
+
+**Fix:** Separate health checks from API traffic
+```bash
+# In RunPod endpoint settings:
+# 1. Set Active Workers = 0
+# 2. Set Idle Timeout = 5 (seconds)
+# 3. Expose ports: 8000, 8001
+# 4. Set PORT_HEALTH environment variable:
+PORT_HEALTH=8001
+
+# 5. Configure RunPod health checks to use port 8001
+```
+
+**Why this works:** Platform health checks on a separate port don't count as "activity" for idle timeout purposes, allowing proper scale-to-zero behavior.
+
 ---
 
 ## Exit Code Reference
@@ -121,10 +139,12 @@ Where `<volume>` is:
 
 | Endpoint | Response | Meaning |
 |----------|----------|---------|
-| `GET /ping` | 200 | Ready |
-| `GET /ping` | 204 | Still loading |
-| `GET /health` | JSON | Detailed status |
+| `GET /ping` | 200 | Quick health check (no backend probe) |
+| `GET /health` | JSON | Detailed status with backend info |
 | `GET /metrics` | JSON | Request stats |
+| Port 8001 (PORT_HEALTH) | 200 | Platform health checks (use this for serverless) |
+
+**Note:** For serverless deployments, configure your platform to use `PORT_HEALTH` (8001) for health checks instead of `/ping`. This enables proper scale-to-zero behavior by separating platform monitoring from actual API traffic.
 
 ---
 
