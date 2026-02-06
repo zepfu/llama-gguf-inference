@@ -78,11 +78,11 @@ test_fail() {
 
 test_ping_endpoint() {
     test_start "/ping endpoint is accessible"
-    
+
     local response
     response=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/ping" 2>&1 || echo "error")
     verbose "  Response code: $response"
-    
+
     if [[ "$response" == "200" ]]; then
         test_pass
     else
@@ -93,30 +93,30 @@ test_ping_endpoint() {
 
 test_health_endpoint() {
     test_start "/health endpoint returns valid JSON"
-    
+
     local response http_code body
     body=$(curl -s -w "\n%{http_code}" "$GATEWAY_URL/health" 2>&1 || echo "error")
     http_code=$(echo "$body" | tail -1)
     body=$(echo "$body" | head -n -1)
-    
+
     verbose "  Response code: $http_code"
-    
+
     if [[ "$http_code" != "200" ]]; then
         test_fail "Expected 200, got $http_code"
         return 1
     fi
-    
+
     # Check if response is valid JSON
     if echo "$body" | jq . >/dev/null 2>&1; then
         verbose "  Valid JSON response"
-        
+
         # Check for expected fields
         if echo "$body" | jq -e '.gateway' >/dev/null 2>&1; then
             verbose "  Contains 'gateway' field"
         else
             warn "Missing 'gateway' field in response"
         fi
-        
+
         test_pass
     else
         test_fail "Response is not valid JSON"
@@ -127,30 +127,30 @@ test_health_endpoint() {
 
 test_metrics_endpoint() {
     test_start "/metrics endpoint returns valid JSON"
-    
+
     local response http_code body
     body=$(curl -s -w "\n%{http_code}" "$GATEWAY_URL/metrics" 2>&1 || echo "error")
     http_code=$(echo "$body" | tail -1)
     body=$(echo "$body" | head -n -1)
-    
+
     verbose "  Response code: $http_code"
-    
+
     if [[ "$http_code" != "200" ]]; then
         test_fail "Expected 200, got $http_code"
         return 1
     fi
-    
+
     # Check if response is valid JSON
     if echo "$body" | jq . >/dev/null 2>&1; then
         verbose "  Valid JSON response"
-        
+
         # Check for expected fields
         if echo "$body" | jq -e '.gateway' >/dev/null 2>&1; then
             verbose "  Contains 'gateway' field"
         else
             warn "Missing 'gateway' field in response"
         fi
-        
+
         test_pass
     else
         test_fail "Response is not valid JSON"
@@ -161,11 +161,11 @@ test_metrics_endpoint() {
 
 test_health_server() {
     test_start "Health server (PORT_HEALTH) is accessible"
-    
+
     local response
     response=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL/" 2>&1 || echo "error")
     verbose "  Response code: $response"
-    
+
     if [[ "$response" == "200" ]]; then
         verbose "  Health server responding on $HEALTH_URL"
         test_pass
@@ -180,18 +180,18 @@ test_health_server() {
 
 test_health_no_auth_required() {
     test_start "Health endpoints work without Authorization header"
-    
+
     # These should all work without any auth header
     local ping_response health_response metrics_response
-    
+
     ping_response=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/ping" 2>&1)
     health_response=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/health" 2>&1)
     metrics_response=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/metrics" 2>&1)
-    
+
     verbose "  /ping: $ping_response"
     verbose "  /health: $health_response"
     verbose "  /metrics: $metrics_response"
-    
+
     if [[ "$ping_response" == "200" ]] && [[ "$health_response" == "200" ]] && [[ "$metrics_response" == "200" ]]; then
         verbose "  All health endpoints accessible without auth"
         test_pass
@@ -203,14 +203,14 @@ test_health_no_auth_required() {
 
 test_health_with_auth_header() {
     test_start "Health endpoints work even with invalid auth header"
-    
+
     # Health endpoints should work regardless of Authorization header
     local response
     response=$(curl -s -o /dev/null -w "%{http_code}" \
         -H "Authorization: Bearer invalid-key-12345" \
         "$GATEWAY_URL/ping" 2>&1)
     verbose "  /ping with invalid auth: $response"
-    
+
     if [[ "$response" == "200" ]]; then
         verbose "  Health endpoint bypasses auth (correct behavior)"
         test_pass
@@ -231,19 +231,19 @@ main() {
     log "Gateway URL: $GATEWAY_URL"
     log "Health URL:  $HEALTH_URL"
     log ""
-    
+
     # Check if gateway is accessible
     if ! curl -s -f -o /dev/null "$GATEWAY_URL/ping" 2>/dev/null; then
         error "Gateway not accessible at $GATEWAY_URL"
         error "Start the service first or set GATEWAY_URL"
         exit 1
     fi
-    
+
     # Check for jq (needed for JSON validation)
     if ! command -v jq >/dev/null 2>&1; then
         warn "jq not found - JSON validation will be skipped"
     fi
-    
+
     # Run tests
     test_ping_endpoint
     test_health_endpoint
@@ -251,7 +251,7 @@ main() {
     test_health_server
     test_health_no_auth_required
     test_health_with_auth_header
-    
+
     # Summary
     log ""
     log "========================================"
@@ -260,7 +260,7 @@ main() {
     log "Tests run:    $TESTS_RUN"
     log "Tests passed: $TESTS_PASSED"
     log "Tests failed: $TESTS_FAILED"
-    
+
     if [[ $TESTS_FAILED -eq 0 ]]; then
         log ""
         log "${GREEN}✓ All tests passed!${NC}"

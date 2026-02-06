@@ -144,7 +144,7 @@ if [[ -d "$DATA_DIR" ]] || mkdir -p "$DATA_DIR" 2>/dev/null; then
     # Timestamp-first format for chronological sorting
     BOOT_LOG="$BOOT_DIR/$(date +%Y%m%d_%H%M%S)_boot_${INSTANCE_ID}.log"
     echo "$BOOT_LOG" > "$BOOT_DIR/latest.txt" 2>/dev/null || true
-    
+
     # Mirror output to boot log
     exec > >(tee -a "$BOOT_LOG") 2>&1 || true
 fi
@@ -187,7 +187,7 @@ resolve_model() {
         echo "$MODEL_PATH"
         return 0
     fi
-    
+
     # If MODEL_NAME is set, look in MODELS_DIR
     if [[ -n "$MODEL_NAME" ]]; then
         if [[ -z "$MODELS_DIR" ]]; then
@@ -196,7 +196,7 @@ resolve_model() {
         echo "$MODELS_DIR/$MODEL_NAME"
         return 0
     fi
-    
+
     # No model specified
     return 1
 }
@@ -279,40 +279,40 @@ shutdown() {
         return
     fi
     SHUTDOWN_IN_PROGRESS=1
-    
+
     log ""
     log "========================================"
     log "Shutdown signal received"
     log "========================================"
-    
+
     # Give llama-server time to finish in-flight requests
     if [[ -n "$LLAMA_PID" ]] && kill -0 "$LLAMA_PID" 2>/dev/null; then
         log "Sending SIGTERM to llama-server (PID $LLAMA_PID)..."
         kill -TERM "$LLAMA_PID" 2>/dev/null || true
-        
+
         # Wait up to 30 seconds for graceful shutdown
         local count=0
         while kill -0 "$LLAMA_PID" 2>/dev/null && [[ $count -lt 30 ]]; do
             sleep 1
             ((count++))
         done
-        
+
         if kill -0 "$LLAMA_PID" 2>/dev/null; then
             log "llama-server didn't exit gracefully, sending SIGKILL..."
             kill -KILL "$LLAMA_PID" 2>/dev/null || true
         fi
     fi
-    
+
     if [[ -n "$GATEWAY_PID" ]] && kill -0 "$GATEWAY_PID" 2>/dev/null; then
         log "Stopping gateway (PID $GATEWAY_PID)..."
         kill -TERM "$GATEWAY_PID" 2>/dev/null || true
     fi
-    
+
     if [[ -n "$HEALTH_PID" ]] && kill -0 "$HEALTH_PID" 2>/dev/null; then
         log "Stopping health server (PID $HEALTH_PID)..."
         kill -TERM "$HEALTH_PID" 2>/dev/null || true
     fi
-    
+
     log "Shutdown complete"
     exit 0
 }
@@ -359,7 +359,7 @@ if [[ -d "$DATA_DIR" ]]; then
     LLAMA_LOG="$LLAMA_LOG_DIR/$(date +%Y%m%d_%H%M%S)_server_${INSTANCE_ID}.log"
     echo "$LLAMA_LOG" > "$LLAMA_LOG_DIR/latest.txt" 2>/dev/null || true
     log "Log file: $LLAMA_LOG"
-    
+
     # Start with output to both console and file
     "$LLAMA_BIN" "${LLAMA_ARGS[@]}" 2>&1 | tee -a "$LLAMA_LOG" &
     LLAMA_PID=$!
@@ -378,13 +378,13 @@ if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
     # Try to get exit code
     wait "$LLAMA_PID" 2>/dev/null || true
     EXIT_CODE=$?
-    
+
     log ""
     log "========================================"
     log "FATAL: llama-server failed to start"
     log "========================================"
     log "Exit code: $EXIT_CODE"
-    
+
     case $EXIT_CODE in
         0)   log "Exit 0 but process gone - check logs above" ;;
         1)   log "General error - check model path and arguments" ;;
@@ -394,7 +394,7 @@ if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
         139) log "SIGSEGV - segmentation fault" ;;
         *)   log "Unknown exit code" ;;
     esac
-    
+
     exit 1
 fi
 
