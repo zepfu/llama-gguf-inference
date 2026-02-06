@@ -20,7 +20,7 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
      -e AUTH_ENABLED=false \
      -p 8000:8000 \
      ghcr.io/zepfu/llama-gguf-inference
-
+   
    # For production (auth enabled - recommended)
    docker run --gpus all \
      -v /path/to/models:/data/models \
@@ -41,7 +41,7 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
        "model": "any",
        "messages": [{"role": "user", "content": "Hello!"}]
      }'
-
+   
    # Without authentication (testing only, if AUTH_ENABLED=false)
    curl http://localhost:8000/v1/chat/completions \
      -H "Content-Type: application/json" \

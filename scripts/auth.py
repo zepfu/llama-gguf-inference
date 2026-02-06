@@ -26,7 +26,7 @@ Environment Variables:
 
 Keys File Format:
     key_id:api_key
-
+    
     Example:
         production:sk-prod-abc123def456
         alice-laptop:sk-alice-xyz789
@@ -83,7 +83,7 @@ class APIKeyValidator:
         File format:
             key_id:api_key
             # Comments allowed
-
+            
         Returns:
             dict mapping api_key -> key_id for reverse lookup
             Example: {"sk-prod-abc123": "production", "sk-alice-xyz": "alice-laptop"}
