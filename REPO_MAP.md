@@ -29,7 +29,8 @@ llama-gguf-inference/
 │   ├── CONFIGURATION.md
 │   ├── TESTING.md
 │   ├── TROUBLESHOOTING.md
-│   └── conf.py
+│   ├── conf.py
+│   └── index.rst
 └── scripts/
     ├── ⭐ README.md
     ├── ⭐ auth.py
