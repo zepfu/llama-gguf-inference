@@ -49,6 +49,9 @@ if [ "${MOCK_BACKEND:-false}" = "true" ]; then
     export DATA_DIR="${DATA_DIR:-/data}"
     export PORT_HEALTH="${PORT_HEALTH:-8001}"
 
+    # Ensure Python can find auth.py and other scripts
+    export PYTHONPATH="/opt/app/scripts:${PYTHONPATH:-}"
+
     # Start health server (for platform health checks)
     HEALTH_SERVER_PY="/opt/app/scripts/health_server.py"
     if [ -f "$HEALTH_SERVER_PY" ]; then
