@@ -19,7 +19,7 @@ help:  ## Display this help
 
 setup:  ## First-time setup (install pre-commit, set permissions)
 	@echo "$(GREEN)Setting up development environment...$(NC)"
-	@command -v pre-commit >/dev/null 2>&1 || { echo "Installing pre-commit..."; pip install pre-commit; }
+	@command -v pre-commit >/dev/null 2>&1 || { echo "Installing pre-commit..."; python3 -m pip install --user pre-commit; }
 	@pre-commit install --hook-type pre-commit --hook-type pre-push
 	@chmod +x scripts/**/*.sh 2>/dev/null || true
 	@chmod +x scripts/**/*.py 2>/dev/null || true
@@ -71,7 +71,7 @@ check:  ## Run all pre-commit checks
 
 ##@ Documentation
 
-docs: map changelog  ## Update all documentation
+docs: map changelog  ## Update all documentation locally
 	@echo "$(GREEN)✓ All documentation updated$(NC)"
 
 map:  ## Generate repository structure map
@@ -83,6 +83,9 @@ changelog:  ## Generate changelog from git history
 	@echo "Generating CHANGELOG.md..."
 	@curl -fsSL $(REPO_STANDARDS_URL)/changelog.py | $(PYTHON) - --from-git --with-commits --output CHANGELOG.md
 	@echo "$(GREEN)✓ Generated CHANGELOG.md$(NC)"
+
+update-docs:  ## 🚀 Quick: Update docs and create PR automatically
+	@$(MAKE) trigger-docs-update
 
 api-docs:  ## Generate API documentation with Sphinx
 	@echo "Generating API documentation..."
@@ -153,3 +156,14 @@ sync-configs:  ## Sync config files from repo-standards
 	@echo "$(GREEN)Syncing config files...$(NC)"
 	@curl -fsSL https://raw.githubusercontent.com/zepfu/repo-standards/main/scripts/sync-configs.sh | bash
 	@echo "$(GREEN)✓ Configs synced$(NC)"
+
+trigger-docs-update:  ## Trigger documentation update workflow (requires gh CLI)
+	@echo "$(GREEN)Triggering documentation update workflow...$(NC)"
+	@if command -v gh >/dev/null 2>&1; then \
+		gh workflow run update-docs.yml; \
+		echo "$(GREEN)✓ Workflow triggered! Check Actions tab for progress.$(NC)"; \
+	else \
+		echo "$(RED)✗ GitHub CLI (gh) not installed$(NC)"; \
+		echo "Install: https://cli.github.com/"; \
+		echo "Or trigger manually at: https://github.com/$$(git config --get remote.origin.url | sed 's/.*://;s/.git$$//')/actions/workflows/update-docs.yml"; \
+	fi
