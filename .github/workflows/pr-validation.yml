@@ -1,0 +1,76 @@
+---
+name: PR Validation
+
+on:
+  pull_request:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+
+jobs:
+  # Organization standards (from repo-standards @main)
+  enforce-pre-commit:
+    name: Enforce Pre-commit Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main
+    with:
+      python-version: '3.11'
+
+  enforce-configs:
+    name: Enforce Config Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main
+
+  # Project-specific validation
+  validate-project:
+    name: Validate Project Files
+    runs-on: ubuntu-latest
+    needs: [enforce-configs]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for required files
+        run: |
+          REQUIRED_FILES=(
+            "scripts/gateway.py"
+            "scripts/auth.py"
+            "scripts/start.sh"
+            "Dockerfile"
+          )
+
+          MISSING=()
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              MISSING+=("$file")
+            fi
+          done
+
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "ERROR: Required files missing:"
+            printf '  - %s\n' "${MISSING[@]}"
+            exit 1
+          fi
+
+          echo "SUCCESS: All required files present"
+
+      - name: Validate Docker configuration
+        run: |
+          REQUIRED_PORTS=("8000" "8001")
+
+          for port in "${REQUIRED_PORTS[@]}"; do
+            if ! grep -q "EXPOSE $port" Dockerfile; then
+              echo "ERROR: Dockerfile must expose port $port"
+              exit 1
+            fi
+          done
+
+          echo "SUCCESS: Docker configuration valid"
+
+  test-docker-build:
+    name: Test Docker Build
+    uses: zepfu/repo-standards/.github/workflows/reusable-docker-build.yml@main
+    needs: validate-project
+    with:
+      platforms: 'linux/amd64'
+      push: false

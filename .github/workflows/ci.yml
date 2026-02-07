@@ -1,0 +1,68 @@
+---
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+
+jobs:
+  # Organization standards (from repo-standards @main)
+  config-validation:
+    name: Config Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main
+
+  python-standards:
+    name: Python Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-python-ci.yml@main
+    with:
+      python-version: '3.11'
+
+  shell-standards:
+    name: Shell Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-shell-ci.yml@main
+    with:
+      severity: 'error'
+      shellcheck-version: 'v0.9.0'
+
+  docker-build-test:
+    name: Docker Build Test
+    uses: zepfu/repo-standards/.github/workflows/reusable-docker-build.yml@main
+    with:
+      platforms: 'linux/amd64'
+      push: false
+
+  # Project-specific tests
+  project-tests:
+    name: Project-Specific Tests
+    runs-on: ubuntu-latest
+    needs: [python-standards, shell-standards]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run authentication tests
+        run: |
+          if [ -f scripts/tests/test_auth.sh ]; then
+            bash scripts/tests/test_auth.sh --quick
+          else
+            echo "WARNING:  test_auth.sh not found, skipping"
+          fi
+
+      - name: Run health check tests
+        run: |
+          if [ -f scripts/tests/test_health.sh ]; then
+            bash scripts/tests/test_health.sh --quick
+          else
+            echo "WARNING:  test_health.sh not found, skipping"
+          fi

@@ -1,8 +1,9 @@
-name: Build and Publish
+---
+name: Publish Docker Image
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "main"]
     paths:
       - "Dockerfile"
       - "scripts/**"
@@ -14,32 +15,27 @@ permissions:
   packages: write
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+  # Enforce standards before publishing
+  pre-publish-validation:
+    name: Pre-publish Validation
+    uses: zepfu/repo-standards/.github/workflows/reusable-python-ci.yml@main
+    with:
+      python-version: '3.11'
 
-      - name: ShellCheck
-        uses: ludeeus/action-shellcheck@2.0.0
-        with:
-          scandir: "./scripts"
-          check_together: "yes"
-          severity: error
-          version: "v0.9.0"
+  shell-validation:
+    name: Shell Validation
+    uses: zepfu/repo-standards/.github/workflows/reusable-shell-ci.yml@main
+    with:
+      severity: 'error'
 
-      - name: Python syntax check
-        run: |
-          python3 -m py_compile scripts/gateway.py
-
+  # Build and publish
   build-and-push:
-    name: Build & Push
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: lint
+    needs: [pre-publish-validation, shell-validation]
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
