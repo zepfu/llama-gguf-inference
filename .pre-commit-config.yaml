@@ -4,7 +4,6 @@
 # Setup: pre-commit install
 # Run manually: pre-commit run --all-files
 
-# Suppress deprecation warnings from upstream repos
 default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
@@ -25,12 +24,12 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
 
-  # Shell script linting - WARNINGS ONLY
+  # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.9.0.6
     hooks:
       - id: shellcheck
-        args: ['-x', '--severity=error']  # Only fail on errors, not warnings
+        args: ['-x', '--severity=error']
 
   # Python formatting (Black)
   - repo: https://github.com/psf/black
@@ -47,30 +46,48 @@ repos:
       - id: isort
         args: ['--profile=black', '--line-length=100']
 
-  # Python linting (Flake8) - RELAXED
+  # Python linting (Flake8)
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
         args: [
-          '--max-line-length=120',           # Relaxed from 100
-          '--extend-ignore=E203,W503',       # Black compatibility
-          '--max-complexity=20'              # Relaxed from 15
+          '--max-line-length=120',
+          '--extend-ignore=E203,W503',
+          '--max-complexity=20'
         ]
 
-  # YAML linting - RELAXED
+  # YAML linting
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
       - id: yamllint
         args: ['-d', '{extends: relaxed, rules: {line-length: {max: 150}}}']
 
-  # Local tests (quick validation only)
+  # Local project-specific hooks
   - repo: local
     hooks:
-      - id: test-auth-syntax
-        name: Test Auth Script Syntax
-        entry: bash -n scripts/tests/test_auth.sh
+      # Check repository map is current
+      - id: check-repo-map
+        name: Check repository map is current
+        entry: bash scripts/dev/check_repo_map.sh
         language: system
         pass_filenames: false
-        files: scripts/tests/test_auth\.sh
+        files: '^(scripts/|docs/|Dockerfile|\.github/)'
+
+      # Check environment variable completeness
+      - id: check-env-completeness
+        name: Check environment variables
+        entry: bash scripts/dev/check_env_completeness.sh
+        language: system
+        pass_filenames: false
+        files: '^(scripts/start\.sh|\.env\.example|docs/CONFIGURATION\.md)'
+
+      # Check changelog currency (warning only)
+      - id: check-changelog
+        name: Check changelog is current (warning)
+        entry: bash scripts/dev/check_changelog.sh
+        language: system
+        pass_filenames: false
+        files: '^scripts/'
+        stages: [pre-push]
