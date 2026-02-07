@@ -4,12 +4,14 @@ name: Documentation Quality
 on:
   pull_request:
     paths:
-      - 'scripts/**'
-      - 'docs/**'
-      - 'Dockerfile'
-      - '.env.example'
+      # Only run when docs might be affected
       - 'REPO_MAP.md'
       - 'CHANGELOG.md'
+      - '.env.example'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'Dockerfile'
+      - '.github/workflows/docs-quality.yml'
   push:
     branches: ["main"]
 
