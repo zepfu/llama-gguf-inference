@@ -78,9 +78,13 @@ jobs:
           mkdir -p /tmp/test-data/models
           mkdir -p /tmp/test-data/logs
 
-          # Create test API keys
-          echo "testing:sk-test-12345" > /tmp/test-data/api_keys.txt
-          echo "loadtest:sk-load-67890" >> /tmp/test-data/api_keys.txt
+          # Create test API keys (MUST be 16+ characters for auth.py validation)
+          # Format: key_id:api_key
+          echo "testing:sk-test-1234567890abcdef" > /tmp/test-data/api_keys.txt
+          echo "loadtest:sk-load-abcdef1234567890" >> /tmp/test-data/api_keys.txt
+
+          # Verify keys are valid
+          cat /tmp/test-data/api_keys.txt
 
           # Create mock model file (empty, just for validation)
           touch /tmp/test-data/models/test-model.gguf
@@ -93,7 +97,6 @@ jobs:
             -e MODEL_NAME=test-model.gguf \
             -e AUTH_ENABLED=true \
             -e AUTH_KEYS_FILE=/data/api_keys.txt \
-            -e NGL=0 \
             -e MOCK_BACKEND=true \
             -p 8000:8000 \
             llama-gguf-inference:test
@@ -128,6 +131,7 @@ jobs:
             echo "SUCCESS: Correctly rejected unauthenticated request"
           else
             echo "ERROR: Expected 401, got $STATUS"
+            docker logs llama-test
             exit 1
           fi
 
@@ -135,16 +139,17 @@ jobs:
         run: |
           echo "Testing request with valid API key..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer sk-test-12345" \
+            -H "Authorization: Bearer sk-test-1234567890abcdef" \
             http://localhost:8000/v1/chat/completions \
             -H "Content-Type: application/json" \
             -d '{"model":"test","messages":[{"role":"user","content":"test"}]}')
 
           if [ "$STATUS" = "200" ] || [ "$STATUS" = "502" ]; then
             echo "SUCCESS: Auth layer passed request (status: $STATUS)"
-            echo "Note: 502 expected if mock backend not implemented yet"
+            echo "Note: 502 expected since mock backend is not running"
           else
             echo "ERROR: Expected 200 or 502, got $STATUS"
+            docker logs llama-test
             exit 1
           fi
 
