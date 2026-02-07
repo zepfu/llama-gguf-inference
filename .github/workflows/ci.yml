@@ -29,16 +29,8 @@ jobs:
       severity: 'error'
       shellcheck-version: 'v0.9.0'
 
-  docker-build-test:
-    name: Docker Build Test
-    uses: zepfu/repo-standards/.github/workflows/reusable-docker-build.yml@main
-    with:
-      platforms: 'linux/amd64'
-      push: false
-
-  # Project-specific tests
-  project-tests:
-    name: Project-Specific Tests
+  docker-build:
+    name: Docker Build
     runs-on: ubuntu-latest
     needs: [python-standards, shell-standards]
 
@@ -46,23 +38,131 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
         with:
-          python-version: '3.11'
+          context: .
+          push: false
+          tags: llama-gguf-inference:test
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Run authentication tests
+  integration-test:
+    name: Integration Test (Mock Backend)
+    runs-on: ubuntu-latest
+    needs: docker-build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: llama-gguf-inference:test
+          load: true
+          cache-from: type=gha
+
+      - name: Create test environment
         run: |
-          if [ -f scripts/tests/test_auth.sh ]; then
-            bash scripts/tests/test_auth.sh --quick
+          # Create test directories
+          mkdir -p /tmp/test-data/models
+          mkdir -p /tmp/test-data/logs
+
+          # Create test API keys
+          echo "testing:sk-test-12345" > /tmp/test-data/api_keys.txt
+          echo "loadtest:sk-load-67890" >> /tmp/test-data/api_keys.txt
+
+          # Create mock model file (empty, just for validation)
+          touch /tmp/test-data/models/test-model.gguf
+
+      - name: Start container with mock backend
+        run: |
+          docker run -d \
+            --name llama-test \
+            -v /tmp/test-data:/data \
+            -e MODEL_NAME=test-model.gguf \
+            -e AUTH_ENABLED=true \
+            -e AUTH_KEYS_FILE=/data/api_keys.txt \
+            -e NGL=0 \
+            -e MOCK_BACKEND=true \
+            -p 8000:8000 \
+            llama-gguf-inference:test
+
+          echo "Container started, waiting for ready..."
+          sleep 10
+
+      - name: Check container logs
+        run: |
+          echo "=== Container logs ==="
+          docker logs llama-test
+
+      - name: Test health endpoints (no auth required)
+        run: |
+          echo "Testing /ping..."
+          curl -f http://localhost:8000/ping || exit 1
+          echo "SUCCESS: /ping works"
+
+          echo "Testing /health..."
+          curl -f http://localhost:8000/health || exit 1
+          echo "SUCCESS: /health works"
+
+      - name: Test auth rejection (no key)
+        run: |
+          echo "Testing request without API key (should fail)..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            http://localhost:8000/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -d '{"model":"test","messages":[{"role":"user","content":"test"}]}')
+
+          if [ "$STATUS" = "401" ]; then
+            echo "SUCCESS: Correctly rejected unauthenticated request"
           else
-            echo "WARNING:  test_auth.sh not found, skipping"
+            echo "ERROR: Expected 401, got $STATUS"
+            exit 1
           fi
 
-      - name: Run health check tests
+      - name: Test auth acceptance (valid key)
         run: |
-          if [ -f scripts/tests/test_health.sh ]; then
-            bash scripts/tests/test_health.sh --quick
+          echo "Testing request with valid API key..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer sk-test-12345" \
+            http://localhost:8000/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -d '{"model":"test","messages":[{"role":"user","content":"test"}]}')
+
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "502" ]; then
+            echo "SUCCESS: Auth layer passed request (status: $STATUS)"
+            echo "Note: 502 expected if mock backend not implemented yet"
           else
-            echo "WARNING:  test_health.sh not found, skipping"
+            echo "ERROR: Expected 200 or 502, got $STATUS"
+            exit 1
           fi
+
+      - name: Check logs were created
+        run: |
+          echo "Checking for log files..."
+          docker exec llama-test ls -la /data/logs/
+
+          if docker exec llama-test test -d /data/logs/llama; then
+            echo "SUCCESS: Log directory created"
+            docker exec llama-test ls -la /data/logs/llama/
+          else
+            echo "WARNING: No logs directory yet"
+          fi
+
+      - name: Stop container
+        if: always()
+        run: |
+          docker logs llama-test
+          docker stop llama-test
+          docker rm llama-test
