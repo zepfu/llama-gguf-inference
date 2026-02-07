@@ -1,0 +1,7 @@
+# Sphinx and theme
+sphinx>=7.0
+sphinx-rtd-theme>=2.0
+
+# Optional: Add these if you use them
+# sphinx-autodoc-typehints
+# myst-parser  # For Markdown support in Sphinx
