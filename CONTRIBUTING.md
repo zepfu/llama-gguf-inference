@@ -1,301 +1,261 @@
-# Contributing to llama-gguf-inference
 
-Thank you for your interest in contributing! This guide will help you get started.
+## Documentation Automation
 
-## Development Setup
+### Repository Map
 
-### Prerequisites
+The repository structure is automatically documented in `REPO_MAP.md`.
 
-- Git
-- Docker (for testing containers)
-- Python 3.11+
-- pre-commit
+**Automatic Updates:**
+- Weekly via GitHub Action (Monday 9 AM UTC)
+- Creates PR if changes detected
+- Auto-merges if CI passes
 
-### Initial Setup
+**Manual Update:**
+```bash
+make map
+```
+
+**Pre-commit Check:**
+The pre-commit hook will fail if REPO_MAP.md is outdated.
+
+### Changelog
+
+Changelog is generated from git commit history using conventional commits.
+
+**Automatic Updates:**
+- Weekly via GitHub Action
+- Includes commit links
+- Groups by change type (Added, Fixed, Changed, etc.)
+
+**Manual Update:**
+```bash
+make changelog
+```
+
+**Conventional Commit Format:**
+```
+feat: add new feature
+fix: fix bug
+docs: update documentation
+refactor: refactor code
+test: add tests
+```
+
+**Commit Types Mapping:**
+- `feat:` → Added
+- `fix:` → Fixed
+- `docs:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`, `chore:` → Changed
+
+### API Documentation
+
+Generate API documentation from Python docstrings:
 
 ```bash
-# 1. Clone repository with submodules
-git clone --recursive https://github.com/zepfu/llama-gguf-inference.git
-cd llama-gguf-inference
-
-# 2. Set executable permissions for scripts (one-time setup)
-bash set_permissions.sh
-git add -u
-git commit -m "Set executable permissions"
-
-# 3. Install pre-commit
-pip install pre-commit
-
-# 4. Install git hooks
-pre-commit install
-
-# 5. Test pre-commit
-pre-commit run --all-files
+make api-docs
 ```
 
-**Note:** After step 2, Git will track executable permissions. Anyone who clones after you push won't need to run `set_permissions.sh`.
-
-## Development Workflow
-
-### Making Changes
-
+Requires Sphinx:
 ```bash
-# 1. Create feature branch
-git checkout -b feature/your-feature-name
-
-# 2. Make your changes
-# Edit files...
-
-# 3. Test locally
-bash scripts/tests/test_auth.sh
-bash scripts/tests/test_health.sh
-
-# 4. Commit (pre-commit hooks run automatically)
-git add .
-git commit -m "feat: Add new feature"
-
-# 5. Push
-git push origin feature/your-feature-name
-
-# 6. Create Pull Request
+pip install sphinx sphinx-rtd-theme
 ```
 
-### Commit Messages
+## Development Workflows
 
-Follow conventional commits format:
+### Weekly Automation
 
+Every Monday at 9 AM UTC, a GitHub Action:
+1. Generates updated REPO_MAP.md
+2. Generates updated CHANGELOG.md
+3. Creates PR if changes detected
+4. Auto-merges if CI passes
+
+You can also trigger manually:
+```bash
+# Via GitHub UI: Actions → Update Documentation → Run workflow
+
+# Or via CLI
+gh workflow run update-docs.yml
 ```
-feat: Add new feature
-fix: Fix bug in gateway
-docs: Update README
-refactor: Refactor auth module
-test: Add tests for health endpoints
-chore: Update dependencies
-```
-
-## Code Quality
 
 ### Pre-commit Hooks
 
-Pre-commit hooks run automatically before each commit:
+Three project-specific hooks run automatically:
 
-- **Black** - Python code formatting (100 char lines)
-- **isort** - Import sorting
-- **Flake8** - Python linting
-- **ShellCheck** - Bash linting
-- **markdownlint** - Markdown formatting
+1. **check-repo-map** - Fails if REPO_MAP.md outdated
+2. **check-env-completeness** - Validates env var docs
+3. **check-changelog** - Warns if CHANGELOG.md outdated (pre-push only)
 
-### Manual Checks
-
+To bypass (not recommended):
 ```bash
-# Run all pre-commit hooks
-pre-commit run --all-files
-
-# Run specific checks
-black scripts/*.py
-flake8 scripts/*.py
-shellcheck scripts/*.sh
+git commit --no-verify
 ```
 
-### Python Style
+### Testing Strategy
 
-```python
-# Line length: 100 characters
-# Docstrings: Use """triple quotes"""
-# Type hints: Encouraged
-# Imports: Sorted by isort
-
-def process_request(
-    method: str,
-    path: str,
-    headers: dict,
-) -> Response:
-    """
-    Process an HTTP request.
-
-    Args:
-        method: HTTP method (GET, POST, etc.)
-        path: Request path
-        headers: Request headers
-
-    Returns:
-        Response object
-    """
-    pass
-```
-
-### Bash Style
-
+**Quick Tests:**
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Quote all variables
-echo "$VARIABLE"
-
-# Use [[ ]] for tests
-if [[ "$VAR" == "value" ]]; then
-    # ...
-fi
-
-# Use functions for complex logic
-process_data() {
-    local input="$1"
-    # ...
-}
+make test-auth    # Auth tests only
+make test-health  # Health endpoint tests
 ```
 
-## Testing
-
-### Running Tests
-
+**Integration Tests:**
 ```bash
-# Quick auth tests
-bash scripts/tests/test_auth.sh
-
-# Health endpoint tests
-bash scripts/tests/test_health.sh
-
-# All tests
-bash scripts/tests/test_auth.sh && bash scripts/tests/test_health.sh
+make test-integration  # Full workflow
 ```
 
-### Adding Tests
-
-When adding new features:
-
-1. Add test cases to appropriate test file
-2. Test both success and failure cases
-3. Document test expectations
-
+**Docker Tests:**
 ```bash
-# Example test function
-test_new_feature() {
-    test_start "New feature works correctly"
-
-    local response
-    response=$(curl -s -o /dev/null -w "%{http_code}" "$URL/feature")
-
-    if [[ "$response" == "200" ]]; then
-        test_pass
-    else
-        test_fail "Expected 200, got $response"
-        return 1
-    fi
-}
+make test-docker  # Docker integration
 ```
 
-## Documentation
+**All Tests:**
+```bash
+make test  # Runs all available tests
+```
+
+### Makefile Commands
+
+See all available commands:
+```bash
+make help
+```
+
+Key commands:
+- `make setup` - One-time dev setup
+- `make docs` - Update all documentation
+- `make check` - Run pre-commit checks
+- `make test` - Run test suite
+- `make build` - Build Docker image
+- `make diagnostics` - Collect system diagnostics
+
+## Release Process
+
+### Creating a Release
+
+1. **Update version** (if needed in files)
+
+2. **Tag the release:**
+```bash
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+3. **Automated steps** (via GitHub Action):
+   - Generates release changelog
+   - Builds Docker image
+   - Pushes to ghcr.io with version tags
+   - Creates GitHub Release
+
+### Version Tags
+
+Use semantic versioning:
+- `v1.0.0` - Major release
+- `v1.1.0` - Minor release
+- `v1.1.1` - Patch release
+
+Docker images are tagged:
+- `v1.0.0` - Specific version
+- `1.0` - Major.minor
+- `1` - Major
+- `latest` - Latest release
+
+## Documentation Guidelines
 
 ### Updating Documentation
 
-When changing functionality:
+**Architecture changes:**
+Edit `docs/ARCHITECTURE.md` with Mermaid diagrams.
 
-1. Update relevant docs in `docs/`
-2. Update README.md if needed
-3. Add examples for new features
-4. Update configuration docs
+**Script documentation:**
+Update `scripts/README.md` when adding/changing scripts.
 
-### Documentation Style
+**Configuration changes:**
+Update `docs/CONFIGURATION.md` with new env vars.
 
-- Use clear, concise language
-- Include code examples
-- Add troubleshooting sections
-- Use consistent formatting
+### Mermaid Diagrams
 
-## Pull Request Process
+Use Mermaid for architecture diagrams:
 
-### Before Submitting
-
-- [ ] Code passes pre-commit hooks
-- [ ] Tests pass
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated (if applicable)
-- [ ] No merge conflicts
-
-### PR Description
-
-Include:
-
-```markdown
-## Description
-Brief description of changes
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
-- [ ] Documentation update
-
-## Testing
-How you tested the changes
-
-## Checklist
-- [ ] Pre-commit hooks pass
-- [ ] Tests pass
-- [ ] Documentation updated
+```mermaid
+graph LR
+    A[Client] --> B[Gateway]
+    B --> C[Backend]
 ```
 
-### Review Process
+Renders correctly in GitHub and most markdown viewers.
 
-1. Automated checks run (GitHub Actions)
-2. Code review by maintainer
-3. Address feedback if any
-4. Merge when approved
+## Environment Variables
 
-## Project Structure
+### Adding New Variables
 
-```
-llama-gguf-inference/
-├── scripts/
-│   ├── auth.py           # Authentication module
-│   ├── gateway.py        # HTTP gateway
-│   ├── start.sh          # Main entrypoint
-│   └── tests/            # Test scripts
-├── docs/                 # Documentation
-├── .github/workflows/    # CI/CD
-├── .ai-tools/           # Submodule: dev tools
-└── Dockerfile           # Container definition
-```
-
-## Getting Help
-
-- **Issues:** Open an issue for bugs or feature requests
-- **Discussions:** Use discussions for questions
-- **Documentation:** Check docs/ directory
-
-## Code of Conduct
-
-- Be respectful and professional
-- Provide constructive feedback
-- Help others learn
-- Focus on the code, not the person
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
-
-## Development Tools
-
-### ai-dev-tools Submodule
-
-The project uses ai-dev-tools for standardized workflows:
-
+1. **Add to start.sh:**
 ```bash
-# Update submodule
-git submodule update --remote .ai-tools
-
-# Use changelog tool
-python3 .ai-tools/changelog/generate.py --from-git
-
-# Use repo map tool
-python3 .ai-tools/repo_map/generate.py
+NEW_VAR="${NEW_VAR:-default_value}"
 ```
 
-See [.ai-tools/README.md](.ai-tools/README.md) for more information.
+2. **Document in .env.example:**
+```bash
+# Description of NEW_VAR
+NEW_VAR=default_value
+```
 
-## Questions?
+3. **Document in docs/CONFIGURATION.md:**
+Add to appropriate table with description.
 
-Don't hesitate to ask! Open an issue or start a discussion.
+4. **Run validation:**
+```bash
+make check-env
+```
 
-Thank you for contributing! 🎉
+Pre-commit hook will catch missing documentation.
+
+## Troubleshooting Development
+
+### Pre-commit Failing
+
+**Repo map outdated:**
+```bash
+make map
+git add REPO_MAP.md
+git commit
+```
+
+**Env completeness:**
+```bash
+make check-env
+# Fix reported issues
+```
+
+**Format issues:**
+```bash
+make format  # Auto-format code
+make check   # Verify all checks pass
+```
+
+### Tests Failing
+
+**Collect diagnostics:**
+```bash
+make diagnostics
+# Review /tmp/llama-diagnostics-*/SUMMARY.txt
+```
+
+**Enable verbose mode:**
+```bash
+VERBOSE=true bash scripts/tests/test_auth.sh
+```
+
+### Docker Issues
+
+**Build failures:**
+Check build logs and ensure all files are present.
+
+**Container won't start:**
+```bash
+docker logs <container-id>
+```
+
+**Permission errors:**
+```bash
+chmod +x scripts/**/*.sh
+```
