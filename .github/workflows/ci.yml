@@ -4,8 +4,24 @@ name: CI
 on:
   push:
     branches: ["main", "master"]
+    paths:
+      # Only run on code/config changes, not docs
+      - 'scripts/**/*.py'
+      - 'scripts/**/*.sh'
+      - 'Dockerfile'
+      - '.github/workflows/ci.yml'
+      - 'pyproject.toml'
+      - '.pre-commit-config.yaml'
   pull_request:
     branches: ["main", "master"]
+    paths:
+      # Same selective paths for PRs
+      - 'scripts/**/*.py'
+      - 'scripts/**/*.sh'
+      - 'Dockerfile'
+      - '.github/workflows/ci.yml'
+      - 'pyproject.toml'
+      - '.pre-commit-config.yaml'
 
 permissions:
   contents: read
@@ -29,10 +45,15 @@ jobs:
       severity: 'error'
       shellcheck-version: 'v0.9.0'
 
+  # Only build Docker if Dockerfile or scripts changed
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
     needs: [python-standards, shell-standards]
+    # Only if Dockerfile or core scripts changed
+    if: |
+      contains(github.event.head_commit.modified, 'Dockerfile') ||
+      contains(github.event.head_commit.modified, 'scripts/')
 
     steps:
       - name: Checkout code
@@ -55,6 +76,7 @@ jobs:
     name: Integration Test (Mock Backend)
     runs-on: ubuntu-latest
     needs: docker-build
+    if: needs.docker-build.result == 'success'
 
     steps:
       - name: Checkout code
@@ -74,19 +96,10 @@ jobs:
 
       - name: Create test environment
         run: |
-          # Create test directories
           mkdir -p /tmp/test-data/models
           mkdir -p /tmp/test-data/logs
-
-          # Create test API keys (MUST be 16+ characters for auth.py validation)
-          # Format: key_id:api_key
           echo "testing:sk-test-1234567890abcdef" > /tmp/test-data/api_keys.txt
           echo "loadtest:sk-load-abcdef1234567890" >> /tmp/test-data/api_keys.txt
-
-          # Verify keys are valid
-          cat /tmp/test-data/api_keys.txt
-
-          # Create mock model file (empty, just for validation)
           touch /tmp/test-data/models/test-model.gguf
 
       - name: Start container with mock backend
@@ -100,74 +113,33 @@ jobs:
             -e MOCK_BACKEND=true \
             -p 8000:8000 \
             llama-gguf-inference:test
-
-          echo "Container started, waiting for ready..."
           sleep 10
 
-      - name: Check container logs
+      - name: Test health endpoints
         run: |
-          echo "=== Container logs ==="
-          docker logs llama-test
-
-      - name: Test health endpoints (no auth required)
-        run: |
-          echo "Testing /ping..."
           curl -f http://localhost:8000/ping || exit 1
-          echo "SUCCESS: /ping works"
-
-          echo "Testing /health..."
           curl -f http://localhost:8000/health || exit 1
-          echo "SUCCESS: /health works"
 
-      - name: Test auth rejection (no key)
+      - name: Test auth rejection
         run: |
-          echo "Testing request without API key (should fail)..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             http://localhost:8000/v1/chat/completions \
             -H "Content-Type: application/json" \
             -d '{"model":"test","messages":[{"role":"user","content":"test"}]}')
+          [ "$STATUS" = "401" ] || exit 1
 
-          if [ "$STATUS" = "401" ]; then
-            echo "SUCCESS: Correctly rejected unauthenticated request"
-          else
-            echo "ERROR: Expected 401, got $STATUS"
-            docker logs llama-test
-            exit 1
-          fi
-
-      - name: Test auth acceptance (valid key)
+      - name: Test auth acceptance
         run: |
-          echo "Testing request with valid API key..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer sk-test-1234567890abcdef" \
             http://localhost:8000/v1/chat/completions \
             -H "Content-Type: application/json" \
             -d '{"model":"test","messages":[{"role":"user","content":"test"}]}')
-
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "502" ]; then
-            echo "SUCCESS: Auth layer passed request (status: $STATUS)"
-            echo "Note: 502 expected since mock backend is not running"
-          else
-            echo "ERROR: Expected 200 or 502, got $STATUS"
-            docker logs llama-test
-            exit 1
-          fi
-
-      - name: Check logs were created
-        run: |
-          echo "Checking for log files..."
-          docker exec llama-test ls -la /data/logs/
-
-          if docker exec llama-test test -d /data/logs/llama; then
-            echo "SUCCESS: Log directory created"
-            docker exec llama-test ls -la /data/logs/llama/
-          else
-            echo "WARNING: No logs directory yet"
-          fi
+          [ "$STATUS" = "200" ] || [ "$STATUS" = "502" ] || exit 1
 
       - name: Stop container
         if: always()
         run: |
-          docker logs llama-test
-          docker stop llama-test
-          docker rm llama-test
+          docker logs llama-test || true
+          docker stop llama-test || true
+          docker rm llama-test || true
