@@ -22,11 +22,79 @@
 #   WORKER_TYPE    - Optional worker classification (e.g., "instruct", "coder", "omni")
 #   AUTH_ENABLED   - Enable API key authentication (default: true)
 #   AUTH_KEYS_FILE - Path to API keys file (default: $DATA_DIR/api_keys.txt)
+#   MOCK_BACKEND   - Skip llama-server for testing (default: false)
 #
 # ==============================================================================
 set -euo pipefail
 
 # ==============================================================================
+# MOCK BACKEND MODE (for CI testing)
+# ==============================================================================
+# Must come early to skip all validation and setup
+if [ "${MOCK_BACKEND:-false}" = "true" ]; then
+    echo "[$(date -Is)] ========================================"
+    echo "[$(date -Is)] MOCK BACKEND MODE - Testing Only"
+    echo "[$(date -Is)] ========================================"
+    echo "[$(date -Is)] Skipping llama-server startup"
+    echo "[$(date -Is)] Starting minimal services for testing"
+    echo "[$(date -Is)]"
+
+    # Set minimal required environment
+    export GATEWAY_PORT="${PORT:-8000}"
+    export BACKEND_HOST="127.0.0.1"
+    export PORT_BACKEND="${PORT_BACKEND:-8080}"
+    export AUTH_ENABLED="${AUTH_ENABLED:-true}"
+    export AUTH_KEYS_FILE="${AUTH_KEYS_FILE:-/data/api_keys.txt}"
+    export MAX_REQUESTS_PER_MINUTE="${MAX_REQUESTS_PER_MINUTE:-100}"
+    export DATA_DIR="${DATA_DIR:-/data}"
+    export PORT_HEALTH="${PORT_HEALTH:-8001}"
+
+    # Start health server (for platform health checks)
+    HEALTH_SERVER_PY="/opt/app/scripts/health_server.py"
+    if [ -f "$HEALTH_SERVER_PY" ]; then
+        echo "[$(date -Is)] Starting health server on port $PORT_HEALTH..."
+        PORT_HEALTH="$PORT_HEALTH" python3 -u "$HEALTH_SERVER_PY" &
+        HEALTH_PID=$!
+        echo "[$(date -Is)] Health server PID: $HEALTH_PID"
+    fi
+
+    # Start gateway (will return 502 for /v1/* endpoints)
+    GATEWAY_PY="/opt/app/scripts/gateway.py"
+    if [ -f "$GATEWAY_PY" ]; then
+        echo "[$(date -Is)] Starting gateway on port $GATEWAY_PORT..."
+        python3 -u "$GATEWAY_PY" &
+        GATEWAY_PID=$!
+        echo "[$(date -Is)] Gateway PID: $GATEWAY_PID"
+
+        sleep 2
+
+        if ! kill -0 "$GATEWAY_PID" 2>/dev/null; then
+            echo "[$(date -Is)] ERROR: Gateway failed to start"
+            exit 1
+        fi
+    else
+        echo "[$(date -Is)] ERROR: Gateway not found at $GATEWAY_PY"
+        exit 1
+    fi
+
+    echo "[$(date -Is)]"
+    echo "[$(date -Is)] ========================================"
+    echo "[$(date -Is)] Mock backend ready"
+    echo "[$(date -Is)] ========================================"
+    echo "[$(date -Is)] Health: http://0.0.0.0:$GATEWAY_PORT/ping"
+    echo "[$(date -Is)] Gateway: http://0.0.0.0:$GATEWAY_PORT (returns 502 for /v1/*)"
+    if [ "$AUTH_ENABLED" = "true" ]; then
+        echo "[$(date -Is)] Auth: ENABLED"
+    else
+        echo "[$(date -Is)] Auth: DISABLED"
+    fi
+    echo "[$(date -Is)]"
+    echo "[$(date -Is)] Keeping container alive..."
+
+    # Keep container running
+    tail -f /dev/null
+fi
+
 # CONFIGURATION & DEFAULTS
 # ==============================================================================
 
