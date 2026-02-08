@@ -1,0 +1,5 @@
+# This directory contains auto-generated documentation
+# Files in this directory are created by automated workflows:
+# - ARCHITECTURE_AUTO.md (from update-architecture.yml)
+# - REPO_MAP.md (from update-docs.yml)
+# - CHANGELOG.md (from update-docs.yml)

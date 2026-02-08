@@ -1,13 +1,16 @@
-.PHONY: help setup clean test lint format check docs map changelog api-docs architecture build run diagnostics
+.PHONY: help setup clean test lint format check docs map changelog api-docs architecture build run diagnostics docs-build docs-serve docs-clean
 
 # Configuration
 REPO_STANDARDS_URL := https://raw.githubusercontent.com/zepfu/repo-standards/main/scripts
 PYTHON := python3
 DOCKER_IMAGE := llama-gguf-inference
+DOCS_DIR := docs
+DOCS_BUILD_DIR := $(DOCS_DIR)/_build
 
 # Colors for output
 GREEN := \033[0;32m
 YELLOW := \033[1;33m
+RED := \033[0;31m
 NC := \033[0m
 
 ##@ Help
@@ -71,18 +74,73 @@ check:  ## Run all pre-commit checks
 
 ##@ Documentation
 
-docs: map changelog  ## Update all documentation locally
-	@echo "$(GREEN)✓ All documentation updated$(NC)"
+docs: map changelog architecture  ## Update all auto-generated documentation locally
+	@echo "$(GREEN)✓ All auto-generated documentation updated$(NC)"
+	@echo ""
+	@echo "Generated files:"
+	@echo "  - docs/auto/REPO_MAP.md"
+	@echo "  - docs/auto/CHANGELOG.md"
+	@echo "  - docs/auto/ARCHITECTURE_AUTO.md"
+
+docs-build:  ## Build Sphinx documentation locally
+	@echo "$(GREEN)Building Sphinx documentation...$(NC)"
+	@if [ ! -f $(DOCS_DIR)/requirements.txt ]; then \
+		echo "$(RED)✗ docs/requirements.txt not found$(NC)"; \
+		exit 1; \
+	fi
+	@echo "Installing/checking Sphinx dependencies..."
+	@pip install -q -r $(DOCS_DIR)/requirements.txt
+	@cd $(DOCS_DIR) && sphinx-build -b html . _build/html
+	@echo "$(GREEN)✓ Documentation built at $(DOCS_BUILD_DIR)/html/index.html$(NC)"
+
+docs-serve:  ## Build and serve documentation locally (port 8080)
+	@$(MAKE) docs-build
+	@echo "$(GREEN)Serving documentation at http://localhost:8080$(NC)"
+	@echo "Press Ctrl+C to stop"
+	@cd $(DOCS_BUILD_DIR)/html && $(PYTHON) -m http.server 8080
+
+docs-clean:  ## Clean Sphinx build artifacts
+	@echo "Cleaning Sphinx build artifacts..."
+	@rm -rf $(DOCS_BUILD_DIR)
+	@echo "$(GREEN)✓ Sphinx build artifacts cleaned$(NC)"
+
+docs-check:  ## Check documentation builds without warnings
+	@echo "$(GREEN)Checking documentation build...$(NC)"
+	@pip install -q -r $(DOCS_DIR)/requirements.txt
+	@cd $(DOCS_DIR) && sphinx-build -b html -W . _build/html
+	@echo "$(GREEN)✓ Documentation builds without warnings$(NC)"
+
+docs-linkcheck:  ## Check for broken links in documentation
+	@echo "$(GREEN)Checking documentation links...$(NC)"
+	@pip install -q -r $(DOCS_DIR)/requirements.txt
+	@cd $(DOCS_DIR) && sphinx-build -b linkcheck . _build/linkcheck
+	@echo "$(GREEN)✓ Link check complete$(NC)"
 
 map:  ## Generate repository structure map
-	@echo "Generating REPO_MAP.md..."
-	@curl -fsSL $(REPO_STANDARDS_URL)/repo_map.py | $(PYTHON) - --output REPO_MAP.md
-	@echo "$(GREEN)✓ Generated REPO_MAP.md$(NC)"
+	@echo "Generating docs/auto/REPO_MAP.md..."
+	@mkdir -p docs/auto
+	@curl -fsSL $(REPO_STANDARDS_URL)/repo_map.py | $(PYTHON) - --output docs/auto/REPO_MAP.md
+	@echo "$(GREEN)✓ Generated docs/auto/REPO_MAP.md$(NC)"
 
 changelog:  ## Generate changelog from git history
-	@echo "Generating CHANGELOG.md..."
-	@curl -fsSL $(REPO_STANDARDS_URL)/changelog.py | $(PYTHON) - --from-git --with-commits --output CHANGELOG.md
-	@echo "$(GREEN)✓ Generated CHANGELOG.md$(NC)"
+	@echo "Generating docs/auto/CHANGELOG.md..."
+	@mkdir -p docs/auto
+	@curl -fsSL $(REPO_STANDARDS_URL)/changelog.py | $(PYTHON) - --from-git --with-commits --output docs/auto/CHANGELOG.md
+	@echo "$(GREEN)✓ Generated docs/auto/CHANGELOG.md$(NC)"
+
+architecture:  ## Generate architecture diagrams
+	@echo "Generating docs/auto/ARCHITECTURE_AUTO.md..."
+	@mkdir -p docs/auto
+	@if [ -f scripts/dev/generate_architecture.py ]; then \
+		$(PYTHON) scripts/dev/generate_architecture.py --output docs/auto/ARCHITECTURE_AUTO.md; \
+	else \
+		curl -fsSL $(REPO_STANDARDS_URL)/generate_architecture.py | $(PYTHON) - --output docs/auto/ARCHITECTURE_AUTO.md; \
+	fi
+	@echo "$(GREEN)✓ Generated docs/auto/ARCHITECTURE_AUTO.md$(NC)"
+
+view-architecture:  ## View manual architecture documentation
+	@echo "Opening docs/ARCHITECTURE.md..."
+	@test -f docs/ARCHITECTURE.md && cat docs/ARCHITECTURE.md || echo "docs/ARCHITECTURE.md not found"
 
 update-docs:  ## 🚀 Quick: Update docs and create PR automatically
 	@$(MAKE) trigger-docs-update
@@ -90,10 +148,6 @@ update-docs:  ## 🚀 Quick: Update docs and create PR automatically
 api-docs:  ## Generate API documentation with Sphinx
 	@echo "Generating API documentation..."
 	@bash scripts/dev/generate_api_docs.sh
-
-architecture:  ## Open architecture documentation
-	@echo "Opening docs/ARCHITECTURE.md..."
-	@test -f docs/ARCHITECTURE.md && cat docs/ARCHITECTURE.md || echo "docs/ARCHITECTURE.md not found"
 
 check-docs:  ## Check if documentation is current
 	@bash scripts/dev/check_repo_map.sh

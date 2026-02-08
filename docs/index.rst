@@ -1,18 +1,45 @@
-llama-gguf-inference API Documentation
-======================================
+llama-gguf-inference Documentation
+===================================
 
-Welcome to the API documentation for llama-gguf-inference.
+**GGUF model inference server using llama.cpp**
+
+Welcome to the documentation for llama-gguf-inference, a production-ready inference server for GGUF models.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   gateway
-   auth
-   health_server
+   ARCHITECTURE
+   api/gateway
+   api/auth
+   api/health_server
+
+Quick Start
+-----------
+
+.. code-block:: bash
+
+   # Run with Docker
+   docker run --gpus all \
+     -v /path/to/models:/data/models \
+     -e MODEL_NAME=your-model.gguf \
+     -p 8000:8000 \
+     ghcr.io/zepfu/llama-gguf-inference
+
+Features
+--------
+
+* **OpenAI-compatible API** - Drop-in replacement
+* **Authentication** - API key-based access control
+* **Streaming support** - Real-time token streaming
+* **Health monitoring** - Separate health check port
+* **Platform agnostic** - Works anywhere Docker runs
+
+API Reference
+-------------
 
 Gateway Module
-==============
+~~~~~~~~~~~~~~
 
 .. automodule:: gateway
    :members:
@@ -20,7 +47,7 @@ Gateway Module
    :show-inheritance:
 
 Authentication Module
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: auth
    :members:
@@ -28,7 +55,7 @@ Authentication Module
    :show-inheritance:
 
 Health Server Module
-====================
+~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: health_server
    :members:

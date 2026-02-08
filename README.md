@@ -1,6 +1,8 @@
 # llama-gguf-inference
 
 [![Code Quality](https://github.com/zepfu/llama-gguf-inference/workflows/Code%20Quality/badge.svg)](https://github.com/zepfu/llama-gguf-inference/actions)
+[![GitHub Pages](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://zepfu.github.io/lama-gguf-inference/)
+[![Documentation Status](https://readthedocs.org/projects/llama-gguf-inference/badge/?version=latest)](https://llama-gguf-inference.readthedocs.io/en/latest/?badge=latest)
 
 Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 
