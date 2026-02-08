@@ -91,5 +91,13 @@ logs/
 # Sphinx documentation
 # =============================================================================
 docs/_build/
-docs/_static/
-docs/_templates/
+# REMOVED: docs/_static/ (needed for Sphinx html_static_path)
+# REMOVED: docs/_templates/ (needed for Sphinx templates_path)
+
+# Instead, ignore generated content within these directories
+docs/_static/*.generated.*
+docs/_templates/*.generated.*
+
+# But keep the directories themselves tracked with .gitkeep files
+!docs/_static/.gitkeep
+!docs/_templates/.gitkeep

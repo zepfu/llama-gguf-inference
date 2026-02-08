@@ -20,7 +20,36 @@ extensions = [
     "sphinx.ext.napoleon",  # Support for Google/NumPy style docstrings
     "sphinx.ext.viewcode",  # Add links to source code
     "sphinx.ext.githubpages",  # Create .nojekyll file for GitHub Pages
+    "sphinxcontrib.mermaid",  # Mermaid diagram support
+    "myst_parser",  # Markdown support
 ]
+
+# Mermaid configuration
+mermaid_version = "10.6.1"
+mermaid_init_js = """
+mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+});
+"""
+
+# MyST parser configuration (for Markdown files)
+myst_enable_extensions = [
+    "colon_fence",  # ::: fences
+    "deflist",  # Definition lists
+    "html_image",  # HTML images
+]
+
+# Configure MyST to recognize mermaid code blocks as directives
+# This prevents "Pygments lexer name 'mermaid' is not known" warnings
+myst_fence_as_directive = ["mermaid"]
+
+# Support both .rst and .md files
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -28,7 +57,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- Options for HTML output -------------------------------------------------
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = []
+html_static_path = ["_static"]  # Changed from [] to ['_static']
 
 # Theme options
 html_theme_options = {
@@ -65,3 +94,8 @@ napoleon_use_rtype = True
 napoleon_preprocess_types = False
 napoleon_type_aliases = None
 napoleon_attr_annotations = True
+
+# Suppress warnings for auto-generated docs with missing cross-references
+suppress_warnings = [
+    "myst.xref_missing",  # Missing cross-references in auto-generated docs
+]

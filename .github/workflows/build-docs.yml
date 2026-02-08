@@ -2,30 +2,47 @@
 name: Build Documentation
 
 on:
-  push:
+  # REMOVED: push trigger (was causing immediate execution)
+  # Only run after CI workflow completes successfully
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: ["main", "master"]
-    paths:
-      # Only run on documentation changes
-      - 'docs/**'
-      - 'scripts/**/*.py'  # API docs
-      - '.readthedocs.yml'
-      - '.github/workflows/build-docs.yml'
-  pull_request:
-    branches: ["main", "master"]
-    paths:
-      - 'docs/**'
-      - 'scripts/**/*.py'
-      - '.readthedocs.yml'
-      - '.github/workflows/build-docs.yml'
-  workflow_dispatch: {}
+  workflow_dispatch: {}  # Keep manual trigger
 
 permissions:
   contents: write
 
 jobs:
+  # Check CI succeeded before building docs
+  check-ci-status:
+    name: Check CI Success
+    runs-on: ubuntu-latest
+    # Skip check if manually triggered
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+      - name: Verify CI passed
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger - proceeding"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+            echo "CI passed - proceeding with docs build"
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "CI failed - skipping docs build"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
   build-docs:
     name: Build Sphinx Documentation
     runs-on: ubuntu-latest
+    needs: check-ci-status
+    if: needs.check-ci-status.outputs.should_build == 'true'
 
     steps:
       - name: Checkout code
@@ -57,7 +74,7 @@ jobs:
           path: docs/_build/html
 
       - name: Deploy to GitHub Pages (default branch only)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name != 'pull_request'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -68,6 +85,8 @@ jobs:
   validate-rtd:
     name: Validate ReadTheDocs Build
     runs-on: ubuntu-latest
+    needs: check-ci-status
+    if: needs.check-ci-status.outputs.should_build == 'true'
 
     steps:
       - name: Checkout code
