@@ -14,29 +14,27 @@
 
 ```
 llama-gguf-inference/
+├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── DEBUGGING.md
 ├── ⭐ Dockerfile
 ├── ⭐ Makefile
-├── Makefile:Zone.Identifier
 ├── ⭐ README.md
-├── README.md.bak
+├── REPO_MAP.md
 ├── api_keys.txt.example
 ├── pyproject.toml
 ├── docs/
-│   ├── ARCHITECTURE.md:Zone.Identifier
 │   ├── AUTHENTICATION.md
 │   ├── CONFIGURATION.md
 │   ├── TESTING.md
 │   ├── TROUBLESHOOTING.md
 │   ├── conf.py
-│   ├── conf.py:Zone.Identifier
 │   ├── index.rst
-│   ├── index.rst:Zone.Identifier
 │   ├── requirements.txt
-│   ├── requirements.txt.bak
-│   ├── requirements.txt:Zone.Identifier
 │   └── auto/
+│       ├── ARCHITECTURE_AUTO.md
+│       ├── CHANGELOG.md
+│       └── REPO_MAP.md
 └── scripts/
     ├── ⭐ README.md
     ├── ⭐ auth.py
@@ -95,11 +93,15 @@ llama-gguf-inference/
 
 ## Documentation
 
+- **`CHANGELOG.md`**
+  - Changelog
 - **`CONTRIBUTING.md`**
 - **`DEBUGGING.md`**
   - Debugging Guide
 - **`README.md`**
   - llama-gguf-inference
+- **`REPO_MAP.md`**
+  - Repository Structure
 - **`AUTHENTICATION.md`**
   - Authentication Guide
 - **`CONFIGURATION.md`**
@@ -108,6 +110,12 @@ llama-gguf-inference/
   - Testing Guide
 - **`TROUBLESHOOTING.md`**
   - Troubleshooting Guide
+- **`ARCHITECTURE_AUTO.md`**
+  - Architecture (Auto-Generated)
+- **`CHANGELOG.md`**
+  - Changelog
+- **`REPO_MAP.md`**
+  - Repository Structure
 - **`README.md`**
   - Scripts Documentation
 - **`README.md`**
@@ -136,4 +144,4 @@ llama-gguf-inference/
 
 *This file is auto-generated. Do not edit manually.*
 
-*Last updated: /home/zepfu/projects/llama-gguf-inference*
+*Last updated: /home/runner/work/llama-gguf-inference/llama-gguf-inference*
