@@ -1,5 +1,5 @@
 ---
-# Pre-commit hooks for llama-gguf-inference
+# Pre-commit hooks for organization standards
 # Install: pip install pre-commit
 # Setup: pre-commit install
 # Run manually: pre-commit run --all-files
@@ -57,6 +57,25 @@ repos:
           '--max-complexity=20'
         ]
 
+  # Python: Remove unused imports and variables
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+        args:
+          - --in-place
+          - --remove-all-unused-imports
+          - --remove-unused-variables
+          - --remove-duplicate-keys
+          - --ignore-init-module-imports
+
+  # Python: Detect commented-out code
+  - repo: https://github.com/myint/eradicate
+    rev: 3.0.1
+    hooks:
+      - id: eradicate
+        args: ['--in-place']
+
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
@@ -64,22 +83,14 @@ repos:
       - id: yamllint
         args: ['-d', '{extends: relaxed, rules: {line-length: {max: 150}}}']
 
-  # Local project-specific hooks
-  - repo: local
+  # Markdown formatting (Python-based, no Node.js required)
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 0.7.17
     hooks:
-      # Check repository map is current
-      #- id: check-repo-map
-      #  name: Check repository map is current
-      #  entry: bash scripts/dev/check_repo_map.sh
-      #  language: system
-      #  pass_filenames: false
-      #  files: '^(scripts/|docs/|Dockerfile|\.github/)'
-
-      # Check changelog currency (warning only)
-      - id: check-changelog
-        name: Check changelog is current (warning)
-        entry: bash scripts/dev/check_changelog.sh
-        language: system
-        pass_filenames: false
-        files: '^scripts/'
-        stages: [pre-push]
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm          # GitHub Flavored Markdown
+          - mdformat-tables       # Table formatting
+          - mdformat-frontmatter  # YAML frontmatter
+        args:
+          - --wrap=120            # Line length

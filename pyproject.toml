@@ -1,8 +1,43 @@
+[project]
+name = "repo-standards"
+version = "1.0.0"
+description = "Organization-wide code quality standards and configuration templates"
+
 [tool.black]
 line-length = 100
 target-version = ['py311']
 include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.venv
+  | build
+  | dist
+  | templates
+)/
+'''
 
 [tool.isort]
 profile = "black"
 line_length = 100
+skip_gitignore = true
+extend_skip_glob = ["templates/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+addopts = "-v --tb=short"
+
+[tool.mdformat]
+wrap = 120
+number = false
+
+[tool.vulture]
+min_confidence = 80
+paths = ["scripts"]
+exclude = ["tests/", "build/"]
+
+[tool.autoflake]
+ignore-init-module-imports = true

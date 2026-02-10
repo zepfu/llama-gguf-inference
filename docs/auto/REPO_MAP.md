@@ -23,6 +23,8 @@ llama-gguf-inference/
 ├── ⭐ README.md
 ├── api_keys.txt.example
 ├── pyproject.toml
+├── archive/
+│   └── llama-gguf-inference_20260209222106.tar.gz
 ├── docs/
 │   ├── AUTHENTICATION.md
 │   ├── CONFIGURATION.md
@@ -37,17 +39,13 @@ llama-gguf-inference/
 │       └── REPO_MAP.md
 └── scripts/
     ├── ⭐ README.md
-    ├── archive.sh
-    ├── archive.sh.bak
     ├── ⭐ auth.py
     ├── ⭐ gateway.py
     ├── health_server.py
     ├── ⭐ start.sh
     ├── dev/
     │   ├── check_changelog.sh
-    │   ├── check_env_completeness.sh
     │   ├── check_repo_map.sh
-    │   ├── check_repo_map.sh.bak
     │   ├── generate_api_docs.sh
     │   └── setup.sh
     ├── diagnostics/
@@ -74,24 +72,27 @@ llama-gguf-inference/
 **`Makefile`**
 
 **`README.md`**
-  - llama-gguf-inference
+
+- llama-gguf-inference
 
 **`README.md`**
-  - Scripts Documentation
+
+- Scripts Documentation
 
 **`auth.py`**
 
 **`gateway.py`**
 
 **`README.md`**
-  - Diagnostics
+
+- Diagnostics
 
 ## Configuration Files
 
-| File | Description |
-|------|-------------|
-| `Dockerfile` | *No description* |
-| `Makefile` | *No description* |
+| File             | Description      |
+| ---------------- | ---------------- |
+| `Dockerfile`     | *No description* |
+| `Makefile`       | *No description* |
 | `pyproject.toml` | *No description* |
 
 ## Documentation
@@ -124,25 +125,23 @@ llama-gguf-inference/
 
 ## Scripts
 
-| Script | Description |
-|--------|-------------|
-| `archive.sh` | *No description* |
-| `auth.py` | *No description* |
-| `gateway.py` | *No description* |
-| `health_server.py` | health_server.py — Ultra-lightweight health check server for RunPod |
-| `check_changelog.sh` | *No description* |
-| `check_env_completeness.sh` | *No description* |
-| `check_repo_map.sh` | *No description* |
-| `generate_api_docs.sh` | *No description* |
-| `setup.sh` | *No description* |
-| `collect.sh` | *No description* |
-| `test_auth.sh` | *No description* |
-| `test_docker_integration.sh` | *No description* |
-| `test_health.sh` | *No description* |
-| `test_integration.sh` | *No description* |
-| `test_runner.sh` | *No description* |
+| Script                       | Description                                                         |
+| ---------------------------- | ------------------------------------------------------------------- |
+| `auth.py`                    | *No description*                                                    |
+| `gateway.py`                 | *No description*                                                    |
+| `health_server.py`           | health_server.py — Ultra-lightweight health check server for RunPod |
+| `check_changelog.sh`         | *No description*                                                    |
+| `check_repo_map.sh`          | *No description*                                                    |
+| `generate_api_docs.sh`       | *No description*                                                    |
+| `setup.sh`                   | *No description*                                                    |
+| `collect.sh`                 | *No description*                                                    |
+| `test_auth.sh`               | *No description*                                                    |
+| `test_docker_integration.sh` | *No description*                                                    |
+| `test_health.sh`             | *No description*                                                    |
+| `test_integration.sh`        | *No description*                                                    |
+| `test_runner.sh`             | *No description*                                                    |
 
----
+______________________________________________________________________
 
 *This file is auto-generated. Do not edit manually.*
 

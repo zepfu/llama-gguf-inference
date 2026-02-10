@@ -1,18 +1,73 @@
-# Ensure consistent line endings
+# =============================================================================
+# Git Attributes - Line Ending Configuration
+# =============================================================================
+
+# Auto-detect text files and normalize line endings
 * text=auto
 
-# Shell scripts must have LF endings
+# =============================================================================
+# Scripts - Force LF (Unix line endings)
+# =============================================================================
 *.sh text eol=lf
+*.bash text eol=lf
 
-# Python files must have LF endings
+# =============================================================================
+# Source Code - Force LF
+# =============================================================================
 *.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.java text eol=lf
+*.go text eol=lf
+*.rs text eol=lf
 
-# Markdown
-*.md text eol=lf
-
-# YAML
+# =============================================================================
+# Configuration Files - Force LF
+# =============================================================================
 *.yml text eol=lf
 *.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
 
-# Dockerfile
+# =============================================================================
+# Documentation - Force LF
+# =============================================================================
+*.md text eol=lf
+*.txt text eol=lf
+*.rst text eol=lf
+
+# =============================================================================
+# Docker - Force LF
+# =============================================================================
 Dockerfile text eol=lf
+*.dockerfile text eol=lf
+.dockerignore text eol=lf
+
+# =============================================================================
+# Git Files - Force LF
+# =============================================================================
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.gitmodules text eol=lf
+
+# =============================================================================
+# Binary Files - No normalization
+# =============================================================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.gguf binary
+*.bin binary
+*.so binary
+*.dylib binary
+*.dll binary
