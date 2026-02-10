@@ -1,6 +1,13 @@
 # ShellCheck configuration
-# Enable all optional checks
-enable=all
+# Disable specific checks globally
+# SC2250: Prefer ${var} over $var (style preference)
+disable=SC2250
 
-# Disable specific checks if needed (currently none)
-# disable=SC2034  # Unused variables
+# Enable optional checks
+enable=quote-safe-variables
+
+# Set shell dialect
+shell=bash
+
+# External sources
+external-sources=true
