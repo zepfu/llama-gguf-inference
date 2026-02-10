@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-02-08 11:10:38
+**Generated:** 2026-02-09 20:44:31
 **Project:** /home/zepfu/projects/llama-gguf-inference
 
 ## Overview

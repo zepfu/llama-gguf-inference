@@ -20,37 +20,25 @@ llama-gguf-inference/
 ├── ⭐ Dockerfile
 ├── ⭐ Makefile
 ├── Makefile.bak
-├── Makefile:Zone.Identifier
 ├── ⭐ README.md
-├── README.md.bak
-├── REPO_MAP.md
 ├── api_keys.txt.example
 ├── pyproject.toml
 ├── docs/
-│   ├── ARCHITECTURE.md:Zone.Identifier
 │   ├── AUTHENTICATION.md
 │   ├── CONFIGURATION.md
 │   ├── TESTING.md
 │   ├── TROUBLESHOOTING.md
 │   ├── conf.py
-│   ├── conf.py:Zone.Identifier
 │   ├── index.rst
-│   ├── index.rst:Zone.Identifier
 │   ├── requirements.txt
-│   ├── requirements.txt.bak
-│   ├── requirements.txt:Zone.Identifier
 │   └── auto/
 │       ├── ARCHITECTURE_AUTO.md
-│       ├── ARCHITECTURE_AUTO.md.bak
-│       ├── ARCHITECTURE_AUTO.md:Zone.Identifier
 │       ├── CHANGELOG.md
-│       ├── CHANGELOG.md.bak
-│       ├── CHANGELOG.md:Zone.Identifier
-│       ├── REPO_MAP.md
-│       ├── REPO_MAP.md.bak
-│       └── REPO_MAP.md:Zone.Identifier
+│       └── REPO_MAP.md
 └── scripts/
     ├── ⭐ README.md
+    ├── archive.sh
+    ├── archive.sh.bak
     ├── ⭐ auth.py
     ├── ⭐ gateway.py
     ├── health_server.py
@@ -59,6 +47,7 @@ llama-gguf-inference/
     │   ├── check_changelog.sh
     │   ├── check_env_completeness.sh
     │   ├── check_repo_map.sh
+    │   ├── check_repo_map.sh.bak
     │   ├── generate_api_docs.sh
     │   └── setup.sh
     ├── diagnostics/
@@ -114,8 +103,6 @@ llama-gguf-inference/
   - Debugging Guide
 - **`README.md`**
   - llama-gguf-inference
-- **`REPO_MAP.md`**
-  - Repository Structure
 - **`AUTHENTICATION.md`**
   - Authentication Guide
 - **`CONFIGURATION.md`**
@@ -125,7 +112,9 @@ llama-gguf-inference/
 - **`TROUBLESHOOTING.md`**
   - Troubleshooting Guide
 - **`ARCHITECTURE_AUTO.md`**
+  - Architecture (Auto-Generated)
 - **`CHANGELOG.md`**
+  - Changelog
 - **`REPO_MAP.md`**
   - Repository Structure
 - **`README.md`**
@@ -137,6 +126,7 @@ llama-gguf-inference/
 
 | Script | Description |
 |--------|-------------|
+| `archive.sh` | *No description* |
 | `auth.py` | *No description* |
 | `gateway.py` | *No description* |
 | `health_server.py` | health_server.py — Ultra-lightweight health check server for RunPod |

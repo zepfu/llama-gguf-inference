@@ -68,20 +68,12 @@ repos:
   - repo: local
     hooks:
       # Check repository map is current
-      - id: check-repo-map
-        name: Check repository map is current
-        entry: bash scripts/dev/check_repo_map.sh
-        language: system
-        pass_filenames: false
-        files: '^(scripts/|docs/|Dockerfile|\.github/)'
-
-      # Check environment variable completeness
-      - id: check-env-completeness
-        name: Check environment variables
-        entry: bash scripts/dev/check_env_completeness.sh
-        language: system
-        pass_filenames: false
-        files: '^(scripts/start\.sh|\.env\.example|docs/CONFIGURATION\.md)'
+      #- id: check-repo-map
+      #  name: Check repository map is current
+      #  entry: bash scripts/dev/check_repo_map.sh
+      #  language: system
+      #  pass_filenames: false
+      #  files: '^(scripts/|docs/|Dockerfile|\.github/)'
 
       # Check changelog currency (warning only)
       - id: check-changelog

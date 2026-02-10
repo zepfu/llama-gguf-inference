@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- additional doc updates ([31eb3ca](https://github.com/zepfu/llama-gguf-inference/commit/31eb3ca2a9c527e0281eda8b03c4d1b1257c17f6))
 - Pages fix ([aa1c71a](https://github.com/zepfu/llama-gguf-inference/commit/aa1c71aa11bf89804bc40fd23a8b965ec47fd0f1))
 - ReadTheDocs fix ([73fe5fe](https://github.com/zepfu/llama-gguf-inference/commit/73fe5fe7c5c66de4d5055e6dc6d2615c5afe0e47))
 - ReadTheDocs and documentation automation ([634fa8c](https://github.com/zepfu/llama-gguf-inference/commit/634fa8c6aa207a87125583a3462ad23b9d923d9b))
