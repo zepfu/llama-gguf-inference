@@ -221,3 +221,6 @@ trigger-docs-update:  ## Trigger documentation update workflow (requires gh CLI)
 		echo "Install: https://cli.github.com/"; \
 		echo "Or trigger manually at: https://github.com/$$(git config --get remote.origin.url | sed 's/.*://;s/.git$$//')/actions/workflows/update-docs.yml"; \
 	fi
+
+archive:  ## Create tar.gz archive for AI context (excludes build artifacts, caches, etc.)
+	@bash scripts/archive.sh

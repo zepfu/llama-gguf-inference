@@ -5,10 +5,11 @@
 # This script:
 #   1. Runs boot diagnostics (written to DATA_DIR if available)
 #   2. Resolves the model path
-#   3. Starts llama-server on PORT_BACKEND (default 8080)
-#   4. Starts health_server.py on PORT_HEALTH (default 8001) for platform checks
-#   5. Starts gateway.py on PORT (default 8000) with API endpoints
-#   6. Handles graceful shutdown on SIGTERM/SIGINT
+#   3. Generates random backend authentication key
+#   4. Starts llama-server on PORT_BACKEND (default 8080) with backend auth
+#   5. Starts health_server.py on PORT_HEALTH (default 8001) for platform checks
+#   6. Starts gateway.py on PORT (default 8000) with API endpoints
+#   7. Handles graceful shutdown on SIGTERM/SIGINT
 #
 # Environment Variables (see docs/configuration.md for details):
 #   MODEL_NAME     - (required) Model filename in MODELS_DIR
@@ -24,8 +25,27 @@
 #   AUTH_KEYS_FILE - Path to API keys file (default: $DATA_DIR/api_keys.txt)
 #   MOCK_BACKEND   - Skip llama-server for testing (default: false)
 #
+# Security:
+#   Backend authentication key is auto-generated on startup and stored in a
+#   secure temporary file (600 permissions). Gateway authenticates to llama-server
+#   using this key, providing defense-in-depth protection.
+#
 # ==============================================================================
 set -euo pipefail
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+log() { echo "[$(date -Is)] $*"; }
+die() { log "FATAL: $*" >&2; exit 1; }
+
+# Normalize truthy values: true/1/yes/on -> 0 (success), else 1 (failure)
+is_truthy() {
+    local val="${1:-}"
+    val="${val,,}"  # lowercase
+    [[ "$val" =~ ^(true|1|yes|on)$ ]]
+}
 
 # ==============================================================================
 # MOCK BACKEND MODE (for CI testing)
@@ -43,6 +63,7 @@ if [ "${MOCK_BACKEND:-false}" = "true" ]; then
     export GATEWAY_PORT="${PORT:-8000}"
     export BACKEND_HOST="127.0.0.1"
     export PORT_BACKEND="${PORT_BACKEND:-8080}"
+    export BACKEND_API_KEY="mock-backend-key-not-validated"
     export AUTH_ENABLED="${AUTH_ENABLED:-true}"
     export AUTH_KEYS_FILE="${AUTH_KEYS_FILE:-/data/api_keys.txt}"
     export MAX_REQUESTS_PER_MINUTE="${MAX_REQUESTS_PER_MINUTE:-100}"
@@ -158,6 +179,57 @@ AUTH_ENABLED="${AUTH_ENABLED:-true}"
 AUTH_KEYS_FILE="${AUTH_KEYS_FILE:-$DATA_DIR/api_keys.txt}"
 MAX_REQUESTS_PER_MINUTE="${MAX_REQUESTS_PER_MINUTE:-100}"
 
+# Backend authentication - generate random key for this session
+# This provides defense-in-depth: users auth to gateway, gateway auths to backend
+BACKEND_API_KEY=$(python3 -c "import secrets; print('gateway-' + secrets.token_urlsafe(32))")
+
+# Store in secure temporary file (use memory-backed filesystem if available)
+if [[ -d /dev/shm ]]; then
+    BACKEND_KEY_DIR="/dev/shm/llama-keys"
+else
+    BACKEND_KEY_DIR="/tmp/llama-keys"
+fi
+
+mkdir -p "$BACKEND_KEY_DIR" 2>/dev/null || true
+chmod 700 "$BACKEND_KEY_DIR" 2>/dev/null || true
+
+BACKEND_KEY_FILE="$BACKEND_KEY_DIR/backend-${INSTANCE_ID}.key"
+echo "$BACKEND_API_KEY" > "$BACKEND_KEY_FILE"
+chmod 600 "$BACKEND_KEY_FILE" 2>/dev/null || true
+
+# Verify backend key file was created correctly
+if [[ ! -f "$BACKEND_KEY_FILE" ]]; then
+    die "Failed to create backend key file: $BACKEND_KEY_FILE"
+fi
+
+# Verify file permissions (platform-specific stat command)
+if command -v stat &>/dev/null; then
+    # Try GNU stat first (Linux)
+    PERMS=$(stat -c "%a" "$BACKEND_KEY_FILE" 2>/dev/null || stat -f "%Lp" "$BACKEND_KEY_FILE" 2>/dev/null)
+    if [[ -n "$PERMS" ]]; then
+        if [[ "$PERMS" != "600" ]]; then
+            log "WARNING: Backend key file has permissions $PERMS (expected 600), attempting to fix..."
+            chmod 600 "$BACKEND_KEY_FILE" || die "Failed to set correct permissions on $BACKEND_KEY_FILE"
+            PERMS=$(stat -c "%a" "$BACKEND_KEY_FILE" 2>/dev/null || stat -f "%Lp" "$BACKEND_KEY_FILE" 2>/dev/null)
+            [[ "$PERMS" == "600" ]] || die "Still unable to set 600 permissions on key file"
+        fi
+        log "Backend key file permissions verified: 600"
+    fi
+fi
+
+# Verify file content matches generated key
+FILE_KEY=$(cat "$BACKEND_KEY_FILE" 2>/dev/null)
+if [[ "$FILE_KEY" != "$BACKEND_API_KEY" ]]; then
+    die "Backend key file content doesn't match generated key (possible filesystem corruption)"
+fi
+
+# Verify key format (should be gateway-{43 chars})
+if [[ ${#BACKEND_API_KEY} -ne 51 ]]; then
+    die "Backend key has invalid length: ${#BACKEND_API_KEY} (expected 51)"
+fi
+
+log "Backend key file verified: $BACKEND_KEY_FILE"
+
 # Instance identity
 INSTANCE_ID="${INSTANCE_ID:-${HOSTNAME:-unknown}}"
 INSTANCE_ID="${INSTANCE_ID//[^a-zA-Z0-9._-]/_}"
@@ -171,24 +243,8 @@ HEALTH_SERVER_PY="/opt/app/scripts/health_server.py"
 LLAMA_PID=""
 GATEWAY_PID=""
 HEALTH_PID=""
+AUDIT_PID=""
 SHUTDOWN_IN_PROGRESS=0
-
-# ==============================================================================
-# HELPER FUNCTIONS
-# ==============================================================================
-
-log() { echo "[$(date -Is)] $*"; }
-die() { log "FATAL: $*" >&2; exit 1; }
-
-# Normalize truthy values: true/1/yes/on -> 0 (success), else 1 (failure)
-is_truthy() {
-    local val="${1:-}"
-    val="${val,,}"  # lowercase
-    case "$val" in
-        true|1|yes|on) return 0 ;;
-        *) return 1 ;;
-    esac
-}
 
 # ==============================================================================
 # DEBUG MODE
@@ -247,6 +303,7 @@ log "LOG_NAME=$LOG_NAME"
 log "AUTH_ENABLED=$AUTH_ENABLED"
 log "AUTH_KEYS_FILE=$AUTH_KEYS_FILE"
 log "MAX_REQUESTS_PER_MINUTE=$MAX_REQUESTS_PER_MINUTE"
+log "BACKEND_AUTH=enabled (key: ${BACKEND_API_KEY:0:8}...${BACKEND_API_KEY: -8}) file: $BACKEND_KEY_FILE"
 
 # ==============================================================================
 # MODEL RESOLUTION
@@ -384,6 +441,28 @@ shutdown() {
         kill -TERM "$HEALTH_PID" 2>/dev/null || true
     fi
 
+    if [[ -n "$AUDIT_PID" ]] && kill -0 "$AUDIT_PID" 2>/dev/null; then
+        log "Stopping audit monitor (PID $AUDIT_PID)..."
+        kill -TERM "$AUDIT_PID" 2>/dev/null || true
+    fi
+
+    # Clean up backend key file securely
+    if [[ -n "$BACKEND_KEY_FILE" ]] && [[ -f "$BACKEND_KEY_FILE" ]]; then
+        log "Securely removing backend key file..."
+
+        # Use shred if available for secure deletion
+        if command -v shred &>/dev/null; then
+            # Overwrite file 3 times with random data, then zero, then delete
+            shred -vfz -n 3 "$BACKEND_KEY_FILE" 2>/dev/null || rm -f "$BACKEND_KEY_FILE"
+        else
+            # Fallback: overwrite with zeros before deleting
+            dd if=/dev/zero of="$BACKEND_KEY_FILE" bs=52 count=1 2>/dev/null || true
+            rm -f "$BACKEND_KEY_FILE" 2>/dev/null || true
+        fi
+
+        log "Backend key file removed"
+    fi
+
     log "Shutdown complete"
     exit 0
 }
@@ -396,11 +475,14 @@ trap shutdown SIGTERM SIGINT EXIT
 
 LLAMA_ARGS=(
     -m "$MODEL"
-    --host "$HOST"
+    --host "127.0.0.1"
     --port "$PORT_BACKEND"
     -c "$CTX"
     -ngl "$NGL"
+    --api-key-file "$BACKEND_KEY_FILE"
 )
+
+log "Security: llama-server will bind to 127.0.0.1 only (not accessible from network)"
 
 if [[ "$THREADS" != "0" ]]; then
     LLAMA_ARGS+=(-t "$THREADS")
@@ -470,6 +552,126 @@ if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
 fi
 
 # ==============================================================================
+# VERIFY BACKEND SECURITY & CONNECTIVITY
+# ==============================================================================
+
+log ""
+log "========================================"
+log "Verifying backend security"
+log "========================================"
+
+# Test 1: Verify localhost binding (not 0.0.0.0)
+log "Test 1: Checking network binding..."
+sleep 1  # Give server moment to bind
+
+if command -v netstat &>/dev/null; then
+    if netstat -tln 2>/dev/null | grep ":$PORT_BACKEND" | grep -q "0.0.0.0"; then
+        log "ERROR: llama-server is bound to 0.0.0.0 (accessible from network)!"
+        log "ERROR: This is a security risk - backend should only bind to 127.0.0.1"
+        kill "$LLAMA_PID" 2>/dev/null || true
+        exit 1
+    fi
+
+    if netstat -tln 2>/dev/null | grep ":$PORT_BACKEND" | grep -q "127.0.0.1"; then
+        log "✓ Verified: llama-server bound to 127.0.0.1 only (network isolated)"
+    else
+        log "WARNING: Could not verify binding address, but --host was set to 127.0.0.1"
+    fi
+elif command -v ss &>/dev/null; then
+    # Alternative using ss command
+    if ss -tln 2>/dev/null | grep ":$PORT_BACKEND" | grep -q "0.0.0.0"; then
+        log "ERROR: llama-server is bound to 0.0.0.0 (accessible from network)!"
+        kill "$LLAMA_PID" 2>/dev/null || true
+        exit 1
+    fi
+    log "✓ Verified: llama-server bound to 127.0.0.1 only"
+else
+    log "WARNING: netstat/ss not available, skipping binding verification"
+    log "         (backend was configured with --host 127.0.0.1)"
+fi
+
+# Test 2: Verify backend responds with authentication
+log "Test 2: Testing backend connectivity and authentication..."
+
+# Check if curl is available
+if ! command -v curl &>/dev/null; then
+    log "WARNING: curl not found, skipping connectivity test"
+    log "         Backend authentication cannot be verified at startup"
+else
+    BACKEND_READY=false
+    MAX_WAIT=30
+
+    for i in $(seq 1 $MAX_WAIT); do
+        # Try to connect with backend key
+        if curl -s -f -m 2 \
+           -H "Authorization: Bearer $BACKEND_API_KEY" \
+           "http://127.0.0.1:$PORT_BACKEND/health" &>/dev/null; then
+            BACKEND_READY=true
+            log "✓ Backend responds correctly (attempt $i/$MAX_WAIT)"
+            break
+        fi
+
+        # Check if process still running
+        if ! kill -0 "$LLAMA_PID" 2>/dev/null; then
+            log "ERROR: llama-server process died during connectivity test"
+            exit 1
+        fi
+
+        # Log progress every 5 seconds
+        if [[ $((i % 5)) -eq 0 ]]; then
+            log "Waiting for backend to be ready ($i/$MAX_WAIT)..."
+        fi
+
+        sleep 1
+    done
+
+    if [[ "$BACKEND_READY" != "true" ]]; then
+        log "ERROR: Backend not responding after ${MAX_WAIT} seconds"
+        log "ERROR: This could indicate:"
+        log "       - llama-server failed to load model"
+        log "       - Backend authentication not working"
+        log "       - Network connectivity issues"
+        kill "$LLAMA_PID" 2>/dev/null || true
+        exit 1
+    fi
+
+    # Test 3: Verify authentication is actually enforced
+    log "Test 3: Verifying backend authentication is enforced..."
+
+    # Try without auth - should fail
+    if curl -s -f -m 2 "http://127.0.0.1:$PORT_BACKEND/health" &>/dev/null; then
+        log "WARNING: Backend responded without authentication!"
+        log "WARNING: This suggests --api-key-file may not be working"
+    else
+        log "✓ Verified: Backend requires authentication (unauthorized requests rejected)"
+    fi
+fi
+
+log ""
+log "========================================"
+log "Backend security verification complete"
+log "========================================"
+log ""
+
+# Start audit logging monitor (if logs are available)
+if [[ -n "$LLAMA_LOG" ]] && [[ -f "$LLAMA_LOG" ]]; then
+    log "Starting backend audit logging monitor..."
+
+    # Monitor llama-server logs for authentication failures
+    (
+        tail -f "$LLAMA_LOG" 2>/dev/null | grep --line-buffered -iE "401|unauthorized|forbidden|auth.*fail" | while read -r line; do
+            log "BACKEND AUTH FAILURE: $line"
+        done
+    ) &
+    AUDIT_PID=$!
+
+    log "Audit monitor PID: $AUDIT_PID"
+else
+    log "Audit logging not available (no log file)"
+    AUDIT_PID=""
+fi
+
+# ==============================================================================
 # START HEALTH SERVER
 # ==============================================================================
 
@@ -512,6 +714,7 @@ fi
 export GATEWAY_PORT="$PORT"
 export BACKEND_HOST="127.0.0.1"
 export PORT_BACKEND="$PORT_BACKEND"
+export BACKEND_API_KEY="$BACKEND_API_KEY"
 export AUTH_ENABLED="$AUTH_ENABLED"
 export AUTH_KEYS_FILE="$AUTH_KEYS_FILE"
 export MAX_REQUESTS_PER_MINUTE="$MAX_REQUESTS_PER_MINUTE"
@@ -528,6 +731,11 @@ if ! kill -0 "$GATEWAY_PID" 2>/dev/null; then
     log "FATAL: Gateway failed to start"
     exit 1
 fi
+
+# Unset backend key from shell environment (gateway already has it)
+# This prevents the key from being inherited by any child processes
+unset BACKEND_API_KEY
+log "Backend key cleared from shell environment (gateway retains it)"
 
 # ==============================================================================
 # RUNNING

@@ -24,7 +24,7 @@ NC='\033[0m'
 echo "Checking if REPO_MAP.md is current..."
 
 # Check if REPO_MAP.md exists
-if [[ ! -f REPO_MAP.md ]]; then
+if [[ ! -f docs/auto/REPO_MAP.md ]]; then
     echo -e "${YELLOW}⚠️  REPO_MAP.md not found${NC}"
     echo ""
     echo "Generate it with:"

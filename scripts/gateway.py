@@ -18,6 +18,7 @@ Environment Variables:
     GATEWAY_PORT    - Port to listen on (default: 8000)
     BACKEND_HOST    - llama-server host (default: 127.0.0.1)
     PORT_BACKEND    - llama-server port (default: 8080)
+    BACKEND_API_KEY - API key for backend authentication (optional)
     REQUEST_TIMEOUT - Max request time in seconds (default: 300)
     HEALTH_TIMEOUT  - Health check timeout in seconds (default: 2)
     AUTH_ENABLED    - Enable API key authentication (default: true)
@@ -27,6 +28,7 @@ Environment Variables:
 import asyncio
 import json
 import os
+import re
 import signal
 import socket
 import sys
@@ -43,6 +45,12 @@ except ImportError:
     print("[gateway] Warning: auth.py not found, authentication disabled")
     AUTH_AVAILABLE = False
 
+
+def log(msg: str):
+    """Simple logging to stderr."""
+    print(f"[gateway] {msg}", file=sys.stderr, flush=True)
+
+
 # Configuration
 GATEWAY_HOST = "0.0.0.0"
 GATEWAY_PORT = int(os.environ.get("GATEWAY_PORT", os.environ.get("PORT", "8000")))
@@ -55,6 +63,22 @@ else:
     BACKEND_PORT = int(os.environ.get("PORT_BACKEND", "8080"))
 REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT", "300"))
 HEALTH_TIMEOUT = float(os.environ.get("HEALTH_TIMEOUT", "2"))
+
+# Backend authentication
+BACKEND_API_KEY = os.environ.get("BACKEND_API_KEY")
+if BACKEND_API_KEY:
+    # Validate key format: "gateway-" + 43 base64url characters
+    # Total length should be 51 characters (8 + 43)
+    if not re.match(r"^gateway-[A-Za-z0-9_-]{43}$", BACKEND_API_KEY):
+        log("ERROR: BACKEND_API_KEY has invalid format (expected: gateway-{43 base64url chars})")
+        log(f"ERROR: Received length: {len(BACKEND_API_KEY)}, expected: 51")
+        sys.exit(1)
+    if len(BACKEND_API_KEY) != 51:
+        log(f"ERROR: BACKEND_API_KEY has invalid length: {len(BACKEND_API_KEY)} (expected: 51)")
+        sys.exit(1)
+    log("Backend key format validated successfully")
+else:
+    log("WARNING: BACKEND_API_KEY not set - backend will not require authentication")
 
 
 # Metrics (simple in-memory counters)
@@ -83,11 +107,6 @@ class Metrics:
 
 
 metrics = Metrics()
-
-
-def log(msg: str):
-    """Simple logging to stderr."""
-    print(f"[gateway] {msg}", file=sys.stderr, flush=True)
 
 
 def backend_tcp_ready() -> bool:
@@ -269,8 +288,13 @@ async def proxy_request(
                 "transfer-encoding",
                 "authorization",
             ):
-                continue  # Skip authorization header
+                continue  # Skip user's authorization header
             header_lines.append(f"{key}: {value}")
+
+        # Add backend authentication if configured
+        if BACKEND_API_KEY:
+            header_lines.append(f"Authorization: Bearer {BACKEND_API_KEY}")
+
         header_lines.append("Connection: close")
 
         request = request_line + "\r\n".join(header_lines) + "\r\n\r\n"
