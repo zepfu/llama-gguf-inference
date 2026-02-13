@@ -27,6 +27,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  pages: write
+  id-token: write
 
 jobs:
   # ===========================================================================
@@ -126,6 +128,7 @@ jobs:
   update-docs:
     name: Update Auto-Generated Docs
     uses: zepfu/repo-standards/.github/workflows/reusable-update-docs.yml@main
+    secrets: inherit
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'build')
