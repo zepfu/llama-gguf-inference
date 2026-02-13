@@ -9,6 +9,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- Add request queuing and concurrency control
+  ([4600a81](https://github.com/zepfu/llama-gguf-inference/commit/4600a81d39ef96b2abc378846566f6b1c0b10769))
+- Add API key management CLI tool
+  ([cd42b99](https://github.com/zepfu/llama-gguf-inference/commit/cd42b994089b24884e839a77e8070ff73b90fad0))
+- Add CORS headers and Prometheus metrics format
+  ([c8ca8d9](https://github.com/zepfu/llama-gguf-inference/commit/c8ca8d9f4bda27bf352ef304f53a020a2c548d87))
+- Add multi-arch support, .dockerignore, and docker-compose
+  ([707b819](https://github.com/zepfu/llama-gguf-inference/commit/707b819de3076d8db03cce8e1f2078ba3734b9d8))
+- Add unit tests and coverage for auth module
+  ([fea0e43](https://github.com/zepfu/llama-gguf-inference/commit/fea0e436d8d62925d1a24914169e65b1502d4fb2))
+- Add tag-triggered release workflow
+  ([fe7e768](https://github.com/zepfu/llama-gguf-inference/commit/fe7e76863363cd156dcdabd6e7b33e9c74ef2e7f))
 - additional doc updates
   ([31eb3ca](https://github.com/zepfu/llama-gguf-inference/commit/31eb3ca2a9c527e0281eda8b03c4d1b1257c17f6))
 - Pages fix ([aa1c71a](https://github.com/zepfu/llama-gguf-inference/commit/aa1c71aa11bf89804bc40fd23a8b965ec47fd0f1))
@@ -23,6 +35,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- Fix critical and high severity findings
+  ([1283071](https://github.com/zepfu/llama-gguf-inference/commit/128307144db378aa3395769090bcf3f126883b47))
+- Add project coordination files
+  ([c8c1972](https://github.com/zepfu/llama-gguf-inference/commit/c8c197249e511258da3c2ab031aacd06135328bc))
+- Complete branch migration master → main
+  ([bbd2152](https://github.com/zepfu/llama-gguf-inference/commit/bbd2152db23b7552eb6145246e78fa4832cf69fb))
+- Add repo.mk with Docker build/run targets
+  ([c6ef1ed](https://github.com/zepfu/llama-gguf-inference/commit/c6ef1edd6221cb500a9d0cbadbc103632874eb5e))
+- Stabilization pass — CI/CD, pre-commit, docs, code quality
+  ([14a8925](https://github.com/zepfu/llama-gguf-inference/commit/14a8925c1dde5844e3a770428d43d458a8bec766))
+- cleanup ([fc6209d](https://github.com/zepfu/llama-gguf-inference/commit/fc6209d31e63976c683c6ac1e35f80ceed133417))
 - workflow updates
   ([5f4a0fd](https://github.com/zepfu/llama-gguf-inference/commit/5f4a0fd1d99a96a696a12e512f0d40605c4208ad))
 - more standards/documentation
@@ -44,6 +67,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- Fix docs workflow startup_failure
+  ([d8b45ee](https://github.com/zepfu/llama-gguf-inference/commit/d8b45eebd62d5e5592228d5fa2baad53113f991a))
+- Generate valid backend key format in mock mode
+  ([a8944c9](https://github.com/zepfu/llama-gguf-inference/commit/a8944c923fb71773a2f42264d5645c9cff466f2e))
+- Fix pre-commit actionlint and integration test timing
+  ([4c4f83d](https://github.com/zepfu/llama-gguf-inference/commit/4c4f83d4a20858e77040ceca069bd152c40b5512))
+- Restore checkmake linting for .mk files
+  ([f3ea83b](https://github.com/zepfu/llama-gguf-inference/commit/f3ea83bdc97d85456419a3e08f46d8695f5cf64a))
 - ci fix ([f588262](https://github.com/zepfu/llama-gguf-inference/commit/f5882623369b3fc0073b53e0b2788759dab582a4))
 - ci fix ([63a3c5e](https://github.com/zepfu/llama-gguf-inference/commit/63a3c5e7e771ee4e392b4358b15c12eeaf69187e))
 - ci fix ([315a6c0](https://github.com/zepfu/llama-gguf-inference/commit/315a6c02b3c6cf48fad996f94a68143bdd762108))
