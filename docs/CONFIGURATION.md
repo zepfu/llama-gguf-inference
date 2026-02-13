@@ -309,9 +309,35 @@ ______________________________________________________________________
 
 | Variable      | Default          | Description                                                  |
 | ------------- | ---------------- | ------------------------------------------------------------ |
+| `LOG_FORMAT`  | `text`           | Log output format: `text` (plain) or `json` (JSONL)          |
 | `LOG_NAME`    | `llama`          | Subdirectory name for logs (deprecated if using WORKER_TYPE) |
 | `WORKER_TYPE` | `""`             | Worker classification for log organization                   |
 | `LOG_DIR`     | `$DATA_DIR/logs` | Base log directory                                           |
+
+**Structured JSON Logging:**
+
+Set `LOG_FORMAT=json` to enable structured JSON log output (JSONL format). Each log line is a single JSON object written
+to stderr, making it easy to ingest into log aggregation systems (Datadog, ELK, Grafana Loki, etc.).
+
+```bash
+# Enable JSON logging
+LOG_FORMAT=json
+```
+
+When enabled, gateway stderr output looks like:
+
+```json
+{"ts":"2026-02-13T09:15:00.123456+00:00","level":"info","msg":"Gateway starting","port":8000}
+{"ts":"2026-02-13T09:15:01.456789+00:00","level":"info","msg":"Request completed","method":"POST","path":"/v1/chat/completions","status":200,"duration_ms":142.3,"key_id":"production","bytes_sent":1024}
+```
+
+Access logs (written to `/data/logs/api_access.log`) also switch to JSONL when `LOG_FORMAT=json`:
+
+```json
+{"ts":"2026-02-13T09:15:01.456789+00:00","key_id":"production","method":"POST","path":"/v1/chat/completions","status":200}
+```
+
+When `LOG_FORMAT=text` (default), all logging remains unchanged from previous behavior.
 
 **Worker Type Organization:**
 
