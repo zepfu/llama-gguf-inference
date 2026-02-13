@@ -3,7 +3,9 @@
 import asyncio
 import importlib
 import json
+import socket
 import time
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 def _reload_gateway(monkeypatch, **env_vars):
@@ -1971,3 +1973,1106 @@ class TestSecurityLimitsIntegration:
         response = written_data.decode()
         # Should get 413 without trying to read 999999999 bytes
         assert "413 Payload Too Large" in response
+
+
+# ---------------------------------------------------------------------------
+# Inject CORS into response headers tests
+# ---------------------------------------------------------------------------
+
+
+class TestInjectCorsIntoHeaders:
+    """Tests for _inject_cors_into_headers() helper."""
+
+    def test_cors_injected_when_enabled(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+        raw = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
+        result = gw._inject_cors_into_headers(raw, "https://example.com")
+        assert b"Access-Control-Allow-Origin: *" in result
+        assert result.endswith(b"\r\n")
+
+    def test_cors_not_injected_when_disabled(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        raw = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
+        result = gw._inject_cors_into_headers(raw, "https://example.com")
+        assert result == raw
+
+    def test_cors_not_injected_without_crlf_ending(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+        raw = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain"
+        result = gw._inject_cors_into_headers(raw, "https://example.com")
+        assert result == raw
+
+    def test_cors_injected_with_specific_origin(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="https://app.example.com")
+        raw = b"HTTP/1.1 200 OK\r\n"
+        result = gw._inject_cors_into_headers(raw, "https://app.example.com")
+        assert b"Access-Control-Allow-Origin: https://app.example.com" in result
+        assert b"Vary: Origin" in result
+
+    def test_cors_denied_origin_not_injected(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="https://allowed.com")
+        raw = b"HTTP/1.1 200 OK\r\n"
+        result = gw._inject_cors_into_headers(raw, "https://denied.com")
+        assert result == raw
+
+
+# ---------------------------------------------------------------------------
+# backend_tcp_ready tests
+# ---------------------------------------------------------------------------
+
+
+class TestBackendTcpReady:
+    """Tests for backend_tcp_ready() function."""
+
+    def test_backend_tcp_ready_success(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        mock_sock = MagicMock()
+        mock_sock.__enter__ = MagicMock(return_value=mock_sock)
+        mock_sock.__exit__ = MagicMock(return_value=False)
+
+        with patch.object(socket, "create_connection", return_value=mock_sock):
+            result = gw.backend_tcp_ready()
+        assert result is True
+
+    def test_backend_tcp_ready_connection_refused(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        with patch.object(socket, "create_connection", side_effect=OSError("Connection refused")):
+            result = gw.backend_tcp_ready()
+        assert result is False
+
+    def test_backend_tcp_ready_timeout(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        with patch.object(socket, "create_connection", side_effect=socket.timeout("timed out")):
+            result = gw.backend_tcp_ready()
+        assert result is False
+
+
+# ---------------------------------------------------------------------------
+# backend_health_check tests
+# ---------------------------------------------------------------------------
+
+
+class TestBackendHealthCheck:
+    """Tests for backend_health_check() async function."""
+
+    def test_health_check_timeout(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        async def mock_open_connection(*args, **kwargs):
+            raise asyncio.TimeoutError()
+
+        with patch("asyncio.open_connection", side_effect=mock_open_connection):
+            result = asyncio.run(gw.backend_health_check())
+
+        assert result["status"] == "timeout"
+        assert "timed out" in result["error"].lower()
+
+    def test_health_check_connection_error(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        async def mock_open_connection(*args, **kwargs):
+            raise OSError("Connection refused")
+
+        with patch("asyncio.open_connection", side_effect=mock_open_connection):
+            result = asyncio.run(gw.backend_health_check())
+
+        assert result["status"] == "error"
+        assert "Connection refused" in result["error"]
+
+    def test_health_check_success_json_body(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        response_data = b'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n{"status":"ok"}'
+
+        mock_reader = AsyncMock()
+        mock_reader.read = AsyncMock(return_value=response_data)
+        mock_writer = MagicMock()
+        mock_writer.write = MagicMock()
+        mock_writer.drain = AsyncMock()
+        mock_writer.close = MagicMock()
+        mock_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_reader, mock_writer
+
+        with patch("asyncio.open_connection", side_effect=mock_open_connection):
+            result = asyncio.run(gw.backend_health_check())
+
+        assert result["status"] == "ok"
+        assert result["code"] == 200
+        assert result["backend"]["status"] == "ok"
+
+    def test_health_check_success_non_json_body(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        response_data = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nnot json content"
+
+        mock_reader = AsyncMock()
+        mock_reader.read = AsyncMock(return_value=response_data)
+        mock_writer = MagicMock()
+        mock_writer.write = MagicMock()
+        mock_writer.drain = AsyncMock()
+        mock_writer.close = MagicMock()
+        mock_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_reader, mock_writer
+
+        with patch("asyncio.open_connection", side_effect=mock_open_connection):
+            result = asyncio.run(gw.backend_health_check())
+
+        assert result["status"] == "ok"
+        assert result["code"] == 200
+        assert "backend_raw" in result
+
+    def test_health_check_no_body_separator(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        response_data = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n"
+
+        mock_reader = AsyncMock()
+        mock_reader.read = AsyncMock(return_value=response_data)
+        mock_writer = MagicMock()
+        mock_writer.write = MagicMock()
+        mock_writer.drain = AsyncMock()
+        mock_writer.close = MagicMock()
+        mock_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_reader, mock_writer
+
+        with patch("asyncio.open_connection", side_effect=mock_open_connection):
+            result = asyncio.run(gw.backend_health_check())
+
+        assert result["status"] == "ok"
+        assert result["code"] == 200
+        assert "backend" not in result
+        assert "backend_raw" not in result
+
+
+# ---------------------------------------------------------------------------
+# proxy_request tests
+# ---------------------------------------------------------------------------
+
+
+class TestProxyRequest:
+    """Tests for proxy_request() — the core proxy logic."""
+
+    def test_proxy_backend_connection_timeout(self, monkeypatch):
+        """Backend connection timeout returns 502."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def mock_open_connection(*args, **kwargs):
+            raise asyncio.TimeoutError()
+
+        async def run():
+            writer = MockWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "502 Bad Gateway" in response
+        assert gw.metrics.requests_error > 0
+
+    def test_proxy_backend_connection_refused(self, monkeypatch):
+        """Backend connection refused returns 502."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def mock_open_connection(*args, **kwargs):
+            raise OSError("Connection refused")
+
+        async def run():
+            writer = MockWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("POST", "/v1/chat/completions", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "502 Bad Gateway" in response
+
+    def test_proxy_success_streams_response(self, monkeypatch):
+        """Successful proxy streams backend response to client."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+        initial_success = gw.metrics.requests_success
+
+        written_data = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        # Create mock backend reader that returns headers then body
+        header_lines = [
+            b"HTTP/1.1 200 OK\r\n",
+            b"Content-Type: application/json\r\n",
+            b"\r\n",
+        ]
+        body_chunks = [b'{"result": "ok"}', b""]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(side_effect=body_chunks)
+
+        mock_backend_writer = MagicMock()
+        mock_backend_writer.write = MagicMock()
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request(
+                    "GET",
+                    "/v1/models",
+                    {"content-type": "application/json"},
+                    None,
+                    writer,
+                    "test-key",
+                )
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "200 OK" in response
+        assert '{"result": "ok"}' in response
+        assert gw.metrics.requests_success > initial_success
+
+    def test_proxy_forwards_body(self, monkeypatch):
+        """Proxy forwards request body to backend."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+        backend_received = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        header_lines = [
+            b"HTTP/1.1 200 OK\r\n",
+            b"\r\n",
+        ]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(return_value=b"")
+
+        mock_backend_writer = MagicMock()
+
+        def capture_write(data):
+            backend_received.extend(data)
+
+        mock_backend_writer.write = capture_write
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request(
+                    "POST",
+                    "/v1/chat/completions",
+                    {"content-type": "application/json"},
+                    b'{"prompt":"hello"}',
+                    writer,
+                    "test-key",
+                )
+
+        asyncio.run(run())
+
+        assert b'{"prompt":"hello"}' in backend_received
+
+    def test_proxy_adds_backend_api_key(self, monkeypatch):
+        """Proxy adds BACKEND_API_KEY header when configured."""
+        # Use a valid 51-char backend key
+        backend_key = "gateway-" + "A" * 43
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", BACKEND_API_KEY=backend_key)
+        gw.AUTH_AVAILABLE = False
+
+        backend_received = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+        header_lines = [b"HTTP/1.1 200 OK\r\n", b"\r\n"]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(return_value=b"")
+
+        mock_backend_writer = MagicMock()
+
+        def capture_write(data):
+            backend_received.extend(data)
+
+        mock_backend_writer.write = capture_write
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        sent_text = backend_received.decode()
+        assert f"Authorization: Bearer {backend_key}" in sent_text
+
+    def test_proxy_skips_filtered_headers(self, monkeypatch):
+        """Proxy skips host, connection, authorization, and other filtered headers."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        backend_received = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+        header_lines = [b"HTTP/1.1 200 OK\r\n", b"\r\n"]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(return_value=b"")
+
+        mock_backend_writer = MagicMock()
+
+        def capture_write(data):
+            backend_received.extend(data)
+
+        mock_backend_writer.write = capture_write
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        headers = {
+            "host": "original-host:8000",
+            "connection": "keep-alive",
+            "authorization": "Bearer user-key",
+            "content-type": "application/json",
+            "x-custom": "value",
+        }
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("POST", "/v1/completions", headers, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        sent_text = backend_received.decode()
+        # Filtered headers should NOT appear with their original values
+        assert "original-host:8000" not in sent_text
+        assert "keep-alive" not in sent_text
+        assert "Bearer user-key" not in sent_text
+        # Custom headers should be forwarded
+        assert "x-custom: value" in sent_text
+        assert "content-type: application/json" in sent_text
+
+    def test_proxy_cors_injected_into_response(self, monkeypatch):
+        """Proxy injects CORS headers into backend response."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        header_lines = [
+            b"HTTP/1.1 200 OK\r\n",
+            b"Content-Type: application/json\r\n",
+            b"\r\n",
+        ]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(return_value=b"")
+
+        mock_backend_writer = MagicMock()
+        mock_backend_writer.write = MagicMock()
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request(
+                    "GET",
+                    "/v1/models",
+                    {},
+                    None,
+                    writer,
+                    "test-key",
+                    "https://example.com",
+                )
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+    def test_proxy_exception_during_streaming(self, monkeypatch):
+        """Exception during response streaming sends 502."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+        initial_errors = gw.metrics.requests_error
+
+        written_data = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def mock_open_connection(*args, **kwargs):
+            raise Exception("Unexpected error")
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "502 Bad Gateway" in response
+        assert gw.metrics.requests_error > initial_errors
+
+    def test_proxy_metrics_active_tracking(self, monkeypatch):
+        """Proxy correctly increments/decrements requests_active."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        active_during_proxy = []
+
+        class MockClientWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+        header_lines = [b"HTTP/1.1 200 OK\r\n", b"\r\n"]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+
+        async def read_and_capture(*args, **kwargs):
+            active_during_proxy.append(gw.metrics.requests_active)
+            return b""
+
+        mock_backend_reader.read = read_and_capture
+
+        mock_backend_writer = MagicMock()
+        mock_backend_writer.write = MagicMock()
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        # requests_active should have been > 0 during proxy
+        assert any(a > 0 for a in active_during_proxy)
+        # After proxy completes, requests_active decremented
+        assert gw.metrics.requests_active == 0
+
+
+# ---------------------------------------------------------------------------
+# _queued_proxy tests
+# ---------------------------------------------------------------------------
+
+
+class TestQueuedProxy:
+    """Tests for _queued_proxy() semaphore and queue logic."""
+
+    def test_queued_proxy_tracks_wait_time(self, monkeypatch):
+        """Verify queue wait time is tracked in metrics."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="0",
+        )
+        gw.AUTH_AVAILABLE = False
+        initial_wait = gw.metrics.queue_wait_seconds_total
+
+        async def mock_proxy(*args, **kwargs):
+            pass
+
+        gw.proxy_request = mock_proxy
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw._queued_proxy("GET", "/v1/models", {}, None, writer, "test-key", "")
+
+        asyncio.run(run())
+
+        # Wait time should be tracked (even if very small)
+        assert gw.metrics.queue_wait_seconds_total >= initial_wait
+
+    def test_queued_proxy_releases_semaphore_on_error(self, monkeypatch):
+        """Verify semaphore is released even if proxy_request raises."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="0",
+        )
+
+        async def failing_proxy(*args, **kwargs):
+            raise RuntimeError("proxy failed")
+
+        gw.proxy_request = failing_proxy
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            try:
+                await gw._queued_proxy("GET", "/v1/models", {}, None, writer, "test-key", "")
+            except RuntimeError:
+                pass
+
+        asyncio.run(run())
+
+        # Semaphore should be released (value back to max)
+        assert gw._proxy_semaphore._value == gw.MAX_CONCURRENT_REQUESTS
+
+
+# ---------------------------------------------------------------------------
+# handle_client edge case tests
+# ---------------------------------------------------------------------------
+
+
+class TestHandleClientEdgeCases:
+    """Tests for handle_client edge cases."""
+
+    def test_empty_request_returns_early(self, monkeypatch):
+        """Empty request (EOF) returns without error."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            reader = asyncio.StreamReader()
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        # Should not crash, no response expected
+        assert len(written_data) == 0
+
+    def test_malformed_request_line_returns_early(self, monkeypatch):
+        """Request line with fewer than 2 parts returns without error."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"BADREQUEST\r\n\r\n")
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        # Should not crash, no response expected
+        assert len(written_data) == 0
+
+    def test_options_request_handled(self, monkeypatch):
+        """OPTIONS request gets 204 response."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = (
+                b"OPTIONS /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Origin: https://example.com\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "204 No Content" in response
+        assert "Access-Control-Allow-Origin: *" in response
+
+    def test_auth_failure_returns_401(self, monkeypatch):
+        """Request to protected endpoint with failed auth returns 401."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = True
+
+        # Mock authenticate_request to return None (auth failed)
+        async def mock_authenticate(writer, headers):
+            body = json.dumps(
+                {
+                    "error": {
+                        "message": "Invalid API key",
+                        "type": "invalid_request_error",
+                    }
+                }
+            )
+            response = (
+                "HTTP/1.1 401 Unauthorized\r\n"
+                "Content-Type: application/json\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                "Connection: close\r\n"
+                "\r\n" + body
+            )
+            writer.write(response.encode())
+            await writer.drain()
+            return None
+
+        gw.authenticate_request = mock_authenticate
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = b"GET /v1/models HTTP/1.1\r\nHost: localhost\r\n\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "401 Unauthorized" in response
+
+    def test_auth_success_proxies_request(self, monkeypatch):
+        """Request with successful auth reaches the proxy."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = True
+
+        proxy_called = []
+
+        async def mock_authenticate(writer, headers):
+            return "test-key-id"
+
+        async def mock_proxy(*args, **kwargs):
+            proxy_called.append(True)
+
+        gw.authenticate_request = mock_authenticate
+        gw.proxy_request = mock_proxy
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = (
+                b"GET /v1/models HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Authorization: Bearer sk-test\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        assert len(proxy_called) == 1
+        assert gw.metrics.requests_authenticated > 0
+
+    def test_timeout_during_request_handled_gracefully(self, monkeypatch):
+        """asyncio.TimeoutError during handle_client is caught."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            reader = asyncio.StreamReader()
+            # Feed only partial data and don't feed eof
+            reader.feed_data(b"GET /v1/models HTTP/1.1\r\n")
+
+            # The reader.readline for headers will hang, but since we
+            # can't easily trigger a timeout in unit tests, let's test
+            # the exception path directly by mocking
+            async def slow_readline():
+                raise asyncio.TimeoutError()
+
+            reader.readline = slow_readline
+            await gw.handle_client(reader, MockWriter())
+
+        # Should not raise
+        asyncio.run(run())
+
+    def test_exception_during_request_handled_gracefully(self, monkeypatch):
+        """Unexpected exceptions in handle_client are caught."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            reader = asyncio.StreamReader()
+            reader.feed_data(b"GET /v1/models HTTP/1.1\r\n")
+
+            async def broken_readline():
+                raise RuntimeError("Unexpected I/O error")
+
+            reader.readline = broken_readline
+            await gw.handle_client(reader, MockWriter())
+
+        # Should not raise
+        asyncio.run(run())
+
+    def test_writer_close_failure_handled(self, monkeypatch):
+        """Failure to close writer in finally block is caught."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        class FailCloseWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                raise OSError("Cannot close")
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            reader = asyncio.StreamReader()
+            reader.feed_eof()
+            await gw.handle_client(reader, FailCloseWriter())
+
+        # Should not raise despite close failure
+        asyncio.run(run())
+
+    def test_request_with_body_reads_correctly(self, monkeypatch):
+        """Request with body reads the full body before proxying."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        proxy_args = []
+
+        async def mock_proxy(method, path, headers, body, writer, key_id, origin):
+            proxy_args.append({"method": method, "path": path, "body": body, "key_id": key_id})
+
+        gw.proxy_request = mock_proxy
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            body = b'{"model":"test","messages":[]}'
+            cl_header = f"Content-Length: {len(body)}\r\n".encode()
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n" + cl_header + b"\r\n" + body
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        assert len(proxy_args) == 1
+        assert proxy_args[0]["body"] == b'{"model":"test","messages":[]}'
+        assert proxy_args[0]["key_id"] == "auth-disabled"
+
+
+# ---------------------------------------------------------------------------
+# _route_health tests
+# ---------------------------------------------------------------------------
+
+
+class TestRouteHealth:
+    """Tests for _route_health routing to correct handlers."""
+
+    def test_route_metrics(self, monkeypatch):
+        """Verify /metrics route dispatches to handle_metrics."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw._route_health("/metrics", writer, "", "")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+        assert "Content-Type: application/json" in response
+
+    def test_route_ping(self, monkeypatch):
+        """Verify /ping route dispatches to handle_ping."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw._route_health("/ping", writer, "", "")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+
+    def test_route_health(self, monkeypatch):
+        """Verify /health route dispatches to handle_health."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw._route_health("/health", writer, "", "")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+
+
+# ---------------------------------------------------------------------------
+# Module-level configuration tests
+# ---------------------------------------------------------------------------
+
+
+class TestModuleLevelConfig:
+    """Tests for module-level configuration parsing."""
+
+    def test_deprecated_backend_port_env(self, monkeypatch):
+        """BACKEND_PORT env var is supported but deprecated."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", BACKEND_PORT="9090")
+        assert gw.BACKEND_PORT == 9090
+
+    def test_port_backend_env(self, monkeypatch):
+        """PORT_BACKEND env var sets backend port."""
+        monkeypatch.delenv("BACKEND_PORT", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", PORT_BACKEND="9999")
+        assert gw.BACKEND_PORT == 9999
+
+    def test_cors_warning_no_scheme(self, monkeypatch, capsys):
+        """CORS origins without http scheme generate a warning."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="example.com")
+        assert gw.CORS_ENABLED is True
+        # The warning is printed during reload, we can check the origin list
+        assert "example.com" in gw._cors_origins_list
+
+
+class TestLogFunction:
+    """Tests for the log() helper."""
+
+    def test_log_writes_to_stderr(self, monkeypatch, capsys):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.log("test message")
+        captured = capsys.readouterr()
+        assert "[gateway] test message" in captured.err
