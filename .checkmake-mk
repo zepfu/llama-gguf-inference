@@ -1,0 +1,12 @@
+# checkmake configuration for .mk include fragments
+# These files are included via -include in the main Makefile
+# and are not expected to have all/clean/test targets.
+# See .checkmake for the main Makefile configuration.
+
+[maxbodylength]
+# Match main Makefile config
+maxBodyLength = 15
+
+[minphony]
+# Disabled: .mk fragments don't need all/clean/test targets
+enabled = false

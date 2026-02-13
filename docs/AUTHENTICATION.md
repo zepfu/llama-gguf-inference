@@ -4,9 +4,11 @@ Complete guide to API key authentication in llama-gguf-inference.
 
 ## Overview
 
-The gateway supports optional API key authentication to secure access to your inference endpoints while keeping health checks publicly accessible.
+The gateway supports optional API key authentication to secure access to your inference endpoints while keeping health
+checks publicly accessible.
 
 **Key Features:**
+
 - File-based API key management
 - Key ID tracking for audit logs
 - Per-key rate limiting
@@ -55,11 +57,11 @@ curl -H "Authorization: sk-prod-YOUR_KEY" \
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AUTH_ENABLED` | `true` | Enable/disable authentication |
-| `AUTH_KEYS_FILE` | `$DATA_DIR/api_keys.txt` | Path to API keys file |
-| `MAX_REQUESTS_PER_MINUTE` | `100` | Rate limit per key ID |
+| Variable                  | Default                  | Description                   |
+| ------------------------- | ------------------------ | ----------------------------- |
+| `AUTH_ENABLED`            | `true`                   | Enable/disable authentication |
+| `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file         |
+| `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per key ID         |
 
 ### Keys File Format
 
@@ -78,6 +80,7 @@ staging:sk-staging-q5r6s7t8...
 ```
 
 **Rules:**
+
 - One key per line
 - Format: `key_id:api_key` (colon-separated)
 - key_id: Alphanumeric, hyphens, underscores (e.g., `production`, `dev-team`)
@@ -90,6 +93,7 @@ staging:sk-staging-q5r6s7t8...
 ### Generate Secure Keys
 
 **Method 1: OpenSSL (Recommended)**
+
 ```bash
 openssl rand -hex 32
 # Outputs 64 hex characters
@@ -97,12 +101,14 @@ openssl rand -hex 32
 ```
 
 **Method 2: Python**
+
 ```bash
 python3 -c "import secrets; print('sk-' + secrets.token_hex(32))"
 # Outputs: sk-<64 hex characters>
 ```
 
 **Method 3: Online (Use with caution)**
+
 ```
 https://randomkeygen.com/
 Select "504-bit WPA Key" and add sk- prefix
@@ -162,6 +168,7 @@ GET /metrics        # Gateway metrics
 ```
 
 **Why?** Health endpoints must remain public for:
+
 - Platform health checks (RunPod, Vast.ai, etc.)
 - Scale-to-zero functionality in serverless deployments
 - Monitoring systems
@@ -205,6 +212,7 @@ GET  /v1/models
 ### 401 Unauthorized
 
 **Missing header:**
+
 ```json
 {
   "error": {
@@ -217,6 +225,7 @@ GET  /v1/models
 ```
 
 **Invalid key:**
+
 ```json
 {
   "error": {
@@ -241,6 +250,7 @@ GET  /v1/models
 ```
 
 Headers include:
+
 ```
 Retry-After: 60
 ```
@@ -250,17 +260,20 @@ Retry-After: 60
 Rate limits are enforced **per key_id**, not per IP address.
 
 **Configuration:**
+
 ```bash
 MAX_REQUESTS_PER_MINUTE=100  # Default
 ```
 
 **Behavior:**
+
 - Sliding window: Last 60 seconds
 - Counted per key_id (e.g., "production", "alice-laptop")
 - Separate limits for each key
 - Resets automatically after 60 seconds
 
 **Example:**
+
 ```bash
 # production key: 100 req/min
 # development key: 100 req/min
@@ -273,11 +286,13 @@ MAX_REQUESTS_PER_MINUTE=100  # Default
 All authenticated requests are logged to `/data/logs/api_access.log`
 
 **Format:**
+
 ```
 timestamp | key_id | method path | status_code
 ```
 
 **Example:**
+
 ```
 2024-02-06T14:30:22.123456 | production | POST /v1/chat/completions | 200
 2024-02-06T14:30:25.654321 | alice-laptop | POST /v1/chat/completions | 200
@@ -286,6 +301,7 @@ timestamp | key_id | method path | status_code
 ```
 
 **Benefits:**
+
 - Know who made each request
 - Track usage per key/user/system
 - Investigate rate limit issues
@@ -361,6 +377,7 @@ monitoring:sk-monitor-<64-char-secure-key>
 ```
 
 Mount secrets securely:
+
 ```bash
 docker run -v /secure/path/api_keys.txt:/secrets/api_keys.txt:ro \
   -e AUTH_KEYS_FILE=/secrets/api_keys.txt \
@@ -432,6 +449,7 @@ echo "api_keys.txt" >> .gitignore
 ### Auth Not Working (All Requests Accepted)
 
 **Check 1: Is AUTH_ENABLED set?**
+
 ```bash
 # In container
 echo $AUTH_ENABLED
@@ -439,18 +457,21 @@ echo $AUTH_ENABLED
 ```
 
 **Check 2: Does keys file exist?**
+
 ```bash
 ls -la $AUTH_KEYS_FILE
 # Should show: -rw------- 1 root root ... api_keys.txt
 ```
 
 **Check 3: Are there valid keys in file?**
+
 ```bash
 grep -v "^#" $AUTH_KEYS_FILE | grep -v "^$"
 # Should show your keys
 ```
 
 **Check 4: Check gateway logs**
+
 ```bash
 # Look for startup message
 # ✅ Authentication enabled with X keys
@@ -461,12 +482,14 @@ grep -v "^#" $AUTH_KEYS_FILE | grep -v "^$"
 ### Valid Key Rejected (401)
 
 **Check 1: Key format**
+
 ```bash
 # Key should be 16-128 characters
 # Only: alphanumeric, hyphens, underscores
 ```
 
 **Check 2: Authorization header format**
+
 ```bash
 # Both formats work:
 Authorization: Bearer sk-your-key
@@ -474,6 +497,7 @@ Authorization: sk-your-key
 ```
 
 **Check 3: Whitespace**
+
 ```bash
 # No extra spaces
 Authorization: Bearer sk-your-key
@@ -482,6 +506,7 @@ Authorization: Bearer  sk-your-key  (extra spaces)
 ```
 
 **Check 4: Key exists in file**
+
 ```bash
 grep "sk-your-key" $AUTH_KEYS_FILE
 ```
@@ -489,35 +514,39 @@ grep "sk-your-key" $AUTH_KEYS_FILE
 ### Rate Limit Issues
 
 **Check current limit:**
+
 ```bash
 curl http://localhost:8000/metrics | jq '.authentication'
 ```
 
 **Increase limit:**
+
 ```bash
 # In .env or environment
 MAX_REQUESTS_PER_MINUTE=200  # Default is 100
 ```
 
-**Different limits per key:**
-Currently not supported - all keys share the same limit.
-This is planned for future enhancement.
+**Different limits per key:** Currently not supported - all keys share the same limit. This is planned for future
+enhancement.
 
 ### Access Logs Not Written
 
 **Check 1: Directory exists**
+
 ```bash
 ls -la /data/logs/
 # Should have api_access.log
 ```
 
 **Check 2: Permissions**
+
 ```bash
 ls -la /data/logs/api_access.log
 # Should be writable
 ```
 
 **Check 3: Disk space**
+
 ```bash
 df -h /data
 ```

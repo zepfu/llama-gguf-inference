@@ -17,6 +17,7 @@ make diagnostics
 The diagnostic script collects:
 
 ### System Information
+
 - Operating system and kernel version
 - CPU information (cores, model)
 - Memory usage (total, used, available)
@@ -24,37 +25,44 @@ The diagnostic script collects:
 - GPU information (if available via nvidia-smi)
 
 ### Environment Variables
+
 - All environment variables (sensitive values filtered)
 - Configuration values
 - Paths and settings
 
 ### Process Information
+
 - All running processes
 - llama-server process details
 - Python processes (gateway, health server)
 - Network port listeners
 
 ### Model Information
+
 - Model file location and size
 - Model file type
 - Directory contents
 
 ### Health Status
+
 - Gateway health check results
 - llama-server health check results
 - Port accessibility
 
 ### Recent Logs
+
 - Last 500 lines of boot log
 - Last 500 lines of server log
 - Last 500 lines of access log (if exists)
 
 ### Error Extraction
+
 - Extracted errors from all logs
 - Fatal messages
 - Failure indicators
 
 ### Configuration Files
+
 - Copy of main scripts (start.sh, gateway.py, etc.)
 
 ## Output Structure
@@ -122,6 +130,7 @@ cat /tmp/llama-diagnostics-*/SUMMARY.txt
 ```
 
 Shows:
+
 - System overview
 - Service status
 - Model configuration
@@ -169,8 +178,8 @@ ls -lh /tmp/llama-diagnostics-*.tar.gz
 **Always review diagnostics before sharing publicly:**
 
 1. Check `environment.txt` for sensitive values
-2. Check logs for API keys or tokens
-3. Verify no customer data in logs
+1. Check logs for API keys or tokens
+1. Verify no customer data in logs
 
 The script filters common sensitive variable names, but always verify.
 
@@ -193,12 +202,14 @@ cat llama-diagnostics-*/errors.txt
 ### Issue: Out of Memory
 
 **Check:**
+
 ```bash
 cat diagnostics/system_info.txt | grep -A 5 "Memory"
 cat diagnostics/system_info.txt | grep -A 10 "GPU"
 ```
 
 **Look for:**
+
 - Low available RAM
 - High GPU memory usage
 - OOM errors in logs
@@ -206,12 +217,14 @@ cat diagnostics/system_info.txt | grep -A 10 "GPU"
 ### Issue: Model Not Found
 
 **Check:**
+
 ```bash
 cat diagnostics/model_info.txt
 cat diagnostics/environment.txt | grep MODEL
 ```
 
 **Look for:**
+
 - MODEL_NAME or MODEL_PATH set correctly
 - File exists in models directory
 - File permissions
@@ -219,12 +232,14 @@ cat diagnostics/environment.txt | grep MODEL
 ### Issue: Port Conflicts
 
 **Check:**
+
 ```bash
 cat diagnostics/processes.txt | grep LISTEN
 cat diagnostics/health_status.txt
 ```
 
 **Look for:**
+
 - Duplicate port listeners
 - Connection refused errors
 - Port mismatch between components
@@ -232,11 +247,13 @@ cat diagnostics/health_status.txt
 ### Issue: GPU Not Detected
 
 **Check:**
+
 ```bash
 cat diagnostics/system_info.txt | grep -A 20 "GPU"
 ```
 
 **Look for:**
+
 - "nvidia-smi not available"
 - GPU name and memory
 - Driver version
@@ -244,6 +261,7 @@ cat diagnostics/system_info.txt | grep -A 20 "GPU"
 ### Issue: Services Not Starting
 
 **Check:**
+
 ```bash
 cat diagnostics/processes.txt
 cat diagnostics/errors.txt
@@ -251,6 +269,7 @@ cat diagnostics/logs/boot_recent.log
 ```
 
 **Look for:**
+
 - Missing processes
 - Exit codes in boot log
 - Error messages
@@ -350,13 +369,13 @@ sudo bash scripts/diagnostics/collect.sh
 
 Typical sizes:
 
-| Component | Size |
-|-----------|------|
-| System info | ~10 KB |
-| Logs (500 lines each) | ~100 KB |
-| Config files | ~50 KB |
-| Total uncompressed | ~200 KB - 1 MB |
-| Compressed (tar.gz) | ~50 KB - 500 KB |
+| Component             | Size            |
+| --------------------- | --------------- |
+| System info           | ~10 KB          |
+| Logs (500 lines each) | ~100 KB         |
+| Config files          | ~50 KB          |
+| Total uncompressed    | ~200 KB - 1 MB  |
+| Compressed (tar.gz)   | ~50 KB - 500 KB |
 
 Very reasonable for sharing or uploading.
 

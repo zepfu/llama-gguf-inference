@@ -21,6 +21,7 @@ LABEL org.opencontainers.image.created=$BUILD_TIME
 ENV LD_LIBRARY_PATH=/app:/usr/local/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
 
 # Minimal Python for gateway (uses stdlib only, no pip packages)
+# hadolint ignore=DL3008
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
         python3 \
@@ -35,8 +36,8 @@ COPY . /opt/app
 RUN printf "GIT_SHA=%s\nBUILD_TIME=%s\n" "$GIT_SHA" "$BUILD_TIME" > /opt/app/VERSION
 
 # Make scripts executable
-RUN chmod +x /opt/app/scripts/*.sh 2>/dev/null || true && \
-    chmod +x /opt/app/scripts/*.py 2>/dev/null || true
+RUN if ls /opt/app/scripts/*.sh 1>/dev/null 2>&1; then chmod +x /opt/app/scripts/*.sh; fi && \
+    if ls /opt/app/scripts/*.py 1>/dev/null 2>&1; then chmod +x /opt/app/scripts/*.py; fi
 
 # Verify base image has required binary
 RUN test -x /app/llama-server || (echo "ERROR: /app/llama-server not found" && exit 1)

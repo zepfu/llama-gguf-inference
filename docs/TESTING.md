@@ -9,13 +9,17 @@ Comprehensive testing strategy for llama-gguf-inference.
 Located in `scripts/tests/`, these run quickly during development:
 
 #### `test_auth.sh`
+
 Quick validation of authentication functionality:
+
 - ✅ Syntax validation of auth.py
 - ✅ Basic import tests
 - ✅ Configuration validation
 
 #### `test_health.sh`
+
 Health endpoint validation:
+
 - ✅ Health server starts successfully
 - ✅ Gateway health endpoints work
 - ✅ Health checks work when auth enabled
@@ -23,6 +27,7 @@ Health endpoint validation:
 ### Full Tests (GitHub Actions)
 
 Located in `.github/workflows/code-quality.yml`:
+
 - ✅ All pre-commit checks
 - ✅ Docker build test
 - ✅ Integration tests
@@ -159,6 +164,7 @@ The following tests should be implemented for production deployments:
 ### Unit Tests
 
 **Python (`tests/unit/`)**
+
 ```python
 # tests/unit/test_auth.py
 def test_api_key_validation():
@@ -184,6 +190,7 @@ def test_health_endpoint_exemption():
 ```
 
 **Bash (`tests/unit/`)**
+
 ```bash
 # tests/unit/test_start_sh.sh
 test_worker_type_directory_creation() {
@@ -198,6 +205,7 @@ test_port_backward_compatibility() {
 ### Integration Tests
 
 **Full Workflow (`tests/integration/`)**
+
 ```bash
 # tests/integration/test_full_workflow.sh
 
@@ -212,6 +220,7 @@ test_port_backward_compatibility() {
 ### Load Tests
 
 **Performance Testing (`tests/load/`)**
+
 ```bash
 # tests/load/test_rate_limiting.sh
 
@@ -220,6 +229,7 @@ test_port_backward_compatibility() {
 ```
 
 **Concurrent Requests (`tests/load/`)**
+
 ```bash
 # tests/load/test_concurrent.sh
 
@@ -230,6 +240,7 @@ test_port_backward_compatibility() {
 ### Security Tests
 
 **Auth Bypass Attempts (`tests/security/`)**
+
 ```bash
 # tests/security/test_auth_bypass.sh
 
@@ -244,6 +255,7 @@ test_port_backward_compatibility() {
 ### End-to-End Tests
 
 **Complete Deployment (`tests/e2e/`)**
+
 ```bash
 # tests/e2e/test_production_scenario.sh
 
@@ -336,6 +348,7 @@ jobs:
 ### Fixtures
 
 **API Keys (`tests/fixtures/test_keys.txt`)**
+
 ```
 testing:sk-test-12345
 loadtest:sk-load-67890
@@ -343,6 +356,7 @@ security:sk-sec-abcdef
 ```
 
 **Mock Responses (`tests/fixtures/`)**
+
 ```
 mock_llama_response.json
 mock_health_response.json
@@ -351,6 +365,7 @@ mock_health_response.json
 ### Test Models
 
 For integration tests, use small test models:
+
 ```bash
 # Download tiny GGUF for testing
 curl -L -o tests/fixtures/tiny-model.gguf \
@@ -396,6 +411,7 @@ Track performance over time:
 ```
 
 **Example output:**
+
 ```
 Auth validation: 0.5ms average
 Rate limiter check: 0.1ms average
@@ -467,9 +483,9 @@ bash scripts/tests/test_auth.sh
 When adding new features:
 
 1. **Add unit tests** for new functions
-2. **Add integration tests** for new workflows
-3. **Update test documentation** in this file
-4. **Run all tests** before submitting PR
+1. **Add integration tests** for new workflows
+1. **Update test documentation** in this file
+1. **Run all tests** before submitting PR
 
 ## Test Checklist
 

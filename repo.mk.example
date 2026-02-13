@@ -1,0 +1,26 @@
+# repo.mk - Optional repository-specific Makefile
+# This file is gitignored and allows you to add custom targets
+# without modifying the main Makefile
+
+.PHONY: help-repo custom-deploy custom-test my-target
+
+# Extend the help output
+help-repo:
+	@echo ""
+	@echo "Custom targets:"
+	@echo "  custom-deploy - Deploy application to production"
+	@echo "  custom-test   - Run custom test suite"
+	@echo "  my-target     - Your custom target"
+
+# Example custom targets
+custom-deploy:
+	@echo "Deploying application..."
+	@./scripts/custom-deploy.sh
+
+custom-test:
+	@echo "Running custom tests..."
+	@pytest tests/custom/ -v
+
+my-target:
+	@echo "Running custom target..."
+	@# Your custom commands here

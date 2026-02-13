@@ -1,0 +1,131 @@
+---
+name: Documentation
+
+on:
+  # Build and deploy after CI passes
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: ["main", "master"]
+
+  # Weekly auto-generated docs (changelog, repo map, architecture)
+  schedule:
+    - cron: '0 9 * * 1'  # 9 AM UTC every Monday
+
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - build
+          - update
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ===========================================================================
+  # Sphinx build + GitHub Pages deploy
+  # ===========================================================================
+
+  build-docs:
+    name: Build Sphinx Documentation
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'update') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r docs/requirements.txt
+
+      - name: Build Sphinx docs
+        run: |
+          cd docs
+          sphinx-build -b html . _build/html
+
+      - name: Check for broken links
+        run: |
+          cd docs
+          sphinx-build -b linkcheck . _build/linkcheck || true
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/_build/html
+
+      - name: Deploy to GitHub Pages (default branch only)
+        if: >-
+          (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+          github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html
+          force_orphan: true
+
+  # ===========================================================================
+  # ReadTheDocs validation
+  # ===========================================================================
+
+  validate-rtd:
+    name: Validate ReadTheDocs Build
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'update') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate .readthedocs.yml
+        run: |
+          if [ ! -f .readthedocs.yml ]; then
+            echo "ERROR: .readthedocs.yml not found"
+            exit 1
+          fi
+
+          grep -q "version: 2" .readthedocs.yml || { echo "ERROR: version: 2 not found"; exit 1; }
+          grep -q "sphinx:" .readthedocs.yml || { echo "ERROR: sphinx config not found"; exit 1; }
+          grep -q "python:" .readthedocs.yml || { echo "ERROR: python config not found"; exit 1; }
+
+          echo "✓ .readthedocs.yml is valid"
+
+      - name: Check required docs files
+        run: |
+          for file in docs/requirements.txt docs/conf.py; do
+            if [ ! -f "$file" ]; then
+              echo "ERROR: $file not found"
+              exit 1
+            fi
+            echo "✓ $file exists"
+          done
+
+  # ===========================================================================
+  # Auto-generated docs (changelog, repo map, architecture)
+  # ===========================================================================
+
+  update-docs:
+    name: Update Auto-Generated Docs
+    uses: zepfu/repo-standards/.github/workflows/reusable-update-docs.yml@main
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.job != 'build')

@@ -5,32 +5,29 @@ on:
   push:
     branches: ["main", "master"]
     paths:
-      # Only run on code/config changes, not docs
-      - 'scripts/**/*.py'
-      - 'scripts/**/*.sh'
+      - 'scripts/**'
       - 'Dockerfile'
       - '.github/workflows/ci.yml'
       - 'pyproject.toml'
       - '.pre-commit-config.yaml'
+      - 'Makefile'
+      - 'repo.mk'
   pull_request:
     branches: ["main", "master"]
-    paths:
-      # Same selective paths for PRs
-      - 'scripts/**/*.py'
-      - 'scripts/**/*.sh'
-      - 'Dockerfile'
-      - '.github/workflows/ci.yml'
-      - 'pyproject.toml'
-      - '.pre-commit-config.yaml'
 
 permissions:
   contents: read
 
 jobs:
-  # Organization standards (from repo-standards @main)
-  config-validation:
-    name: Config Standards
-    uses: zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main
+  # ===========================================================================
+  # Organization standards (reusable workflows from repo-standards)
+  # ===========================================================================
+
+  pre-commit:
+    name: Pre-commit Hooks
+    uses: zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main
+    with:
+      python-version: '3.11'
 
   python-standards:
     name: Python Standards
@@ -45,38 +42,82 @@ jobs:
       severity: 'error'
       shellcheck-version: 'v0.9.0'
 
-  # Only build Docker if Dockerfile or scripts changed
-  docker-build:
-    name: Docker Build
+  quality-checks:
+    name: Quality Checks
+    uses: zepfu/repo-standards/.github/workflows/reusable-quality-checks.yml@main
+    with:
+      python-version: '3.11'
+
+  config-validation:
+    name: Config Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main
+
+  makefile-validation:
+    name: Makefile Standards
+    uses: zepfu/repo-standards/.github/workflows/reusable-makefile-ci.yml@main
+
+  # ===========================================================================
+  # Project validation
+  # ===========================================================================
+
+  validate-project:
+    name: Validate Project Files
     runs-on: ubuntu-latest
-    needs: [python-standards, shell-standards]
-    # Only if Dockerfile or core scripts changed
-    if: |
-      contains(github.event.head_commit.modified, 'Dockerfile') ||
-      contains(github.event.head_commit.modified, 'scripts/')
+    needs: [config-validation]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Check for required files
+        run: |
+          REQUIRED_FILES=(
+            "scripts/gateway.py"
+            "scripts/auth.py"
+            "scripts/start.sh"
+            "Dockerfile"
+          )
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: llama-gguf-inference:test
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          MISSING=()
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              MISSING+=("$file")
+            fi
+          done
+
+          if [ ${#MISSING[@]} -ne 0 ]; then
+            echo "ERROR: Required files missing:"
+            printf '  - %s\n' "${MISSING[@]}"
+            exit 1
+          fi
+
+          echo "SUCCESS: All required files present"
+
+      - name: Validate Docker configuration
+        run: |
+          if ! grep -q "EXPOSE 8000" Dockerfile; then
+            echo "ERROR: Dockerfile must expose port 8000"
+            exit 1
+          fi
+
+          echo "SUCCESS: Docker configuration valid"
+
+  # ===========================================================================
+  # Docker build + integration tests
+  # ===========================================================================
+
+  docker-build:
+    name: Docker Build
+    uses: zepfu/repo-standards/.github/workflows/reusable-docker-build.yml@main
+    needs: [python-standards, shell-standards, quality-checks, validate-project]
+    with:
+      platforms: 'linux/amd64'
+      push: false
 
   integration-test:
     name: Integration Test (Mock Backend)
     runs-on: ubuntu-latest
-    needs: docker-build
-    if: needs.docker-build.result == 'success'
+    needs: [docker-build]
 
     steps:
       - name: Checkout code
