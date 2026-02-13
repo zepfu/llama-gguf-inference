@@ -46,9 +46,15 @@ RUN apt-get update -y && \
 # Set working directory
 WORKDIR /opt/app
 
-# Copy only what's needed for runtime (relies on .dockerignore for exclusions)
-COPY scripts/ /opt/app/scripts/
-COPY Makefile /opt/app/
+# Copy only runtime scripts (not tests, diagnostics, benchmarks, docs)
+# Selective COPY avoids relying solely on .dockerignore and makes the image
+# contents explicit. Only these files are needed at runtime:
+#   start.sh         - Container entrypoint (orchestrates all services)
+#   gateway.py       - API gateway (port 8000)
+#   auth.py          - API key authentication and rate limiting
+#   health_server.py - Platform health checks (port 8001)
+#   key_mgmt.py      - API key management CLI
+COPY scripts/start.sh scripts/gateway.py scripts/auth.py scripts/health_server.py scripts/key_mgmt.py /opt/app/scripts/
 
 # Write version file and set permissions in a single layer
 # hadolint ignore=SC2015
