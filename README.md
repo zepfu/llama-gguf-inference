@@ -78,6 +78,7 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 - **CORS support** — Configurable cross-origin headers for browser-based clients
 - **Concurrency control** — Bounded request queuing with configurable limits
 - **Prometheus metrics** — `/metrics` endpoint with JSON and Prometheus text format
+- **Request size limits** — Configurable body and header size limits for security
 - **Organized logging** — Multi-worker support with chronological log files
 - **Code quality enforcement** — Pre-commit hooks and CI/CD
 
@@ -166,6 +167,9 @@ curl http://localhost:8000/health  # Always works
 | `CORS_ORIGINS`            | `""`                     | Comma-separated allowed CORS origins (empty = off)  |
 | `MAX_CONCURRENT_REQUESTS` | `1`                      | Max simultaneous requests to backend                |
 | `MAX_QUEUE_SIZE`          | `0`                      | Max queued requests (0 = unlimited)                 |
+| `MAX_REQUEST_BODY_SIZE`   | `10485760`               | Max request body size in bytes (default 10MB)       |
+| `MAX_HEADERS`             | `64`                     | Max number of request headers                       |
+| `MAX_HEADER_LINE_SIZE`    | `8192`                   | Max size of a single header line in bytes           |
 | `MODEL_PATH`              | —                        | Full path to model (alternative to MODEL_NAME)      |
 | `DATA_DIR`                | `/data`                  | Base directory for models and logs                  |
 | `MODELS_DIR`              | `$DATA_DIR/models`       | Override models directory                           |
@@ -237,6 +241,7 @@ WORKER_TYPE=omni
 | `POST /v1/chat/completions` | **Yes**       | Chat completions (OpenAI format)                                     |
 | `POST /v1/completions`      | **Yes**       | Text completions                                                     |
 | `GET /v1/models`            | **Yes**       | List models                                                          |
+| `POST /v1/embeddings`       | **Yes**       | Text embeddings (if model supports it)                               |
 
 **Note:** When `AUTH_ENABLED=true` (default), API endpoints require a valid API key via `Authorization: Bearer <key>`
 header. Health endpoints always work without authentication.
@@ -430,12 +435,11 @@ pre-commit run --all-files
 ### Running Tests
 
 ```bash
-# Quick auth validation
-bash scripts/tests/test_auth.sh --quick
+# Full pytest suite (224 tests)
+python3 -m pytest tests/ -v
 
-# Full test suite
-bash scripts/tests/test_auth.sh
-bash scripts/tests/test_health.sh
+# Pre-commit hooks
+pre-commit run --all-files
 ```
 
 See [docs/TESTING.md](docs/TESTING.md) for comprehensive testing guide.
