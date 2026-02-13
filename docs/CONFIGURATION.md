@@ -93,6 +93,45 @@ Access-Control-Max-Age: 86400
 
 ______________________________________________________________________
 
+### Request Timeouts
+
+| Variable                  | Default | Description                                  |
+| ------------------------- | ------- | -------------------------------------------- |
+| `REQUEST_TIMEOUT`         | `300`   | Total request timeout in seconds (5 minutes) |
+| `BACKEND_CONNECT_TIMEOUT` | `10`    | Backend TCP connect timeout in seconds       |
+| `CLIENT_HEADER_TIMEOUT`   | `30`    | Client header/body read timeout in seconds   |
+
+The gateway enforces three separate timeouts:
+
+- **`REQUEST_TIMEOUT`** -- Covers the entire backend interaction after the TCP connection is established: sending the
+  request, reading response headers, and streaming the response body. If this timeout is exceeded, the gateway returns
+  `504 Gateway Timeout` in OpenAI error format. Set this high enough for your longest inference requests (large
+  generation tasks can take several minutes).
+- **`BACKEND_CONNECT_TIMEOUT`** -- Covers only the initial TCP connection to the llama-server backend. If the backend is
+  unreachable or slow to accept connections, the gateway returns `502 Bad Gateway`.
+- **`CLIENT_HEADER_TIMEOUT`** -- Covers reading the HTTP request line, headers, and body from the client. Protects
+  against slowloris-style attacks.
+
+**Examples:**
+
+```bash
+# Defaults (suitable for most deployments)
+REQUEST_TIMEOUT=300
+BACKEND_CONNECT_TIMEOUT=10
+CLIENT_HEADER_TIMEOUT=30
+
+# Long inference tasks (e.g., large context generation)
+REQUEST_TIMEOUT=600
+
+# Faster failure on backend issues
+BACKEND_CONNECT_TIMEOUT=5
+
+# Stricter client timeouts
+CLIENT_HEADER_TIMEOUT=15
+```
+
+______________________________________________________________________
+
 ### Concurrency Control
 
 | Variable                  | Default | Description                                        |

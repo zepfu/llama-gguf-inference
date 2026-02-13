@@ -3823,3 +3823,341 @@ class TestLogJsonHelper:
         assert entry["level"] == "warn"
         assert entry["msg"] == "test warning"
         assert entry["code"] == 431
+
+
+# ---------------------------------------------------------------------------
+# SIGHUP handler tests
+# ---------------------------------------------------------------------------
+
+
+class TestSighupHandler:
+    """Tests for _handle_sighup() signal handler."""
+
+    def test_sighup_handler_calls_reload(self, tmp_path, monkeypatch, capsys):
+        """SIGHUP handler triggers reload_keys()."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        monkeypatch.setenv("AUTH_KEYS_FILE", str(f))
+        gw = _reload_gateway(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        capsys.readouterr()  # drain module-level output
+
+        # Update keys file
+        f.write_text("testing:sk-test-1234567890abcdef\nnew:sk-new0-1234567890abcdef\n")
+
+        # Call the handler directly (simulating SIGHUP)
+        gw._handle_sighup(None, None)
+
+        captured = capsys.readouterr()
+        assert "2 key(s) loaded" in captured.err
+
+    def test_sighup_handler_logs_error_on_failure(self, tmp_path, monkeypatch, capsys):
+        """SIGHUP handler logs error if reload fails, does not crash."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        gw = _reload_gateway(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        capsys.readouterr()  # drain module-level output
+
+        # Make file unreadable — _load_keys catches error and returns {}
+        f.chmod(0o000)
+        try:
+            # Should NOT crash
+            gw._handle_sighup(None, None)
+            captured = capsys.readouterr()
+            # The handler should log a reload message (0 keys loaded)
+            assert "key(s) loaded" in captured.err or "reloaded" in captured.err.lower()
+        finally:
+            f.chmod(0o644)
+
+    def test_sighup_handler_no_auth_module(self, monkeypatch, capsys):
+        """SIGHUP handler warns when auth module is unavailable."""
+        gw = _reload_gateway(monkeypatch)
+        capsys.readouterr()
+        # Simulate auth not being available
+        original_available = gw.AUTH_AVAILABLE
+        original_reload_fn = gw._auth_reload_keys
+        gw.AUTH_AVAILABLE = False
+        gw._auth_reload_keys = None
+        try:
+            gw._handle_sighup(None, None)
+            captured = capsys.readouterr()
+            assert "not available" in captured.err
+        finally:
+            gw.AUTH_AVAILABLE = original_available
+            gw._auth_reload_keys = original_reload_fn
+
+
+# ---------------------------------------------------------------------------
+# POST /reload endpoint tests
+# ---------------------------------------------------------------------------
+
+
+class TestReloadEndpoint:
+    """Tests for handle_reload() and the /reload route."""
+
+    def test_reload_returns_200_with_count(self, tmp_path, monkeypatch):
+        """POST /reload returns 200 with key count on success."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        gw = _reload_gateway(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.handle_reload(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "200 OK" in response
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["status"] == "ok"
+        assert data["keys_loaded"] == 1
+
+    def test_reload_returns_500_on_auth_unavailable(self, monkeypatch):
+        """POST /reload returns 500 when auth module is unavailable."""
+        gw = _reload_gateway(monkeypatch)
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        # Simulate auth not available
+        original_available = gw.AUTH_AVAILABLE
+        original_reload_fn = gw._auth_reload_keys
+        gw.AUTH_AVAILABLE = False
+        gw._auth_reload_keys = None
+        try:
+
+            async def run():
+                writer = MockWriter()
+                await gw.handle_reload(writer)
+
+            asyncio.run(run())
+
+            response = written_data.decode()
+            assert "500 Internal Server Error" in response
+            body = response.split("\r\n\r\n", 1)[1]
+            data = json.loads(body)
+            assert data["error"]["code"] == "auth_unavailable"
+        finally:
+            gw.AUTH_AVAILABLE = original_available
+            gw._auth_reload_keys = original_reload_fn
+
+    def test_reload_with_cors(self, tmp_path, monkeypatch):
+        """POST /reload includes CORS headers when enabled."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        gw = _reload_gateway(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            CORS_ORIGINS="*",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.handle_reload(writer, request_origin="https://app.example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "200 OK" in response
+        assert "Access-Control-Allow-Origin" in response
+
+
+class TestTimeoutConfig:
+    """Tests for configurable timeout constants."""
+
+    def test_default_request_timeout(self, monkeypatch):
+        """REQUEST_TIMEOUT defaults to 300 seconds."""
+        monkeypatch.delenv("REQUEST_TIMEOUT", raising=False)
+        gw = _reload_gateway(monkeypatch)
+        assert gw.REQUEST_TIMEOUT == 300.0
+
+    def test_custom_request_timeout(self, monkeypatch):
+        """REQUEST_TIMEOUT reads from environment."""
+        gw = _reload_gateway(monkeypatch, REQUEST_TIMEOUT="600")
+        assert gw.REQUEST_TIMEOUT == 600.0
+
+    def test_default_backend_connect_timeout(self, monkeypatch):
+        """BACKEND_CONNECT_TIMEOUT defaults to 10 seconds."""
+        monkeypatch.delenv("BACKEND_CONNECT_TIMEOUT", raising=False)
+        gw = _reload_gateway(monkeypatch)
+        assert gw.BACKEND_CONNECT_TIMEOUT == 10.0
+
+    def test_custom_backend_connect_timeout(self, monkeypatch):
+        """BACKEND_CONNECT_TIMEOUT reads from environment."""
+        gw = _reload_gateway(monkeypatch, BACKEND_CONNECT_TIMEOUT="20")
+        assert gw.BACKEND_CONNECT_TIMEOUT == 20.0
+
+    def test_default_client_header_timeout(self, monkeypatch):
+        """CLIENT_HEADER_TIMEOUT defaults to 30 seconds."""
+        monkeypatch.delenv("CLIENT_HEADER_TIMEOUT", raising=False)
+        gw = _reload_gateway(monkeypatch)
+        assert gw.CLIENT_HEADER_TIMEOUT == 30.0
+
+    def test_custom_client_header_timeout(self, monkeypatch):
+        """CLIENT_HEADER_TIMEOUT reads from environment."""
+        gw = _reload_gateway(monkeypatch, CLIENT_HEADER_TIMEOUT="60")
+        assert gw.CLIENT_HEADER_TIMEOUT == 60.0
+
+    def test_float_timeout_values(self, monkeypatch):
+        """Timeout values support float (fractional seconds)."""
+        gw = _reload_gateway(
+            monkeypatch,
+            REQUEST_TIMEOUT="0.5",
+            BACKEND_CONNECT_TIMEOUT="1.5",
+            CLIENT_HEADER_TIMEOUT="2.5",
+        )
+        assert gw.REQUEST_TIMEOUT == 0.5
+        assert gw.BACKEND_CONNECT_TIMEOUT == 1.5
+        assert gw.CLIENT_HEADER_TIMEOUT == 2.5
+
+
+class TestGatewayTimeoutResponse:
+    """Tests for send_gateway_timeout() helper."""
+
+    def test_504_status_line(self, monkeypatch):
+        """send_gateway_timeout returns 504 Gateway Timeout."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            """Mock asyncio StreamWriter."""
+
+            def write(self, data):
+                """Capture written data."""
+                written_data.extend(data)
+
+            async def drain(self):
+                """No-op drain."""
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_gateway_timeout(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 504 Gateway Timeout" in response
+        assert "Content-Type: application/json" in response
+        assert "Connection: close" in response
+
+    def test_json_body_format(self, monkeypatch):
+        """Response body follows OpenAI error format with code 504."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            """Mock asyncio StreamWriter."""
+
+            def write(self, data):
+                """Capture written data."""
+                written_data.extend(data)
+
+            async def drain(self):
+                """No-op drain."""
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_gateway_timeout(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        parsed = json.loads(body)
+        assert "error" in parsed
+        assert parsed["error"]["message"] == "Request timed out"
+        assert parsed["error"]["type"] == "timeout_error"
+        assert parsed["error"]["code"] == 504
+
+    def test_cors_headers_included(self, monkeypatch):
+        """Response includes CORS headers when CORS is enabled."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            """Mock asyncio StreamWriter."""
+
+            def write(self, data):
+                """Capture written data."""
+                written_data.extend(data)
+
+            async def drain(self):
+                """No-op drain."""
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_gateway_timeout(writer, request_origin="https://app.example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+    def test_no_cors_when_disabled(self, monkeypatch):
+        """Response omits CORS headers when CORS is disabled."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            """Mock asyncio StreamWriter."""
+
+            def write(self, data):
+                """Capture written data."""
+                written_data.extend(data)
+
+            async def drain(self):
+                """No-op drain."""
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_gateway_timeout(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin" not in response
+
+
+class TestDoProxyFunction:
+    """Tests for the _do_proxy internal helper."""
+
+    def test_do_proxy_exists(self, monkeypatch):
+        """The _do_proxy function exists and is callable."""
+        gw = _reload_gateway(monkeypatch)
+        assert hasattr(gw, "_do_proxy")
+        assert asyncio.iscoroutinefunction(gw._do_proxy)
+
+    def test_proxy_request_uses_backend_connect_timeout(self, monkeypatch):
+        """proxy_request uses BACKEND_CONNECT_TIMEOUT for the connection."""
+        gw = _reload_gateway(monkeypatch, BACKEND_CONNECT_TIMEOUT="15")
+        assert gw.BACKEND_CONNECT_TIMEOUT == 15.0

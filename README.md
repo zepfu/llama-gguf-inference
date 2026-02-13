@@ -170,6 +170,9 @@ curl http://localhost:8000/health  # Always works
 | `MAX_REQUEST_BODY_SIZE`   | `10485760`               | Max request body size in bytes (default 10MB)       |
 | `MAX_HEADERS`             | `64`                     | Max number of request headers                       |
 | `MAX_HEADER_LINE_SIZE`    | `8192`                   | Max size of a single header line in bytes           |
+| `REQUEST_TIMEOUT`         | `300`                    | Total request timeout in seconds (5 min)            |
+| `BACKEND_CONNECT_TIMEOUT` | `10`                     | Backend TCP connect timeout in seconds              |
+| `CLIENT_HEADER_TIMEOUT`   | `30`                     | Client header read timeout in seconds               |
 | `MODEL_PATH`              | —                        | Full path to model (alternative to MODEL_NAME)      |
 | `DATA_DIR`                | `/data`                  | Base directory for models and logs                  |
 | `MODELS_DIR`              | `$DATA_DIR/models`       | Override models directory                           |
