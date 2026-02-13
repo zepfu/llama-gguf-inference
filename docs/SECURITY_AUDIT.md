@@ -220,8 +220,8 @@ ______________________________________________________________________
 | ------------ | -------------------- |
 | **Severity** | LOW                  |
 | **File**     | `scripts/gateway.py` |
-| **Lines**    | 601-606              |
-| **Status**   | OPEN                 |
+| **Lines**    | 725-752              |
+| **Status**   | **FIXED**            |
 
 **Description:** When proxying responses from the backend, response headers are accumulated in memory without a size
 limit (`response_headers += line` in a loop). A compromised or malicious backend could send very large response headers
@@ -230,8 +230,10 @@ to exhaust gateway memory.
 **Mitigating factors:** The backend is llama-server running on localhost, controlled by the same operator. The
 `readline()` timeout prevents indefinite hanging. This would only be exploitable if the backend itself were compromised.
 
-**Recommendation:** Add a cumulative response header size limit (e.g., 64KB) for defense-in-depth. Not critical for v1
-since the backend is a trusted local process.
+**Fix Applied:** Added `MAX_RESPONSE_HEADER_SIZE` constant (65536 = 64KB) enforced in the response header accumulation
+loop in `proxy_request()`. When the cumulative size exceeds the limit, the backend connection is closed and a 502 Bad
+Gateway response is returned to the client. This is a defense-in-depth measure; the limit is not configurable via
+environment variable since operators should not need to change it.
 
 ______________________________________________________________________
 
@@ -333,14 +335,14 @@ ______________________________________________________________________
 
 ## Findings Summary
 
-| Severity  | Count  | Open   | Fixed |
-| --------- | ------ | ------ | ----- |
-| CRITICAL  | 0      | 0      | 0     |
-| HIGH      | 1      | 0      | 1     |
-| MEDIUM    | 3      | 3      | 0     |
-| LOW       | 4      | 4      | 0     |
-| INFO      | 3      | 3      | 0     |
-| **Total** | **11** | **10** | **1** |
+| Severity  | Count  | Open  | Fixed |
+| --------- | ------ | ----- | ----- |
+| CRITICAL  | 0      | 0     | 0     |
+| HIGH      | 1      | 0     | 1     |
+| MEDIUM    | 3      | 3     | 0     |
+| LOW       | 4      | 3     | 1     |
+| INFO      | 3      | 3     | 0     |
+| **Total** | **11** | **9** | **2** |
 
 Previously fixed (verified): 5 (SEC-01 through SEC-05)
 
