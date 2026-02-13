@@ -90,9 +90,68 @@ staging:sk-staging-q5r6s7t8...
 
 ## Key Management
 
-### Generate Secure Keys
+### Key Management CLI
 
-**Method 1: OpenSSL (Recommended)**
+The `key_mgmt.py` tool provides safe key management with atomic writes and proper file permissions.
+
+```bash
+python3 scripts/key_mgmt.py <command> [options]
+```
+
+**Commands:**
+
+| Command    | Description                    | Requires `--name` |
+| ---------- | ------------------------------ | ----------------- |
+| `generate` | Create a new API key           | Yes               |
+| `list`     | List configured key IDs        | No                |
+| `remove`   | Remove a key by key ID         | Yes               |
+| `rotate`   | Regenerate key for existing ID | Yes               |
+
+**Global options:**
+
+| Option          | Description                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| `--file PATH`   | Path to keys file (default: `$AUTH_KEYS_FILE` or `$DATA_DIR/api_keys.txt`) |
+| `--quiet`, `-q` | Suppress output except key values (useful for scripting)                   |
+
+**Key format:** `sk-` prefix + 43 base64url characters (46 characters total), generated with a CSPRNG.
+
+**Examples:**
+
+```bash
+# Generate a new key
+python3 scripts/key_mgmt.py generate --name production
+# Output: Generated key for 'production': sk-abc123...
+
+# Generate and capture for scripting
+KEY=$(python3 scripts/key_mgmt.py generate --name ci-runner --quiet)
+
+# List all configured keys (never shows key values)
+python3 scripts/key_mgmt.py list
+
+# Rotate a key (regenerate with same key_id)
+python3 scripts/key_mgmt.py rotate --name production
+
+# Remove a key
+python3 scripts/key_mgmt.py remove --name old-client
+
+# Use a custom keys file
+python3 scripts/key_mgmt.py generate --name staging --file /secrets/api_keys.txt
+```
+
+**Safety features:**
+
+- Atomic writes (temp file + rename) prevent corruption
+- File permissions set to `0600` (owner read/write only)
+- Creates parent directories and keys file if they do not exist
+- Rejects duplicate key IDs on generate (use `rotate` instead)
+- Never displays existing key values (only newly generated keys)
+
+### Manual Key Generation
+
+If you prefer to generate keys manually:
+
+**Method 1: OpenSSL**
 
 ```bash
 openssl rand -hex 32
@@ -107,14 +166,7 @@ python3 -c "import secrets; print('sk-' + secrets.token_hex(32))"
 # Outputs: sk-<64 hex characters>
 ```
 
-**Method 3: Online (Use with caution)**
-
-```
-https://randomkeygen.com/
-Select "504-bit WPA Key" and add sk- prefix
-```
-
-### Add New Key
+### Add New Key (Manual)
 
 ```bash
 # Generate key
@@ -126,7 +178,7 @@ echo "alice-laptop:sk-alice-$NEW_KEY" >> /data/api_keys.txt
 # Share key securely with user (via encrypted channel)
 ```
 
-### Rotate Key
+### Rotate Key (Manual)
 
 ```bash
 # 1. Generate new key
@@ -146,9 +198,11 @@ echo "production-v2:sk-prod-$NEW_KEY" >> /data/api_keys.txt
 ### Revoke Key
 
 ```bash
-# Edit keys file
-nano /data/api_keys.txt
+# Using the CLI (recommended)
+python3 scripts/key_mgmt.py remove --name alice-laptop
 
+# Or manually edit the keys file
+nano /data/api_keys.txt
 # Comment out or delete the line
 # alice-laptop:sk-alice-xyz...  (REVOKED 2024-02-06)
 

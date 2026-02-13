@@ -57,6 +57,87 @@ See [AUTHENTICATION.md](AUTHENTICATION.md) for complete authentication guide.
 
 ______________________________________________________________________
 
+### CORS Configuration
+
+| Variable       | Default | Description                                        |
+| -------------- | ------- | -------------------------------------------------- |
+| `CORS_ORIGINS` | `""`    | Comma-separated allowed origins (empty = disabled) |
+
+When set, the gateway injects CORS headers into all responses and handles `OPTIONS` preflight requests automatically
+(204 No Content, no auth required).
+
+**Examples:**
+
+```bash
+# Disabled (default)
+CORS_ORIGINS=""
+
+# Allow a single origin
+CORS_ORIGINS=https://my-app.example.com
+
+# Allow multiple origins
+CORS_ORIGINS=https://app.example.com,https://staging.example.com
+
+# Allow all origins (wildcard)
+CORS_ORIGINS=*
+```
+
+**Injected headers:**
+
+```
+Access-Control-Allow-Origin: <origin or *>
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Authorization, Content-Type
+Access-Control-Max-Age: 86400
+```
+
+______________________________________________________________________
+
+### Concurrency Control
+
+| Variable                  | Default | Description                                        |
+| ------------------------- | ------- | -------------------------------------------------- |
+| `MAX_CONCURRENT_REQUESTS` | `1`     | Max simultaneous requests forwarded to the backend |
+| `MAX_QUEUE_SIZE`          | `0`     | Max requests waiting in queue (0 = unlimited)      |
+
+The gateway queues incoming API requests and forwards them to the llama-server backend with bounded concurrency. Health
+endpoints (`/ping`, `/health`, `/metrics`) bypass the queue entirely.
+
+When the queue is full, the gateway returns `503 Service Unavailable` with a `Retry-After: 5` header.
+
+**Examples:**
+
+```bash
+# Default: single request at a time, unlimited queue
+MAX_CONCURRENT_REQUESTS=1
+MAX_QUEUE_SIZE=0
+
+# Allow 4 concurrent requests, queue up to 20
+MAX_CONCURRENT_REQUESTS=4
+MAX_QUEUE_SIZE=20
+
+# High throughput with bounded queue
+MAX_CONCURRENT_REQUESTS=8
+MAX_QUEUE_SIZE=50
+```
+
+The `/health` endpoint includes a `queue` section showing current state:
+
+```json
+{
+  "queue": {
+    "max_concurrent": 4,
+    "max_queue_size": 20,
+    "active": 2,
+    "waiting": 5
+  }
+}
+```
+
+The `/metrics` endpoint includes `queue_depth`, `queue_rejections`, and `queue_wait_seconds_total`.
+
+______________________________________________________________________
+
 ### Data Directory
 
 | Variable   | Default | Description                        |
@@ -476,7 +557,10 @@ ______________________________________________________________________
 1. **Use strong keys:**
 
    ```bash
-   # Generate with:
+   # Generate with the key management CLI (recommended):
+   python3 scripts/key_mgmt.py generate --name production
+
+   # Or generate manually:
    openssl rand -hex 32
    ```
 

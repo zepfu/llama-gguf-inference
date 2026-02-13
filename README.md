@@ -17,15 +17,7 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 1. **Run the container:**
 
    ```bash
-   # For testing (auth disabled)
-   docker run --gpus all \
-     -v /path/to/models:/data/models \
-     -e MODEL_NAME=your-model.gguf \
-     -e AUTH_ENABLED=false \
-     -p 8000:8000 \
-     ghcr.io/zepfu/llama-gguf-inference
-
-   # For production (auth enabled - recommended)
+   # GPU (NVIDIA CUDA — amd64)
    docker run --gpus all \
      -v /path/to/models:/data/models \
      -v /path/to/api_keys.txt:/data/api_keys.txt:ro \
@@ -33,6 +25,22 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
      -e AUTH_ENABLED=true \
      -p 8000:8000 \
      ghcr.io/zepfu/llama-gguf-inference
+
+   # CPU (amd64 + arm64, no GPU required)
+   docker run \
+     -v /path/to/models:/data/models \
+     -e MODEL_NAME=your-model.gguf \
+     -e AUTH_ENABLED=false \
+     -e NGL=0 \
+     -p 8000:8000 \
+     ghcr.io/zepfu/llama-gguf-inference:cpu
+   ```
+
+   A `docker-compose.yml` is included with GPU and CPU service examples:
+
+   ```bash
+   docker compose up inference-gpu   # NVIDIA GPU
+   docker compose up inference-cpu   # CPU only
    ```
 
 1. **Send requests:**
@@ -59,12 +67,17 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 ## Features
 
 - **Platform agnostic** — Works on RunPod, Vast.ai, Lambda Labs, or local Docker
+- **Multi-architecture images** — CUDA (amd64) and CPU (amd64 + arm64) Docker images
 - **Simple configuration** — Only `MODEL_NAME` is required
 - **OpenAI-compatible API** — Drop-in replacement for `/v1/chat/completions`
 - **Streaming support** — Real-time token streaming via SSE
 - **Auto GPU offload** — Automatically uses available VRAM
 - **Health checks** — Built-in `/ping` and `/health` endpoints
 - **API key authentication** — Secure your endpoint with API keys (enabled by default)
+- **Key management CLI** — Generate, list, rotate, and remove API keys
+- **CORS support** — Configurable cross-origin headers for browser-based clients
+- **Concurrency control** — Bounded request queuing with configurable limits
+- **Prometheus metrics** — `/metrics` endpoint with JSON and Prometheus text format
 - **Organized logging** — Multi-worker support with chronological log files
 - **Code quality enforcement** — Pre-commit hooks and CI/CD
 
@@ -150,6 +163,9 @@ curl http://localhost:8000/health  # Always works
 | `AUTH_ENABLED`            | `true`                   | Enable/disable API key authentication               |
 | `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file                               |
 | `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per API key                              |
+| `CORS_ORIGINS`            | `""`                     | Comma-separated allowed CORS origins (empty = off)  |
+| `MAX_CONCURRENT_REQUESTS` | `1`                      | Max simultaneous requests to backend                |
+| `MAX_QUEUE_SIZE`          | `0`                      | Max queued requests (0 = unlimited)                 |
 | `MODEL_PATH`              | —                        | Full path to model (alternative to MODEL_NAME)      |
 | `DATA_DIR`                | `/data`                  | Base directory for models and logs                  |
 | `MODELS_DIR`              | `$DATA_DIR/models`       | Override models directory                           |
@@ -158,7 +174,7 @@ curl http://localhost:8000/health  # Always works
 | `PORT`                    | `8000`                   | Public gateway port                                 |
 | `PORT_HEALTH`             | `8001`                   | Health check port (for platform monitoring)         |
 | `PORT_BACKEND`            | `8080`                   | Internal llama-server port                          |
-| `BACKEND_PORT`            | `8080`                   | ⚠️ **Deprecated** - Use `PORT_BACKEND` instead      |
+| `BACKEND_PORT`            | `8080`                   | Deprecated - Use `PORT_BACKEND` instead             |
 | `LOG_NAME`                | `llama`                  | Log folder name                                     |
 | `WORKER_TYPE`             | `""`                     | Worker classification (e.g., instruct, coder, omni) |
 | `THREADS`                 | `0`                      | CPU threads (0 = auto)                              |
@@ -212,14 +228,15 @@ WORKER_TYPE=omni
 
 ## API Endpoints
 
-| Endpoint                    | Auth Required | Description                                     |
-| --------------------------- | ------------- | ----------------------------------------------- |
-| `GET /ping`                 | No            | Quick health check (always returns 200)         |
-| `GET /health`               | No            | Detailed health status with backend info (JSON) |
-| `GET /metrics`              | No            | Basic metrics (JSON)                            |
-| `POST /v1/chat/completions` | **Yes**       | Chat completions (OpenAI format)                |
-| `POST /v1/completions`      | **Yes**       | Text completions                                |
-| `GET /v1/models`            | **Yes**       | List models                                     |
+| Endpoint                    | Auth Required | Description                                                          |
+| --------------------------- | ------------- | -------------------------------------------------------------------- |
+| `GET /ping`                 | No            | Quick health check (always returns 200)                              |
+| `GET /health`               | No            | Detailed health status with backend and queue info                   |
+| `GET /metrics`              | No            | Gateway metrics (JSON default, Prometheus with `Accept: text/plain`) |
+| `OPTIONS *`                 | No            | CORS preflight (when `CORS_ORIGINS` is set)                          |
+| `POST /v1/chat/completions` | **Yes**       | Chat completions (OpenAI format)                                     |
+| `POST /v1/completions`      | **Yes**       | Text completions                                                     |
+| `GET /v1/models`            | **Yes**       | List models                                                          |
 
 **Note:** When `AUTH_ENABLED=true` (default), API endpoints require a valid API key via `Authorization: Bearer <key>`
 header. Health endpoints always work without authentication.
@@ -314,8 +331,10 @@ AUTH_KEYS_FILE=/mnt/storage/api_keys.txt
 ┌─────────────────────────────────────────────────┐
 │              Gateway (port 8000)                 │
 │  - API key authentication                        │
-│  - Health checks (/ping, /health)               │
+│  - Health checks (/ping, /health, /metrics)     │
 │  - Streaming support                             │
+│  - CORS headers                                  │
+│  - Concurrency control & request queuing         │
 │  - Request routing                               │
 └─────────────────────┬───────────────────────────┘
                       │
