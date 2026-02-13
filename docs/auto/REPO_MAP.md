@@ -15,16 +15,18 @@
 ```
 llama-gguf-inference/
 ├── CHANGELOG.md
+├── CLAUDE.md
 ├── CONTRIBUTING.md
 ├── DEBUGGING.md
 ├── ⭐ Dockerfile
+├── Dockerfile.cpu
 ├── ⭐ Makefile
-├── Makefile.bak
 ├── ⭐ README.md
 ├── api_keys.txt.example
+├── ⭐ docker-compose.yml
 ├── pyproject.toml
-├── archive/
-│   └── llama-gguf-inference_20260209222106.tar.gz
+├── repo.mk
+├── repo.mk.example
 ├── docs/
 │   ├── AUTHENTICATION.md
 │   ├── CONFIGURATION.md
@@ -37,26 +39,33 @@ llama-gguf-inference/
 │       ├── ARCHITECTURE_AUTO.md
 │       ├── CHANGELOG.md
 │       └── REPO_MAP.md
-└── scripts/
-    ├── ⭐ README.md
-    ├── ⭐ auth.py
-    ├── ⭐ gateway.py
-    ├── health_server.py
-    ├── ⭐ start.sh
-    ├── dev/
-    │   ├── check_changelog.sh
-    │   ├── check_repo_map.sh
-    │   ├── generate_api_docs.sh
-    │   └── setup.sh
-    ├── diagnostics/
-    │   ├── ⭐ README.md
-    │   └── collect.sh
-    └── tests/
-        ├── test_auth.sh
-        ├── test_docker_integration.sh
-        ├── test_health.sh
-        ├── test_integration.sh
-        └── test_runner.sh
+├── scripts/
+│   ├── ⭐ README.md
+│   ├── ⭐ auth.py
+│   ├── ⭐ gateway.py
+│   ├── health_server.py
+│   ├── key_mgmt.py
+│   ├── ⭐ start.sh
+│   ├── dev/
+│   │   ├── check_changelog.sh
+│   │   ├── check_repo_map.sh
+│   │   ├── generate_api_docs.sh
+│   │   └── setup.sh
+│   ├── diagnostics/
+│   │   ├── ⭐ README.md
+│   │   └── collect.sh
+│   └── tests/
+│       ├── test_auth.sh
+│       ├── test_docker_integration.sh
+│       ├── test_health.sh
+│       ├── test_integration.sh
+│       └── test_runner.sh
+└── tests/
+    ├── __init__.py
+    ├── conftest.py
+    ├── test_auth.py
+    ├── test_gateway.py
+    └── test_key_mgmt.py
 ```
 
 ## Key Files
@@ -75,6 +84,10 @@ llama-gguf-inference/
 
 - llama-gguf-inference
 
+**`docker-compose.yml`**
+
+- \==============================================================================
+
 **`README.md`**
 
 - Scripts Documentation
@@ -89,16 +102,19 @@ llama-gguf-inference/
 
 ## Configuration Files
 
-| File             | Description      |
-| ---------------- | ---------------- |
-| `Dockerfile`     | *No description* |
-| `Makefile`       | *No description* |
-| `pyproject.toml` | *No description* |
+| File                 | Description                                                                    |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `Dockerfile`         | *No description*                                                               |
+| `Makefile`           | *No description*                                                               |
+| `docker-compose.yml` | ============================================================================== |
+| `pyproject.toml`     | *No description*                                                               |
 
 ## Documentation
 
 - **`CHANGELOG.md`**
   - Changelog
+- **`CLAUDE.md`**
+  - CLAUDE.md — llama-gguf-inference
 - **`CONTRIBUTING.md`**
 - **`DEBUGGING.md`**
   - Debugging Guide
@@ -130,6 +146,7 @@ llama-gguf-inference/
 | `auth.py`                    | *No description*                                                    |
 | `gateway.py`                 | *No description*                                                    |
 | `health_server.py`           | health_server.py — Ultra-lightweight health check server for RunPod |
+| `key_mgmt.py`                | *No description*                                                    |
 | `check_changelog.sh`         | *No description*                                                    |
 | `check_repo_map.sh`          | *No description*                                                    |
 | `generate_api_docs.sh`       | *No description*                                                    |
@@ -145,4 +162,4 @@ ______________________________________________________________________
 
 *This file is auto-generated. Do not edit manually.*
 
-*Last updated: /home/zepfu/projects/llama-gguf-inference*
+*Last updated: /home/runner/work/llama-gguf-inference/llama-gguf-inference*
