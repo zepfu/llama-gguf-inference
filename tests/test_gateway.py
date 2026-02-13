@@ -20,6 +20,15 @@ def _reload_gateway(monkeypatch, **env_vars):
     for key, val in env_vars.items():
         monkeypatch.setenv(key, val)
 
+    # When auth is enabled, reload the auth module first so its api_validator
+    # picks up the current env vars (AUTH_ENABLED, AUTH_KEYS_FILE).  Without
+    # this, a prior test that reloaded auth with AUTH_ENABLED=false leaves
+    # api_validator.enabled=False, and reload_keys() returns 0.
+    if env_vars.get("AUTH_ENABLED", "").lower() == "true":
+        import auth
+
+        importlib.reload(auth)
+
     import gateway
 
     importlib.reload(gateway)
