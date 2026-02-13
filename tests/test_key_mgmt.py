@@ -1231,3 +1231,112 @@ class TestBuildParserExtended:
             ]
         )
         assert args.expires is None
+
+
+# ---------------------------------------------------------------------------
+# Coverage gap tests: line 126, lines 260-261, lines 304-306, lines 386-387
+# ---------------------------------------------------------------------------
+
+
+class TestParseExpirationUnknownUnit:
+    """Test parse_expiration() with an unknown time unit (line 126).
+
+    Line 126 is defensive dead code: the RELATIVE_TIME_PATTERN regex
+    only matches d, h, m so the else branch is unreachable normally.
+    We exercise it by mocking the regex match to return a fake match
+    with an unrecognized unit character.
+    """
+
+    def test_unknown_time_unit_raises(self):
+        """Unknown time unit raises ValueError via the else branch."""
+
+        class FakeMatch:
+            def group(self, n):
+                if n == 1:
+                    return "30"
+                if n == 2:
+                    return "x"
+                return None
+
+        with patch.object(key_mgmt, "RELATIVE_TIME_PATTERN") as mock_pattern:
+            mock_pattern.match.return_value = FakeMatch()
+            with pytest.raises(ValueError, match="Unknown time unit: x"):
+                key_mgmt.parse_expiration("30x")
+
+
+class TestAtomicWriteReplaceFailure:
+    """Test atomic_write() temp file cleanup when os.replace() fails (lines 260-261).
+
+    Lines 260-261 are the ``except OSError: pass`` block inside the cleanup
+    handler. To reach them, both os.replace AND os.unlink must fail.
+    """
+
+    def test_temp_file_cleaned_on_replace_failure(self, tmp_path):
+        """Temp file is removed and exception re-raised when os.replace fails."""
+        file_path = str(tmp_path / "keys.txt")
+
+        with patch("key_mgmt.os.replace", side_effect=OSError("Replace failed")):
+            with pytest.raises(OSError, match="Replace failed"):
+                key_mgmt.atomic_write(file_path, ["test line"])
+
+        # Verify no temp files remain
+        remaining = os.listdir(tmp_path)
+        temp_files = [f for f in remaining if f.startswith(".keys_")]
+        assert len(temp_files) == 0
+
+    def test_unlink_failure_on_replace_failure(self, tmp_path):
+        """When os.replace fails AND os.unlink also fails, exception is still re-raised."""
+        file_path = str(tmp_path / "keys.txt")
+
+        with patch("key_mgmt.os.replace", side_effect=OSError("Replace failed")):
+            with patch("key_mgmt.os.unlink", side_effect=OSError("Unlink failed")):
+                with pytest.raises(OSError, match="Replace failed"):
+                    key_mgmt.atomic_write(file_path, ["test line"])
+
+
+class TestGenerateInvalidRateLimitString:
+    """Test cmd_generate() with a non-integer rate limit string (lines 304-306).
+
+    When rate_limit_arg is a string that cannot be converted to int,
+    the except ValueError branch prints an error and returns 1.
+    """
+
+    def test_non_integer_rate_limit_fails(self, tmp_path):
+        """Non-integer rate limit string prints error and returns 1."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit="abc",
+            expires=None,
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 1
+        # File should not have been created
+        assert not os.path.exists(file_path)
+
+
+class TestListInvalidExpirationDate:
+    """Test cmd_list() with an invalid expiration date string (lines 386-387).
+
+    When the expiration field in a key line cannot be parsed by
+    datetime.fromisoformat(), the ValueError is caught silently
+    and the key is still listed with 'active' status.
+    """
+
+    def test_invalid_expiration_still_lists(self, tmp_path, capsys):
+        """Key with unparseable expiration string is listed with active status."""
+        path = tmp_path / "keys.txt"
+        # Write a key line with an invalid expiration that is NOT caught by auth's loader
+        # (key_mgmt list reads raw file without auth's validation)
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa:120:not-a-valid-date\n")
+        args = argparse.Namespace(file=str(path), quiet=False)
+        result = key_mgmt.cmd_list(args)
+        assert result == 0
+        captured = capsys.readouterr()
+        assert "test-key" in captured.out
+        assert "1 key(s) configured" in captured.out
+        # The invalid expiration is displayed as-is, status falls through as active
+        assert "not-a-valid-date" in captured.out
+        assert "active" in captured.out

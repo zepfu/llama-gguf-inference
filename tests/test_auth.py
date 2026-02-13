@@ -1194,3 +1194,168 @@ class TestReloadKeys:
         count = auth.reload_keys()
         assert count == 0
         assert len(auth.api_validator.keys) == 0
+
+
+# ---------------------------------------------------------------------------
+# Coverage gap tests: lines 140-141, 578, 599-600
+# ---------------------------------------------------------------------------
+
+
+class TestLoadKeysFewerThanTwoParts:
+    """Test _load_keys defensive check for lines with < 2 parts after split.
+
+    Lines 140-141 are defensive dead code: the ":" not in line check on
+    line 133 prevents reaching line 139 with < 2 parts naturally.  We
+    exercise the branch by patching the file iterator to yield a mock
+    line object that passes the colon-presence check but produces < 2
+    parts on split.
+    """
+
+    def test_fewer_than_two_parts_after_split(self, tmp_path, monkeypatch):
+        """Line that passes '\":\" in line' but splits into < 2 parts is skipped."""
+        import io
+
+        class FakeLine:
+            """A fake line string that claims to contain ':' but splits into 1 part."""
+
+            def strip(self):
+                return self
+
+            def startswith(self, prefix):
+                return False
+
+            def __contains__(self, item):
+                return item == ":"
+
+            def split(self, sep=None, maxsplit=-1):
+                return ["justonepart"]
+
+            def __bool__(self):
+                return True
+
+        fake_line = FakeLine()
+
+        # We need the file to exist so _load_keys opens it
+        keys_path = tmp_path / "keys.txt"
+        keys_path.write_text("placeholder\n")
+
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(keys_path))
+
+        # Now call _load_keys with a patched open that yields our fake line
+        original_open = open
+
+        def patched_open(path, *args, **kwargs):
+            if str(path) == str(keys_path):
+                return io.StringIO("")  # placeholder, we override __iter__
+            return original_open(path, *args, **kwargs)
+
+        class FakeFile:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def __iter__(self):
+                return iter([fake_line])
+
+        with patch("builtins.open", lambda *a, **kw: FakeFile()):
+            result = v._load_keys()
+
+        # The fake line should have been skipped (printed warning and continued)
+        assert len(result) == 0
+
+
+class TestLogAccessJsonFormat:
+    """Test log_access() JSON format branch (line 578) and file write (599-600).
+
+    _LOG_FORMAT is read at module level (line 554). Setting LOG_FORMAT=json
+    env var before reloading the module sets the branch to JSON mode.
+    We redirect file I/O to a real temp file to exercise both the JSON
+    formatting (line 578) and the file write path (lines 599-600).
+    """
+
+    def test_json_log_format_writes_jsonl(self, monkeypatch, tmp_path):
+        """When LOG_FORMAT=json, log_access writes a JSONL entry to file."""
+        log_dir = tmp_path / "logs"
+        log_dir.mkdir(parents=True)
+        log_file = str(log_dir / "api_access.log")
+
+        # Reload auth with LOG_FORMAT=json so _LOG_FORMAT == "json"
+        auth = _reload_auth(
+            monkeypatch,
+            AUTH_ENABLED="false",
+            DATA_DIR="/tmp/test-data",
+            LOG_FORMAT="json",
+        )
+        assert auth._LOG_FORMAT == "json"
+
+        async def run():
+            original_makedirs = os.makedirs
+            original_open = open
+
+            def redirect_makedirs(path, *args, **kwargs):
+                if "/data/logs" in path:
+                    return original_makedirs(str(log_dir), *args, **kwargs)
+                return original_makedirs(path, *args, **kwargs)
+
+            def redirect_open(path, *args, **kwargs):
+                if path == "/data/logs/api_access.log":
+                    return original_open(log_file, *args, **kwargs)
+                return original_open(path, *args, **kwargs)
+
+            with patch("auth.os.makedirs", side_effect=redirect_makedirs):
+                with patch("builtins.open", side_effect=redirect_open):
+                    await auth.log_access("POST", "/v1/chat/completions", "testing", 200)
+
+        asyncio.run(run())
+
+        content = open(log_file).read()
+        entry = json.loads(content.strip())
+        assert entry["key_id"] == "testing"
+        assert entry["method"] == "POST"
+        assert entry["path"] == "/v1/chat/completions"
+        assert entry["status"] == 200
+        assert "ts" in entry
+
+
+class TestLogAccessFileWrite:
+    """Test log_access() successful file write path (lines 599-600) with text format."""
+
+    def test_log_access_text_writes_to_file(self, monkeypatch, tmp_path):
+        """log_access() with text format creates directory and writes log entry."""
+        log_dir = tmp_path / "logs"
+        log_dir.mkdir(parents=True)
+        log_file = str(log_dir / "api_access.log")
+
+        auth = _reload_auth(
+            monkeypatch,
+            AUTH_ENABLED="false",
+            DATA_DIR="/tmp/test-data",
+            LOG_FORMAT="text",
+        )
+
+        async def run():
+            original_makedirs = os.makedirs
+            original_open = open
+
+            def redirect_makedirs(path, *args, **kwargs):
+                if "/data/logs" in path:
+                    return original_makedirs(str(log_dir), *args, **kwargs)
+                return original_makedirs(path, *args, **kwargs)
+
+            def redirect_open(path, *args, **kwargs):
+                if path == "/data/logs/api_access.log":
+                    return original_open(log_file, *args, **kwargs)
+                return original_open(path, *args, **kwargs)
+
+            with patch("auth.os.makedirs", side_effect=redirect_makedirs):
+                with patch("builtins.open", side_effect=redirect_open):
+                    await auth.log_access("GET", "/v1/models", "alice", 200)
+
+        asyncio.run(run())
+
+        content = open(log_file).read()
+        assert "alice" in content
+        assert "GET /v1/models" in content
+        assert "200" in content
