@@ -11,6 +11,8 @@ Welcome to the documentation for llama-gguf-inference, a production-ready infere
 
    AUTHENTICATION
    CONFIGURATION
+   DEPLOYMENT
+   MIGRATION
    TESTING
    TROUBLESHOOTING
 
