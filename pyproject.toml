@@ -36,7 +36,7 @@ omit = ["scripts/tests/*", "scripts/diagnostics/*"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 0
+fail_under = 70
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.",
