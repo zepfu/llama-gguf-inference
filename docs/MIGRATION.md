@@ -10,21 +10,18 @@ This section covers all changes you need to be aware of when upgrading to v1.0.0
 
 ### Environment Variable Changes
 
-**Deprecated: `BACKEND_PORT`**
+**Removed: `BACKEND_PORT`**
 
-The `BACKEND_PORT` environment variable has been renamed to `PORT_BACKEND` for consistency with `PORT` and
-`PORT_HEALTH`. The old name still works but logs a deprecation warning at startup. Update your deployment
-configurations:
+The `BACKEND_PORT` environment variable has been removed. Use `PORT_BACKEND` instead, which is consistent with `PORT`
+and `PORT_HEALTH`. If `BACKEND_PORT` is set, a warning is logged but the value is ignored.
 
 ```bash
-# Before (deprecated)
+# Before (removed — no longer works)
 BACKEND_PORT=8080
 
-# After (recommended)
+# After (required)
 PORT_BACKEND=8080
 ```
-
-The old name will be removed in a future major version.
 
 ### New Features Requiring Configuration
 
@@ -159,13 +156,87 @@ state:
 }
 ```
 
+### Post-rc.1 Features
+
+The following features were added after the initial release candidate.
+
+#### Per-Key Rate Limits
+
+API keys now support an optional per-key rate limit override using an extended key format:
+
+```
+key_id:api_key:120
+```
+
+The third field sets the requests-per-minute limit for that specific key, overriding the global `RATE_LIMIT` value.
+
+#### Key Expiration / TTL
+
+Keys can include an expiration timestamp or relative TTL as a fourth field:
+
+```
+# Absolute expiration (ISO 8601)
+key_id:api_key::2026-03-01T00:00:00
+
+# Relative TTL (from container start)
+key_id:api_key::30d
+key_id:api_key::24h
+key_id:api_key::60m
+```
+
+When a key expires, requests using it receive `401 Unauthorized`.
+
+#### Hot-Reload API Keys
+
+API keys can be reloaded without restarting the container:
+
+- **Signal:** Send `SIGHUP` to the gateway process.
+- **HTTP:** `POST /reload` (requires authentication if auth is enabled).
+
+Both methods re-read the keys file and apply changes immediately.
+
+#### Structured JSON Logging
+
+Set `LOG_FORMAT=json` to produce structured JSONL output on stdout. Each log line is a valid JSON object with
+`timestamp`, `level`, `message`, and contextual fields. Useful for log aggregation pipelines (Datadog, ELK, etc.).
+
+#### Configurable Timeouts
+
+Three new timeout variables provide fine-grained control:
+
+| Variable                  | Default | Description                                         |
+| ------------------------- | ------- | --------------------------------------------------- |
+| `REQUEST_TIMEOUT`         | `300`   | Max seconds for a full inference request            |
+| `BACKEND_CONNECT_TIMEOUT` | `10`    | Max seconds to establish connection to llama-server |
+| `CLIENT_HEADER_TIMEOUT`   | `30`    | Max seconds to receive the complete request headers |
+
+#### Non-Root Container
+
+The container now runs as the `inference` user instead of root. Bind-mounted volumes must be readable by this user (UID
+is set at build time). If you previously relied on root access inside the container, update your volume permissions.
+
+#### New Security Limits
+
+| Variable                | Default | Description                                        |
+| ----------------------- | ------- | -------------------------------------------------- |
+| `MAX_REQUEST_LINE_SIZE` | `8192`  | Maximum request line size in bytes (8 KB)          |
+| `METRICS_AUTH_ENABLED`  | `false` | Require authentication for the `/metrics` endpoint |
+
+#### New HTTP Responses
+
+The gateway now returns additional status codes:
+
+- **414 URI Too Long** — Request URI exceeds `MAX_REQUEST_LINE_SIZE`.
+- **504 Gateway Timeout** — Backend did not respond within `REQUEST_TIMEOUT`.
+- **400 Bad Request** — Malformed request line or headers.
+
 ______________________________________________________________________
 
 ## Breaking Changes Checklist
 
 Use this checklist when upgrading to v1.0.0:
 
-- [ ] **`BACKEND_PORT` renamed** — Replace with `PORT_BACKEND` in deployment configs (old name still works with warning)
+- [ ] **`BACKEND_PORT` removed** — Replace with `PORT_BACKEND` in deployment configs (`BACKEND_PORT` is ignored)
 - [ ] **Auth fail-closed** — If `AUTH_ENABLED=true`, ensure a valid `api_keys.txt` file is mounted with at least one
   key. An empty or missing file now blocks all API requests.
 - [ ] **Rate limit status code** — Update client error handling: rate limit errors now return `429` instead of `401`
@@ -179,15 +250,15 @@ ______________________________________________________________________
 
 All environment variables added or changed in v1.0.0:
 
-| Variable                  | Default | Status     | Description                                             |
-| ------------------------- | ------- | ---------- | ------------------------------------------------------- |
-| `PORT_BACKEND`            | `8080`  | New        | Internal llama-server port (replaces `BACKEND_PORT`)    |
-| `BACKEND_PORT`            | `8080`  | Deprecated | Still works with warning; use `PORT_BACKEND` instead    |
-| `PORT_HEALTH`             | `8001`  | New        | Health check port for platform monitoring               |
-| `CORS_ORIGINS`            | `""`    | New        | Comma-separated allowed CORS origins (empty = disabled) |
-| `MAX_CONCURRENT_REQUESTS` | `1`     | New        | Max simultaneous requests forwarded to the backend      |
-| `MAX_QUEUE_SIZE`          | `0`     | New        | Max requests waiting in queue (0 = unlimited)           |
-| `WORKER_TYPE`             | `""`    | New        | Worker classification for log organization              |
+| Variable                  | Default | Status  | Description                                             |
+| ------------------------- | ------- | ------- | ------------------------------------------------------- |
+| `PORT_BACKEND`            | `8080`  | New     | Internal llama-server port (replaces `BACKEND_PORT`)    |
+| `BACKEND_PORT`            | —       | Removed | Ignored; use `PORT_BACKEND` instead                     |
+| `PORT_HEALTH`             | `8001`  | New     | Health check port for platform monitoring               |
+| `CORS_ORIGINS`            | `""`    | New     | Comma-separated allowed CORS origins (empty = disabled) |
+| `MAX_CONCURRENT_REQUESTS` | `1`     | New     | Max simultaneous requests forwarded to the backend      |
+| `MAX_QUEUE_SIZE`          | `0`     | New     | Max requests waiting in queue (0 = unlimited)           |
+| `WORKER_TYPE`             | `""`    | New     | Worker classification for log organization              |
 
 For the complete environment variable reference, see [CONFIGURATION.md](CONFIGURATION.md).
 

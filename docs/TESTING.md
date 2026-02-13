@@ -4,21 +4,25 @@ Comprehensive testing strategy for llama-gguf-inference.
 
 ## Current Test Coverage
 
-**224 tests total** across 4 test modules. Coverage: `auth.py` 78%, `gateway.py` 60%, `key_mgmt.py` 79%, overall 59%.
+**480 tests total** across 5 test modules. Coverage: `auth.py` ~97%, `gateway.py` ~89%, `key_mgmt.py` ~99%,
+`benchmark.py` ~99%, `health_server.py` ~100%, overall **93%**.
 
 ### pytest Test Suite
 
 Located in `tests/`, run with `python3 -m pytest tests/ -v`:
 
-#### `test_auth.py` — 33 tests
+#### `test_auth.py`
 
 - API key validation and format checking
 - Rate limiter logic and sliding window behavior
-- Key file parsing (comments, blanks, duplicates)
+- Per-key rate limits (override global default)
+- Key expiration and TTL handling
+- Hot-reload (atomic replacement, fail-closed, rate limiter preserved)
+- Key file parsing (comments, blanks, duplicates, extended format)
 - Authorization header extraction (Bearer and raw)
 - Error response format (401, 429)
 
-#### `test_gateway.py` — 95 tests
+#### `test_gateway.py`
 
 - Request routing and health endpoint exemptions
 - CORS header injection, preflight handling, and origin validation
@@ -26,20 +30,26 @@ Located in `tests/`, run with `python3 -m pytest tests/ -v`:
 - Concurrency control and queue behavior (config, response format, enforcement)
 - Request body size limits (413 Payload Too Large)
 - Header count and size limits (431 Request Header Fields Too Large)
+- Request line size limits (414 URI Too Long)
+- Request timeouts (504 Gateway Timeout)
+- Malformed Content-Length handling (400 Bad Request)
+- JSON logging format (`LOG_FORMAT=json`)
 - Security limits integration tests
 - Streaming proxy and backend connection handling
 - Metrics counters (requests, errors, bytes, queue)
 
-#### `test_key_mgmt.py` — 47 tests
+#### `test_key_mgmt.py`
 
 - Key generation (format, uniqueness, CSPRNG)
-- Key listing (display, empty file, quiet mode)
+- Key generation with per-key rate limits and expiration
+- Key listing (display, empty file, quiet mode, status column)
 - Key removal (existing, missing, file integrity)
-- Key rotation (regeneration, atomic write)
+- Key rotation (regeneration, atomic write, expiration update)
 - Validation (key_id format, duplicates, edge cases)
+- Expiration parsing (ISO 8601, relative formats: 30d, 24h, 60m)
 - Atomic write safety and file permission (0600)
 
-#### `test_benchmark.py` — 49 tests
+#### `test_benchmark.py`
 
 - Statistics computation (percentile, mean, min/max)
 - SSE token parsing and content extraction
@@ -204,7 +214,7 @@ PORT_BACKEND=8080 BACKEND_PORT=9080 docker run ...
   [LIVE_TESTING_GUIDE.md](LIVE_TESTING_GUIDE.md))
 - **Load testing** — Sustained concurrency testing at target throughput levels
 - **Security testing** — Auth bypass attempts, injection testing, timing attack verification
-- **Coverage target** — Push from 59% toward 80%+ by covering remaining gateway and auth paths
+- **Coverage maintenance** — Maintain 93%+ coverage as new features are added
 
 ## Debugging Failed Tests
 

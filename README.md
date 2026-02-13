@@ -178,12 +178,14 @@ curl -X POST -H "Authorization: Bearer <key>" http://localhost:8000/reload
 | `AUTH_ENABLED`            | `true`                   | Enable/disable API key authentication               |
 | `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file                               |
 | `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per API key                              |
+| `METRICS_AUTH_ENABLED`    | `false`                  | Require authentication for `/metrics` endpoint      |
 | `CORS_ORIGINS`            | `""`                     | Comma-separated allowed CORS origins (empty = off)  |
 | `MAX_CONCURRENT_REQUESTS` | `1`                      | Max simultaneous requests to backend                |
 | `MAX_QUEUE_SIZE`          | `0`                      | Max queued requests (0 = unlimited)                 |
 | `MAX_REQUEST_BODY_SIZE`   | `10485760`               | Max request body size in bytes (default 10MB)       |
 | `MAX_HEADERS`             | `64`                     | Max number of request headers                       |
 | `MAX_HEADER_LINE_SIZE`    | `8192`                   | Max size of a single header line in bytes           |
+| `MAX_REQUEST_LINE_SIZE`   | `8192`                   | Max size of HTTP request line in bytes              |
 | `REQUEST_TIMEOUT`         | `300`                    | Total request timeout in seconds (5 min)            |
 | `BACKEND_CONNECT_TIMEOUT` | `10`                     | Backend TCP connect timeout in seconds              |
 | `CLIENT_HEADER_TIMEOUT`   | `30`                     | Client header read timeout in seconds               |
@@ -454,7 +456,7 @@ pre-commit run --all-files
 ### Running Tests
 
 ```bash
-# Full pytest suite (224 tests)
+# Full pytest suite (480 tests)
 python3 -m pytest tests/ -v
 
 # Pre-commit hooks

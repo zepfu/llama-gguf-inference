@@ -11,7 +11,9 @@ checks publicly accessible.
 
 - File-based API key management
 - Key ID tracking for audit logs
-- Per-key rate limiting
+- Per-key rate limiting (global default or per-key override)
+- Key expiration with ISO 8601 timestamps or relative durations
+- Hot-reload keys via SIGHUP signal or `POST /reload` endpoint
 - OpenAI-compatible auth format
 - Health endpoints always accessible (no auth required)
 
@@ -67,7 +69,7 @@ curl -H "Authorization: sk-prod-YOUR_KEY" \
 
 File: `/data/api_keys.txt` (or custom path via `AUTH_KEYS_FILE`)
 
-Format: `key_id:api_key`
+Format: `key_id:api_key[:rate_limit][:expiration]`
 
 ```
 # Comments are allowed
@@ -77,14 +79,34 @@ alice-laptop:sk-alice-m1n2o3p4...
 
 # Blank lines are ignored
 staging:sk-staging-q5r6s7t8...
+
+# With per-key rate limit (requests per minute)
+batch-user:sk-batch-a1b2c3d4e5f6...:120
+
+# With expiration only (ISO 8601 timestamp)
+temp-key:sk-temp-x9y8z7w6v5u4...::2026-03-01T00:00:00
+
+# With both rate limit and expiration
+vip-client:sk-vip-m1n2o3p4...:300:2026-12-31T23:59:59
+```
+
+**Key format reference (all optional fields):**
+
+```
+key_id:api_key                           # basic
+key_id:api_key:120                       # with per-key rate limit
+key_id:api_key::2026-03-01T00:00:00     # with expiration
+key_id:api_key:300:2026-12-31T23:59:59  # with both
 ```
 
 **Rules:**
 
 - One key per line
-- Format: `key_id:api_key` (colon-separated)
+- Format: `key_id:api_key[:rate_limit][:expiration]` (colon-separated)
 - key_id: Alphanumeric, hyphens, underscores (e.g., `production`, `dev-team`)
 - api_key: 16-128 characters, alphanumeric with hyphens/underscores
+- rate_limit: Optional positive integer (requests per minute), overrides `MAX_REQUESTS_PER_MINUTE`
+- expiration: Optional ISO 8601 timestamp (e.g., `2026-03-01T00:00:00`)
 - Comments start with `#`
 - Duplicate keys are rejected
 
@@ -114,6 +136,19 @@ python3 scripts/key_mgmt.py <command> [options]
 | `--file PATH`   | Path to keys file (default: `$AUTH_KEYS_FILE` or `$DATA_DIR/api_keys.txt`) |
 | `--quiet`, `-q` | Suppress output except key values (useful for scripting)                   |
 
+**Generate options:**
+
+| Option            | Description                                                                |
+| ----------------- | -------------------------------------------------------------------------- |
+| `--rate-limit N`  | Per-key rate limit in requests per minute (overrides global default)       |
+| `--expires VALUE` | Key expiration: ISO 8601 datetime or relative format (`30d`, `24h`, `60m`) |
+
+**Rotate options:**
+
+| Option            | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `--expires VALUE` | New expiration (preserves existing rate limit) |
+
 **Key format:** `sk-` prefix + 43 base64url characters (46 characters total), generated with a CSPRNG.
 
 **Examples:**
@@ -123,14 +158,27 @@ python3 scripts/key_mgmt.py <command> [options]
 python3 scripts/key_mgmt.py generate --name production
 # Output: Generated key for 'production': sk-abc123...
 
+# Generate with per-key rate limit (requests per minute)
+python3 scripts/key_mgmt.py generate --name batch-user --rate-limit 120
+
+# Generate with expiration (ISO 8601 or relative: 30d, 24h, 60m)
+python3 scripts/key_mgmt.py generate --name temp-key --expires 2026-03-01T00:00:00
+python3 scripts/key_mgmt.py generate --name temp-key --expires 30d
+
+# Generate with both rate limit and expiration
+python3 scripts/key_mgmt.py generate --name vip --rate-limit 300 --expires 365d
+
 # Generate and capture for scripting
 KEY=$(python3 scripts/key_mgmt.py generate --name ci-runner --quiet)
 
-# List all configured keys (never shows key values)
+# List all configured keys (never shows key values, shows rate limit and expiration status)
 python3 scripts/key_mgmt.py list
 
-# Rotate a key (regenerate with same key_id)
+# Rotate a key (regenerate with same key_id, preserves rate limit)
 python3 scripts/key_mgmt.py rotate --name production
+
+# Rotate and update expiration
+python3 scripts/key_mgmt.py rotate --name alice-laptop --expires 30d
 
 # Remove a key
 python3 scripts/key_mgmt.py remove --name old-client
@@ -329,11 +377,112 @@ MAX_REQUESTS_PER_MINUTE=100  # Default
 **Example:**
 
 ```bash
-# production key: 100 req/min
-# development key: 100 req/min
-# alice-laptop key: 100 req/min
+# production key: 100 req/min (global default)
+# development key: 100 req/min (global default)
+# alice-laptop key: 100 req/min (global default)
 # Each has independent limit
 ```
+
+### Per-Key Rate Limits
+
+Individual keys can override the global `MAX_REQUESTS_PER_MINUTE` by specifying a per-key rate limit in the keys file.
+This allows different usage tiers -- for example, a VIP key with a higher limit or a batch processing key with a lower
+limit.
+
+**Setting via keys file:**
+
+```
+# Format: key_id:api_key:rate_limit
+vip-client:sk-vip-abc123...:300
+batch-user:sk-batch-xyz789...:50
+standard:sk-std-def456...          # uses global default (100)
+```
+
+**Setting via key_mgmt.py:**
+
+```bash
+python3 scripts/key_mgmt.py generate --name vip-client --rate-limit 300
+```
+
+**Behavior:**
+
+- Per-key rate limits override the global `MAX_REQUESTS_PER_MINUTE` for that specific key
+- Keys without a per-key limit fall back to the global default
+- Rate limits use the same sliding 60-second window as the global limiter
+- Per-key limits are preserved during hot-reload
+
+### Key Expiration
+
+Keys can be given an expiration time, after which they will be rejected with a 401 response. This is useful for
+temporary access, trial keys, or enforcing periodic key rotation.
+
+**Setting via keys file:**
+
+```
+# Format: key_id:api_key::expiration (note the empty rate_limit field)
+temp-key:sk-temp-abc123...::2026-03-01T00:00:00
+
+# With both rate limit and expiration
+vip-key:sk-vip-xyz789...:300:2026-12-31T23:59:59
+```
+
+**Setting via key_mgmt.py:**
+
+```bash
+# ISO 8601 datetime
+python3 scripts/key_mgmt.py generate --name temp-key --expires 2026-03-01T00:00:00
+
+# Relative formats
+python3 scripts/key_mgmt.py generate --name trial-key --expires 30d    # 30 days from now
+python3 scripts/key_mgmt.py generate --name demo-key --expires 24h     # 24 hours from now
+python3 scripts/key_mgmt.py generate --name test-key --expires 60m     # 60 minutes from now
+```
+
+**Behavior:**
+
+- Expired keys receive a `401 Unauthorized` response with the message `API key has expired`
+- Expiration is checked on every request after key validation
+- The `list` command shows expiration status (active, expired) for each key
+- Expiration can be updated when rotating a key with `--expires`
+
+### Hot-Reload API Keys
+
+API keys can be reloaded without restarting the gateway, allowing you to add, remove, or modify keys with zero downtime.
+
+**Via SIGHUP signal:**
+
+```bash
+# Docker
+docker kill -s HUP my-inference-container
+
+# Direct process signal (inside the container)
+kill -HUP $(pgrep -f gateway.py)
+```
+
+**Via POST /reload endpoint (requires authentication):**
+
+```bash
+curl -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8000/reload
+# {"status": "ok", "keys_loaded": 3}
+```
+
+**Behavior:**
+
+- **Atomic replacement:** Either all keys are replaced or the previous set is preserved unchanged
+- **Fail-closed:** If the reload fails (e.g., file not found, parse error), the gateway continues serving with the
+  previous keys
+- **Rate limiter preserved:** Request timestamps for known keys survive the reload, preventing rate limit bypass by
+  triggering a reload
+- **Re-reads environment:** The `AUTH_KEYS_FILE` path is re-read from the environment at reload time, allowing you to
+  point to a new file without restarting
+
+**Typical workflow:**
+
+1. Edit the keys file to add/remove/modify keys
+1. Send `SIGHUP` or call `POST /reload`
+1. Verify the response shows the expected key count
+1. Gateway immediately uses the new keys for all subsequent requests
 
 ## Access Logging
 
@@ -580,8 +729,8 @@ curl http://localhost:8000/metrics | jq '.authentication'
 MAX_REQUESTS_PER_MINUTE=200  # Default is 100
 ```
 
-**Different limits per key:** Currently not supported - all keys share the same limit. This is planned for future
-enhancement.
+**Different limits per key:** Supported via per-key rate limits in the keys file. See the
+[Per-Key Rate Limits](#per-key-rate-limits) section above.
 
 ### Access Logs Not Written
 
@@ -611,7 +760,6 @@ See [docs/FUTURE_KEY_MANAGEMENT.md](FUTURE_KEY_MANAGEMENT.md) for planned featur
 
 - Client ID/Client Secret OAuth-style authentication
 - Database-backed key storage
-- Key expiration/TTL
 - Scopes and permissions
 - Usage quotas
 - Key management API/dashboard

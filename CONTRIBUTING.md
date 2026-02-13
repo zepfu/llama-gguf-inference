@@ -1,23 +1,5 @@
 ## Documentation Automation
 
-### Repository Map
-
-The repository structure is automatically documented in `REPO_MAP.md`.
-
-**Automatic Updates:**
-
-- Weekly via GitHub Action (Monday 9 AM UTC)
-- Creates PR if changes detected
-- Auto-merges if CI passes
-
-**Manual Update:**
-
-```bash
-make map
-```
-
-**Pre-commit Check:** The pre-commit hook will fail if REPO_MAP.md is outdated.
-
 ### Changelog
 
 Changelog is generated from git commit history using conventional commits.
@@ -66,31 +48,14 @@ pip install sphinx sphinx-rtd-theme
 
 ## Development Workflows
 
-### Weekly Automation
-
-Every Monday at 9 AM UTC, a GitHub Action:
-
-1. Generates updated REPO_MAP.md
-1. Generates updated CHANGELOG.md
-1. Creates PR if changes detected
-1. Auto-merges if CI passes
-
-You can also trigger manually:
-
-```bash
-# Via GitHub UI: Actions → Update Documentation → Run workflow
-
-# Or via CLI
-gh workflow run update-docs.yml
-```
-
 ### Pre-commit Hooks
 
-Three project-specific hooks run automatically:
+The project uses 29 pre-commit hooks covering formatting, linting, security, and file hygiene. Run all hooks manually
+with:
 
-1. **check-repo-map** - Fails if REPO_MAP.md outdated
-1. **check-env-completeness** - Validates env var docs
-1. **check-changelog** - Warns if CHANGELOG.md outdated (pre-push only)
+```bash
+pre-commit run --all-files
+```
 
 To bypass (not recommended):
 
@@ -100,29 +65,20 @@ git commit --no-verify
 
 ### Testing Strategy
 
-**Quick Tests:**
+**Primary test command (pytest, 480 tests):**
 
 ```bash
-make test-auth    # Auth tests only
-make test-health  # Health endpoint tests
+python3 -m pytest tests/ -v
 ```
 
-**Integration Tests:**
+**Makefile shortcuts** (still available for targeted testing):
 
 ```bash
+make test-auth         # Auth tests only
+make test-health       # Health endpoint tests
 make test-integration  # Full workflow
-```
-
-**Docker Tests:**
-
-```bash
-make test-docker  # Docker integration
-```
-
-**All Tests:**
-
-```bash
-make test  # Runs all available tests
+make test-docker       # Docker integration
+make test              # Runs all available tests
 ```
 
 ### Makefile Commands
@@ -217,32 +173,11 @@ NEW_VAR=default_value
 
 3. **Document in docs/CONFIGURATION.md:** Add to appropriate table with description.
 
-1. **Run validation:**
-
-```bash
-make check-env
-```
-
-Pre-commit hook will catch missing documentation.
+1. **Verify:** Run `pre-commit run --all-files` to check for issues.
 
 ## Troubleshooting Development
 
 ### Pre-commit Failing
-
-**Repo map outdated:**
-
-```bash
-make map
-git add REPO_MAP.md
-git commit
-```
-
-**Env completeness:**
-
-```bash
-make check-env
-# Fix reported issues
-```
 
 **Format issues:**
 
