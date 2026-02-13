@@ -154,11 +154,21 @@ jobs:
             -e MOCK_BACKEND=true \
             -p 8000:8000 \
             llama-gguf-inference:test
-          sleep 10
 
       - name: Test health endpoints
         run: |
-          curl -f http://localhost:8000/ping || exit 1
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/ping; then
+              echo "Container ready after ${i}s"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Container failed to start within 30s"
+              docker logs llama-test
+              exit 1
+            fi
+            sleep 1
+          done
           curl -f http://localhost:8000/health || exit 1
 
       - name: Test auth rejection
