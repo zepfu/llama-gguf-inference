@@ -35,6 +35,7 @@ Example:
 
 import asyncio
 import datetime
+import hmac
 import json
 import os
 import time
@@ -67,7 +68,7 @@ class APIKeyValidator:
             if self.keys:
                 print(f"✅ Authentication enabled with {len(self.keys)} key(s)")
             else:
-                print("⚠️  Authentication enabled but no keys configured. Allowing all requests.")
+                print("🔒 Authentication enabled but no keys configured — rejecting all requests.")
                 print(f"   Create keys file at: {self.keys_file}")
         else:
             print("⚠️  Authentication disabled! All requests will be accepted.")
@@ -90,7 +91,7 @@ class APIKeyValidator:
         if not os.path.exists(self.keys_file):
             print(f"⚠️  AUTH_ENABLED=true but keys file not found: {self.keys_file}")
             print("    Create file with format: key_id:api_key")
-            print("    WARNING: Accepting all requests until keys file is configured!")
+            print("    All requests will be REJECTED until keys file is configured.")
             return {}
 
         try:
@@ -167,9 +168,9 @@ class APIKeyValidator:
         if not self.enabled:
             return True, "auth-disabled"
 
-        # If no keys configured, allow everything
+        # If no keys configured, reject all requests (fail-closed)
         if not self.keys:
-            return True, "no-keys-configured"
+            return False, "Authentication misconfigured: no API keys loaded"
 
         # Extract key from Authorization header
         auth_header = headers.get("authorization", "")
@@ -190,16 +191,14 @@ class APIKeyValidator:
         if not self._is_valid_format(api_key):
             return False, "Invalid API key format"
 
-        # Check if key exists
-        if api_key not in self.keys:
+        # Check if key exists (constant-time comparison to prevent timing attacks)
+        key_id = self._find_key(api_key)
+        if key_id is None:
             return False, "Invalid API key"
-
-        # Get key_id for this api_key
-        key_id = self.keys[api_key]
 
         # Check rate limit
         if not self._check_rate_limit(key_id):
-            return False, f"Rate limit exceeded for {key_id}"
+            return False, "rate_limit_exceeded"
 
         # Record successful request
         self._record_request(key_id)
@@ -217,6 +216,20 @@ class APIKeyValidator:
             return False
 
         return all(c.isalnum() or c in "-_" for c in key)
+
+    def _find_key(self, api_key: str) -> Optional[str]:
+        """Find key_id for api_key using constant-time comparison.
+
+        Iterates all stored keys using hmac.compare_digest to prevent
+        timing attacks from leaking valid key information.
+        """
+        api_key_bytes = api_key.encode("utf-8")
+        result = None
+        for stored_key, key_id in self.keys.items():
+            if hmac.compare_digest(stored_key.encode("utf-8"), api_key_bytes):
+                result = key_id
+            # No early return — always check all keys for constant time
+        return result
 
     def _check_rate_limit(self, key_id: str) -> bool:
         """
@@ -283,28 +296,32 @@ async def authenticate_request(writer: asyncio.StreamWriter, headers: dict) -> O
     is_valid, result = api_validator.validate(headers)
 
     if not is_valid:
-        # Send OpenAI-compatible 401 error
-        error_response = {
-            "error": {
-                "message": result,
-                "type": "invalid_request_error",
-                "param": "authorization",
-                "code": "invalid_api_key",
+        if result == "rate_limit_exceeded":
+            # Send 429 rate limit response
+            await send_rate_limit_error(writer)
+        else:
+            # Send OpenAI-compatible 401 error
+            error_response = {
+                "error": {
+                    "message": result,
+                    "type": "invalid_request_error",
+                    "param": "authorization",
+                    "code": "invalid_api_key",
+                }
             }
-        }
 
-        body = json.dumps(error_response)
+            body = json.dumps(error_response)
 
-        response = (
-            "HTTP/1.1 401 Unauthorized\r\n"
-            "Content-Type: application/json\r\n"
-            f"Content-Length: {len(body)}\r\n"
-            "Connection: close\r\n"
-            "\r\n" + body
-        )
+            response = (
+                "HTTP/1.1 401 Unauthorized\r\n"
+                "Content-Type: application/json\r\n"
+                f"Content-Length: {len(body)}\r\n"
+                "Connection: close\r\n"
+                "\r\n" + body
+            )
 
-        writer.write(response.encode())
-        await writer.drain()
+            writer.write(response.encode())
+            await writer.drain()
         return None
 
     # Authentication succeeded, return key_id
