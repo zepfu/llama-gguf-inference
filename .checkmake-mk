@@ -9,4 +9,4 @@ maxBodyLength = 15
 
 [minphony]
 # Disabled: .mk fragments don't need all/clean/test targets
-enabled = false
+disabled = true
