@@ -123,12 +123,16 @@ def get_cors_headers(request_origin: str = "") -> list[str]:
     else:
         return []
 
-    return [
+    headers = [
         f"Access-Control-Allow-Origin: {allowed_origin}",
         "Access-Control-Allow-Methods: GET, POST, OPTIONS",
         "Access-Control-Allow-Headers: Authorization, Content-Type",
         "Access-Control-Max-Age: 86400",
     ]
+    # Vary: Origin needed for allowlist mode so caches distinguish responses (SEC-02)
+    if not CORS_WILDCARD:
+        headers.append("Vary: Origin")
+    return headers
 
 
 def build_cors_header_str(request_origin: str = "") -> str:
@@ -374,9 +378,9 @@ async def handle_metrics(
     else:
         metrics_data = {"gateway": metrics.to_dict()}
 
-        # Add auth metrics if available
-        if AUTH_AVAILABLE and api_validator.enabled:
-            metrics_data["authentication"] = api_validator.get_metrics()
+        # Auth metrics excluded from unauthenticated /metrics endpoint
+        # to prevent key_id disclosure (SEC-01). Per-key metrics are
+        # available via authenticated endpoints only.
 
         body = json.dumps(metrics_data, indent=2)
         content_type = "application/json"
