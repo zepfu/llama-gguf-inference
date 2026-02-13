@@ -91,6 +91,10 @@ logs/
 # Sphinx documentation
 # =============================================================================
 docs/_build/
+
+docs/diagrams/
+!docs/diagrams/.gitkeep
+
 # REMOVED: docs/_static/ (needed for Sphinx html_static_path)
 # REMOVED: docs/_templates/ (needed for Sphinx templates_path)
 
@@ -102,8 +106,10 @@ docs/_templates/*.generated.*
 !docs/_static/.gitkeep
 !docs/_templates/.gitkeep
 
+
 # =============================================================================
 # Repo tooling folders
 # =============================================================================
 archive/
 logs/
+repo.mk

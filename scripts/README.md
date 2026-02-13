@@ -28,7 +28,7 @@ scripts/
     └── README.md
 ```
 
----
+______________________________________________________________________
 
 ## Core Runtime Scripts
 
@@ -37,14 +37,16 @@ scripts/
 **Purpose:** Main container entrypoint that orchestrates all services.
 
 **What it does:**
+
 1. Validates environment configuration
-2. Resolves model path
-3. Starts llama-server
-4. Starts health_server.py
-5. Starts gateway.py
-6. Handles graceful shutdown
+1. Resolves model path
+1. Starts llama-server
+1. Starts health_server.py
+1. Starts gateway.py
+1. Handles graceful shutdown
 
 **Usage:**
+
 ```bash
 # Typically run by Docker
 ENTRYPOINT ["/opt/app/scripts/start.sh"]
@@ -54,21 +56,24 @@ bash scripts/start.sh
 ```
 
 **Environment Variables:**
+
 - `MODEL_NAME` or `MODEL_PATH` - Required
 - `DATA_DIR` - Base directory (default: /data)
 - `NGL`, `CTX`, `PORT`, etc. - Configuration
 
 **Logs to:**
+
 - Boot: `/data/logs/_boot/YYYYMMDD_HHMMSS_boot_hostname.log`
 - Server: `/data/logs/llama-{TYPE}/YYYYMMDD_HHMMSS_server_hostname.log`
 
----
+______________________________________________________________________
 
 ### gateway.py
 
 **Purpose:** Async HTTP gateway providing authentication and request proxying.
 
 **What it does:**
+
 - Validates API keys (via auth.py)
 - Enforces rate limits per key_id
 - Proxies requests to llama-server
@@ -76,6 +81,7 @@ bash scripts/start.sh
 - Provides health endpoints without auth
 
 **Usage:**
+
 ```bash
 # Started by start.sh
 python3 scripts/gateway.py
@@ -85,30 +91,34 @@ GATEWAY_PORT=8000 PORT_BACKEND=8080 python3 scripts/gateway.py
 ```
 
 **Endpoints:**
+
 - `/ping` - Quick health check (no auth)
 - `/health` - Detailed status (no auth)
 - `/metrics` - Gateway metrics (no auth)
 - `/v1/*` - API endpoints (requires auth)
 
 **Environment Variables:**
+
 - `GATEWAY_PORT` / `PORT` - Gateway port (default: 8000)
 - `PORT_BACKEND` - llama-server port (default: 8080)
 - `AUTH_ENABLED` - Enable authentication (default: true)
 - `AUTH_KEYS_FILE` - API keys file path
 
----
+______________________________________________________________________
 
 ### auth.py
 
 **Purpose:** API key authentication and rate limiting module.
 
 **What it does:**
+
 - Loads API keys from file (key_id:api_key format)
 - Validates Authorization headers
 - Tracks request rates per key_id
 - Logs authenticated requests
 
 **Usage:**
+
 ```python
 # Imported by gateway.py
 from auth import api_validator, authenticate_request, log_access
@@ -123,6 +133,7 @@ await log_access(method, path, key_id, status_code)
 ```
 
 **API Keys File:**
+
 ```
 # /data/api_keys.txt
 key_id:api_key
@@ -132,17 +143,19 @@ development:sk-dev-xyz789abc123
 ```
 
 **Features:**
+
 - In-memory key storage (no database needed)
 - Sliding window rate limiting
 - Automatic key reload not supported (restart required)
 
----
+______________________________________________________________________
 
 ### health_server.py
 
 **Purpose:** Minimal health check server for platform monitoring.
 
 **What it does:**
+
 - Runs on separate port (PORT_HEALTH, default 8001)
 - Returns 200 OK for all GET requests
 - No authentication
@@ -150,17 +163,19 @@ development:sk-dev-xyz789abc123
 - Enables scale-to-zero in serverless
 
 **Usage:**
+
 ```bash
 # Started by start.sh
 PORT_HEALTH=8001 python3 scripts/health_server.py
 ```
 
 **Why separate port?**
+
 - Platform health checks (RunPod, K8s, etc.) don't count as "activity"
 - Allows proper idle detection for scale-to-zero
 - Isolates monitoring from API traffic
 
----
+______________________________________________________________________
 
 ## Development Scripts
 
@@ -169,14 +184,16 @@ PORT_HEALTH=8001 python3 scripts/health_server.py
 **Purpose:** One-command setup for new developers.
 
 **What it does:**
+
 1. Checks Python version (3.11+ required)
-2. Installs pre-commit
-3. Installs pre-commit hooks
-4. Sets executable permissions on scripts
-5. Creates data directories
-6. Validates configuration files
+1. Installs pre-commit
+1. Installs pre-commit hooks
+1. Sets executable permissions on scripts
+1. Creates data directories
+1. Validates configuration files
 
 **Usage:**
+
 ```bash
 bash scripts/dev/setup.sh
 
@@ -185,23 +202,26 @@ make setup
 ```
 
 **Creates:**
+
 - `data/models/` - For GGUF models
 - `data/logs/` - For logs
 - `scripts/tests/fixtures/` - For test data
 
----
+______________________________________________________________________
 
 ### check_repo_map.sh
 
 **Purpose:** Pre-commit check that REPO_MAP.md is current.
 
 **What it does:**
+
 1. Downloads repo_map.py from repo-standards
-2. Generates temp REPO_MAP.md
-3. Compares with current file
-4. Fails commit if outdated
+1. Generates temp REPO_MAP.md
+1. Compares with current file
+1. Fails commit if outdated
 
 **Usage:**
+
 ```bash
 # Manually
 bash scripts/dev/check_repo_map.sh
@@ -212,28 +232,32 @@ git commit -m "feat: add feature"
 ```
 
 **Exit codes:**
+
 - 0 - REPO_MAP.md is current
 - 1 - REPO_MAP.md is outdated
 
 **To fix:**
+
 ```bash
 make map
 git add REPO_MAP.md
 git commit -m "docs: update repo map"
 ```
 
----
+______________________________________________________________________
 
 ### check_changelog.sh
 
 **Purpose:** Heuristic check that CHANGELOG.md is reasonably current.
 
 **What it does:**
+
 1. Gets last 5 non-doc commits
-2. Checks if any appear in CHANGELOG.md
-3. Warns if none found (non-fatal)
+1. Checks if any appear in CHANGELOG.md
+1. Warns if none found (non-fatal)
 
 **Usage:**
+
 ```bash
 # Manually
 bash scripts/dev/check_changelog.sh
@@ -244,23 +268,26 @@ git commit -m "feat: new feature"
 ```
 
 **Exit codes:**
+
 - 0 - CHANGELOG.md appears current (or can't determine)
 - Never fails (warnings only)
 
 **Note:** Weekly automation will catch missed updates.
 
----
+______________________________________________________________________
 
 ### check_env_completeness.sh
 
 **Purpose:** Validates environment variable documentation completeness.
 
 **What it checks:**
+
 1. All vars in `start.sh` are documented in `.env.example`
-2. All vars in `.env.example` are actually used
-3. Critical vars are documented in `docs/CONFIGURATION.md`
+1. All vars in `.env.example` are actually used
+1. Critical vars are documented in `docs/CONFIGURATION.md`
 
 **Usage:**
+
 ```bash
 # Manually
 bash scripts/dev/check_env_completeness.sh
@@ -270,28 +297,32 @@ make check-env
 ```
 
 **Exit codes:**
+
 - 0 - All checks passed
 - 1 - Missing or undocumented variables
 
 **Critical variables checked:**
+
 - MODEL_NAME, MODEL_PATH
 - DATA_DIR, PORT, PORT_BACKEND, PORT_HEALTH
 - AUTH_ENABLED, AUTH_KEYS_FILE
 - NGL, CTX
 
----
+______________________________________________________________________
 
 ### generate_api_docs.sh
 
 **Purpose:** Generate API documentation from Python docstrings using Sphinx.
 
 **What it does:**
+
 1. Checks if Sphinx is installed
-2. Extracts docstrings from Python files
-3. Generates HTML documentation
-4. Outputs to `docs/api/`
+1. Extracts docstrings from Python files
+1. Generates HTML documentation
+1. Outputs to `docs/api/`
 
 **Usage:**
+
 ```bash
 bash scripts/dev/generate_api_docs.sh
 
@@ -300,15 +331,17 @@ make api-docs
 ```
 
 **Requirements:**
+
 - Sphinx installed: `pip install sphinx sphinx-rtd-theme`
 - `docs/conf.py` configured
 
 **Output:**
+
 - `docs/api/gateway.html`
 - `docs/api/auth.html`
 - `docs/api/index.html`
 
----
+______________________________________________________________________
 
 ## Test Scripts
 
@@ -317,12 +350,14 @@ make api-docs
 **Purpose:** Orchestrates all test suites and reports results.
 
 **What it does:**
+
 1. Runs all available test scripts
-2. Tracks pass/fail counts
-3. Reports summary
-4. Exits with appropriate code
+1. Tracks pass/fail counts
+1. Reports summary
+1. Exits with appropriate code
 
 **Usage:**
+
 ```bash
 # Run all tests
 bash scripts/tests/test_runner.sh
@@ -335,25 +370,28 @@ DOCKER_TEST=true make test
 ```
 
 **Runs:**
+
 - test_auth.sh
 - test_health.sh
 - test_integration.sh (if exists)
 - test_docker_integration.sh (if DOCKER_TEST=true)
 
----
+______________________________________________________________________
 
 ### test_auth.sh
 
 **Purpose:** Test API authentication functionality.
 
 **What it tests:**
+
 1. Health endpoints work without auth
-2. API endpoints require auth (when enabled)
-3. Valid keys are accepted
-4. Invalid keys are rejected
-5. Both Bearer and direct key formats work
+1. API endpoints require auth (when enabled)
+1. Valid keys are accepted
+1. Invalid keys are rejected
+1. Both Bearer and direct key formats work
 
 **Usage:**
+
 ```bash
 bash scripts/tests/test_auth.sh
 
@@ -365,23 +403,26 @@ VERBOSE=true bash scripts/tests/test_auth.sh
 ```
 
 **Requires:**
+
 - Gateway running
 - Test key configured (default: sk-test-12345)
 
----
+______________________________________________________________________
 
 ### test_health.sh
 
 **Purpose:** Test health endpoint functionality.
 
 **What it tests:**
+
 1. `/ping` returns 200
-2. `/health` returns valid JSON
-3. `/metrics` returns valid JSON
-4. Health server (PORT_HEALTH) is accessible
-5. All work without authentication
+1. `/health` returns valid JSON
+1. `/metrics` returns valid JSON
+1. Health server (PORT_HEALTH) is accessible
+1. All work without authentication
 
 **Usage:**
+
 ```bash
 bash scripts/tests/test_health.sh
 
@@ -391,20 +432,22 @@ HEALTH_URL=http://localhost:8001 \
 bash scripts/tests/test_health.sh
 ```
 
----
+______________________________________________________________________
 
 ### test_integration.sh
 
 **Purpose:** Full workflow integration tests.
 
 **What it tests:**
+
 1. Complete request lifecycle
-2. Auth → Gateway → Backend flow
-3. Streaming responses
-4. Error handling
-5. Rate limiting
+1. Auth → Gateway → Backend flow
+1. Streaming responses
+1. Error handling
+1. Rate limiting
 
 **Usage:**
+
 ```bash
 bash scripts/tests/test_integration.sh
 
@@ -414,20 +457,22 @@ bash scripts/tests/test_integration.sh
 # - health_server
 ```
 
----
+______________________________________________________________________
 
 ### test_docker_integration.sh
 
 **Purpose:** Docker-specific integration tests.
 
 **What it tests:**
+
 1. Docker build succeeds
-2. Container starts correctly
-3. Environment variables work
-4. Volumes mount properly
-5. Services start in correct order
+1. Container starts correctly
+1. Environment variables work
+1. Volumes mount properly
+1. Services start in correct order
 
 **Usage:**
+
 ```bash
 DOCKER_TEST=true bash scripts/tests/test_docker_integration.sh
 
@@ -436,10 +481,11 @@ make test-docker
 ```
 
 **Requirements:**
+
 - Docker installed
 - Test model available
 
----
+______________________________________________________________________
 
 ## Diagnostic Scripts
 
@@ -448,15 +494,17 @@ make test-docker
 **Purpose:** Collect system diagnostics for troubleshooting.
 
 **What it collects:**
+
 1. System information (CPU, RAM, GPU)
-2. Environment variables (sanitized)
-3. Recent logs (last 500 lines)
-4. Process information
-5. Model information
-6. Container information
-7. Health check status
+1. Environment variables (sanitized)
+1. Recent logs (last 500 lines)
+1. Process information
+1. Model information
+1. Container information
+1. Health check status
 
 **Usage:**
+
 ```bash
 # Collect to default location
 bash scripts/diagnostics/collect.sh
@@ -469,6 +517,7 @@ make diagnostics
 ```
 
 **Output:**
+
 ```
 /tmp/llama-diagnostics-YYYYMMDD_HHMMSS/
 ├── SUMMARY.txt
@@ -483,11 +532,12 @@ make diagnostics
 ```
 
 **Compressed:**
+
 ```
 /tmp/llama-diagnostics-YYYYMMDD_HHMMSS.tar.gz
 ```
 
----
+______________________________________________________________________
 
 ## Script Organization Best Practices
 
@@ -495,7 +545,7 @@ make diagnostics
 
 - **Runtime scripts:** Simple names (start.sh, gateway.py)
 - **Dev utilities:** Descriptive names (check_repo_map.sh)
-- **Tests:** Prefix with test_ (test_auth.sh)
+- **Tests:** Prefix with test\_ (test_auth.sh)
 - **Tools:** Action-based names (generate_api_docs.sh)
 
 ### File Locations
@@ -508,12 +558,14 @@ make diagnostics
 ### Executable Permissions
 
 All scripts should be executable:
+
 ```bash
 chmod +x scripts/**/*.sh
 chmod +x scripts/**/*.py
 ```
 
 Or use setup script:
+
 ```bash
 bash scripts/dev/setup.sh
 ```
@@ -521,17 +573,19 @@ bash scripts/dev/setup.sh
 ### Shebang Lines
 
 **Bash scripts:**
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 ```
 
 **Python scripts:**
+
 ```python
 #!/usr/bin/env python3
 ```
 
----
+______________________________________________________________________
 
 ## Common Patterns
 
@@ -571,7 +625,7 @@ VAR="${VAR:-default_value}"
 : "${REQUIRED_VAR:?Error: REQUIRED_VAR not set}"
 ```
 
----
+______________________________________________________________________
 
 ## Troubleshooting
 
@@ -607,28 +661,29 @@ chmod +x scripts/**/*.sh
 chmod +x scripts/**/*.py
 ```
 
----
+______________________________________________________________________
 
 ## Contributing
 
 When adding new scripts:
 
 1. **Choose correct directory:**
+
    - Runtime → `scripts/` (root)
    - Development → `scripts/dev/`
    - Tests → `scripts/tests/`
    - Diagnostics → `scripts/diagnostics/`
 
-2. **Add documentation here**
+1. **Add documentation here**
 
-3. **Add to Makefile** if appropriate
+1. **Add to Makefile** if appropriate
 
-4. **Add tests** if it's a critical function
+1. **Add tests** if it's a critical function
 
-5. **Set executable permissions**
+1. **Set executable permissions**
 
-6. **Test with `make check`**
+1. **Test with `make check`**
 
----
+______________________________________________________________________
 
 *For more information, see individual script files which contain detailed inline documentation.*

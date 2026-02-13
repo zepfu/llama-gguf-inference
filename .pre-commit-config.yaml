@@ -8,47 +8,61 @@ default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
 repos:
+  # ==========================================================================
   # General file checks
+  # ==========================================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
+      - id: check-toml
+      - id: check-json
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-merge-conflict
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: check-case-conflict
+      - id: fix-byte-order-marker
+      - id: detect-private-key
       - id: mixed-line-ending
         args: ['--fix=lf']
 
-  # Shell script linting
+  # ==========================================================================
+  # Shell
+  # ==========================================================================
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.9.0.6
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         args: ['-x', '--severity=error']
 
-  # Python formatting (Black)
+  # ==========================================================================
+  # Python: Formatting
+  # ==========================================================================
   - repo: https://github.com/psf/black
-    rev: 24.1.1
+    rev: 26.1.0
     hooks:
       - id: black
         language_version: python3
         args: ['--line-length=100']
 
-  # Python import sorting
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 7.0.0
     hooks:
       - id: isort
         args: ['--profile=black', '--line-length=100']
 
-  # Python linting (Flake8)
+  # ==========================================================================
+  # Python: Linting
+  # ==========================================================================
   - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         args: [
@@ -57,9 +71,8 @@ repos:
           '--max-complexity=20'
         ]
 
-  # Python: Remove unused imports and variables
   - repo: https://github.com/PyCQA/autoflake
-    rev: v2.2.1
+    rev: v2.3.1
     hooks:
       - id: autoflake
         args:
@@ -69,28 +82,92 @@ repos:
           - --remove-duplicate-keys
           - --ignore-init-module-imports
 
-  # Python: Detect commented-out code
   - repo: https://github.com/myint/eradicate
     rev: 3.0.1
     hooks:
       - id: eradicate
         args: ['--in-place']
 
-  # YAML linting
+  # ==========================================================================
+  # Python: Docstrings
+  # ==========================================================================
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: ['--config=pyproject.toml']
+        additional_dependencies: ['tomli']
+
+  # ==========================================================================
+  # Python: Security
+  # ==========================================================================
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.3
+    hooks:
+      - id: bandit
+        args: ['-c', 'pyproject.toml']
+        additional_dependencies: ['bandit[toml]']
+
+  # ==========================================================================
+  # Python: Type checking
+  # ==========================================================================
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports']
+        additional_dependencies: ['types-PyYAML']
+
+  # ==========================================================================
+  # YAML
+  # ==========================================================================
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: ['-d', '{extends: relaxed, rules: {line-length: {max: 150}}}']
 
-  # Markdown formatting (Python-based, no Node.js required)
+  # ==========================================================================
+  # Markdown
+  # ==========================================================================
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.17
+    rev: 0.7.22
     hooks:
       - id: mdformat
         additional_dependencies:
-          - mdformat-gfm          # GitHub Flavored Markdown
-          - mdformat-tables       # Table formatting
-          - mdformat-frontmatter  # YAML frontmatter
+          - mdformat-gfm
+          - mdformat-tables
+          - mdformat-frontmatter
         args:
-          - --wrap=120            # Line length
+          - --wrap=120
+
+  # ==========================================================================
+  # Dockerfile
+  # ==========================================================================
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+
+  # ==========================================================================
+  # GitHub Actions
+  # ==========================================================================
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.10
+    hooks:
+      - id: actionlint
+
+  # ==========================================================================
+  # Makefile
+  # ==========================================================================
+  - repo: https://github.com/checkmake/checkmake.git
+    rev: v0.3.2
+    hooks:
+      - id: checkmake
+        name: checkmake (Makefile)
+        args: ['--config=.checkmake']
+        files: '(^|/)Makefile$'
+      - id: checkmake
+        name: checkmake (.mk files)
+        args: ['--config=.checkmake-mk']
+        files: '\.mk$'

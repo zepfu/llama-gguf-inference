@@ -1,0 +1,11 @@
+# checkmake configuration
+# See: https://github.com/mrtazz/checkmake
+
+[maxbodylength]
+# Default is 5 which is too strict for cleanup and multi-step targets.
+# Long targets should still be reviewed for refactoring opportunities.
+maxBodyLength = 15
+
+[minphony]
+# Require all and test targets
+enabled = true

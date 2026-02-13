@@ -31,14 +31,13 @@ class HealthHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """Suppress request logging to reduce noise."""
-        pass
 
 
 def main():
     """Start the health server."""
     print(f"[health] Starting health server on 0.0.0.0:{PORT}", file=sys.stderr, flush=True)
 
-    server = HTTPServer(("0.0.0.0", PORT), HealthHandler)
+    server = HTTPServer(("0.0.0.0", PORT), HealthHandler)  # nosec B104 - container networking
 
     try:
         server.serve_forever()

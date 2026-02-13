@@ -30,14 +30,32 @@ python_files = "test_*.py"
 python_functions = "test_*"
 addopts = "-v --tb=short"
 
-[tool.mdformat]
-wrap = 120
-number = false
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "venv", "build", "dist"]
+# B101: assert used - acceptable in tests and scripts
+# B404: import subprocess - needed for automation scripts
+# B603: subprocess without shell - needed for automation scripts
+skips = ["B101", "B404", "B603"]
 
-[tool.vulture]
-min_confidence = 80
-paths = ["scripts"]
-exclude = ["tests/", "build/"]
+[tool.pydocstyle]
+# Google convention - enforces format when docstrings exist, doesn't require presence
+convention = "google"
+# D100-D107: Missing docstrings - don't require, only enforce format when present
+# D212: Multi-line summary should start at first line (conflicts with D213, Google uses D213)
+# D415: First line should end with period (too strict for module-level usage docstrings)
+add_ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107", "D212", "D415"]
+match = '(?!test_).*\.py'
+match_dir = '(?!tests|\.venv|venv|build|dist)[^.].*'
 
-[tool.autoflake]
-ignore-init-module-imports = true
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = [
+    "build",
+    "dist",
+    ".venv",
+    "venv",
+    "tests",
+]

@@ -27,10 +27,10 @@ Environment Variables:
 Keys File Format:
     key_id:api_key
 
-    Example:
-        production:sk-prod-abc123def456
-        alice-laptop:sk-alice-xyz789
-        development:sk-dev-test123
+Example:
+    production:sk-prod-abc123def456
+    alice-laptop:sk-alice-xyz789
+    development:sk-dev-test123
 """
 
 import asyncio
@@ -94,7 +94,7 @@ class APIKeyValidator:
             return {}
 
         try:
-            keys = {}  # Maps api_key -> key_id
+            keys: dict[str, str] = {}  # Maps api_key -> key_id
             with open(self.keys_file, "r") as f:
                 for line_num, line in enumerate(f, 1):
                     line = line.strip()
@@ -172,7 +172,6 @@ class APIKeyValidator:
             return True, "no-keys-configured"
 
         # Extract key from Authorization header
-        # Supports: "Authorization: Bearer sk-..." or "Authorization: sk-..."
         auth_header = headers.get("authorization", "")
 
         if not auth_header:
@@ -313,9 +312,7 @@ async def authenticate_request(writer: asyncio.StreamWriter, headers: dict) -> O
 
 
 async def send_rate_limit_error(writer: asyncio.StreamWriter):
-    """
-    Send OpenAI-compatible rate limit error (429).
-    """
+    """Send OpenAI-compatible rate limit error (429)."""
     error_response = {
         "error": {
             "message": "Rate limit exceeded. Please slow down your requests.",

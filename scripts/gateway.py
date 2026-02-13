@@ -52,7 +52,7 @@ def log(msg: str):
 
 
 # Configuration
-GATEWAY_HOST = "0.0.0.0"
+GATEWAY_HOST = "0.0.0.0"  # nosec B104 - intentional bind-all for container networking
 GATEWAY_PORT = int(os.environ.get("GATEWAY_PORT", os.environ.get("PORT", "8000")))
 BACKEND_HOST = os.environ.get("BACKEND_HOST", "127.0.0.1")
 # Support both PORT_BACKEND (new) and BACKEND_PORT (old, deprecated)
@@ -119,8 +119,8 @@ def backend_tcp_ready() -> bool:
 
 
 async def backend_health_check() -> dict:
-    """
-    Check backend health via /health endpoint.
+    """Check backend health via /health endpoint.
+
     Returns health status dict or error.
     """
     try:
@@ -172,10 +172,9 @@ async def backend_health_check() -> dict:
 
 
 async def handle_ping(writer: asyncio.StreamWriter):
-    """
-    Handle /ping endpoint for RunPod health checks.
-    Always returns 200 OK without authentication or backend checks.
+    """Handle /ping endpoint for RunPod health checks.
 
+    Always returns 200 OK without authentication or backend checks.
     For detailed backend status, use /health endpoint instead.
     """
     response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
@@ -184,8 +183,8 @@ async def handle_ping(writer: asyncio.StreamWriter):
 
 
 async def handle_health(writer: asyncio.StreamWriter):
-    """
-    Handle /health endpoint with detailed backend status.
+    """Handle /health endpoint with detailed backend status.
+
     No authentication required.
     """
     health = await backend_health_check()
@@ -216,8 +215,8 @@ async def handle_health(writer: asyncio.StreamWriter):
 
 
 async def handle_metrics(writer: asyncio.StreamWriter):
-    """
-    Handle /metrics endpoint.
+    """Handle /metrics endpoint.
+
     No authentication required.
     """
     metrics_data = {"gateway": metrics.to_dict()}
@@ -247,10 +246,14 @@ async def proxy_request(
     writer: asyncio.StreamWriter,
     key_id: str = "unknown",
 ):
-    """
-    Proxy a request to the backend with streaming support.
+    """Proxy a request to the backend with streaming support.
 
     Args:
+        method: HTTP method (GET, POST, etc.)
+        path: Request path to forward to backend
+        headers: Request headers dict (lowercase keys)
+        body: Request body bytes, or None for bodyless requests
+        writer: asyncio StreamWriter for the client connection
         key_id: The authenticated key_id for logging
     """
     metrics.requests_total += 1
@@ -350,7 +353,7 @@ async def proxy_request(
             writer.write(error_response.encode())
             await writer.drain()
         except Exception:
-            pass
+            log("Cleanup: failed to send error response to client")
         # Log error
         if AUTH_AVAILABLE:
             await log_access(method, path, key_id, 502)
@@ -363,11 +366,11 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
     """Handle an incoming client connection."""
     try:
         # Read request line
-        request_line = await asyncio.wait_for(reader.readline(), timeout=30)
-        if not request_line:
+        request_line_raw = await asyncio.wait_for(reader.readline(), timeout=30)
+        if not request_line_raw:
             return
 
-        request_line = request_line.decode("utf-8", errors="replace").strip()
+        request_line = request_line_raw.decode("utf-8", errors="replace").strip()
         parts = request_line.split()
         if len(parts) < 2:
             return
@@ -376,15 +379,15 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         path = parts[1]
 
         # Read headers
-        headers = {}
+        headers: dict[str, str] = {}
         content_length = 0
         while True:
-            line = await asyncio.wait_for(reader.readline(), timeout=30)
-            if line == b"\r\n" or line == b"":
+            header_line_raw = await asyncio.wait_for(reader.readline(), timeout=30)
+            if header_line_raw == b"\r\n" or header_line_raw == b"":
                 break
-            line = line.decode("utf-8", errors="replace").strip()
-            if ":" in line:
-                key, value = line.split(":", 1)
+            header_line = header_line_raw.decode("utf-8", errors="replace").strip()
+            if ":" in header_line:
+                key, value = header_line.split(":", 1)
                 headers[key.strip().lower()] = value.strip()
                 if key.lower() == "content-length":
                     content_length = int(value.strip())
@@ -430,7 +433,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             writer.close()
             await writer.wait_closed()
         except Exception:
-            pass
+            log("Cleanup: failed to close client writer")
 
 
 async def main():

@@ -1,5 +1,5 @@
 ---
-name: Publish Docker Image
+name: CD
 
 on:
   workflow_run:
@@ -13,23 +13,10 @@ permissions:
   packages: write
 
 jobs:
-  # Only run if CI passed
-  check-ci-success:
-    name: Check CI Passed
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
-
-    steps:
-      - name: CI passed
-        run: |
-          echo "CI workflow completed successfully"
-          echo "Proceeding with publish..."
-
-  # Publish the tested image
   publish:
     name: Build & Push to GHCR
     runs-on: ubuntu-latest
-    needs: check-ci-success
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Checkout code
@@ -74,14 +61,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Image published
+      - name: Publish summary
         run: |
-          echo "========================================"
-          echo "Docker image published successfully!"
-          echo "========================================"
-          echo ""
-          echo "Tags:"
-          echo "${{ steps.docker_meta.outputs.tags }}"
-          echo ""
-          echo "Pull with:"
-          echo "  docker pull ghcr.io/${{ github.repository_owner }}/llama-gguf-inference:latest"
+          echo "## Docker Image Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Tags:**" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.docker_meta.outputs.tags }}" | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Pull with:**" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "docker pull ghcr.io/${{ github.repository_owner }}/llama-gguf-inference:latest" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

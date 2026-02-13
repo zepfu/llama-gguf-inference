@@ -6,20 +6,22 @@ Complete reference for all configuration options.
 
 ### Authentication Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AUTH_ENABLED` | `true` | Enable/disable API key authentication |
-| `AUTH_KEYS_FILE` | `$DATA_DIR/api_keys.txt` | Path to API keys file |
-| `MAX_REQUESTS_PER_MINUTE` | `100` | Rate limit per API key |
+| Variable                  | Default                  | Description                           |
+| ------------------------- | ------------------------ | ------------------------------------- |
+| `AUTH_ENABLED`            | `true`                   | Enable/disable API key authentication |
+| `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file                 |
+| `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per API key                |
 
 **Authentication Details:**
 
 API key authentication is enabled by default to secure your endpoint. When enabled:
+
 - API endpoints (`/v1/*`) require valid API key via `Authorization: Bearer <key>` header
 - Health endpoints (`/ping`, `/health`, `/metrics`) work without authentication
 - Rate limiting is enforced per key_id
 
 **API Keys File Format:**
+
 ```
 # /data/api_keys.txt
 # Format: key_id:api_key
@@ -34,6 +36,7 @@ testing:sk-test-12345
 ```
 
 **Examples:**
+
 ```bash
 # Enable auth with default file location
 AUTH_ENABLED=true
@@ -52,19 +55,21 @@ MAX_REQUESTS_PER_MINUTE=200
 
 See [AUTHENTICATION.md](AUTHENTICATION.md) for complete authentication guide.
 
----
+______________________________________________________________________
 
 ### Data Directory
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable   | Default | Description                        |
+| ---------- | ------- | ---------------------------------- |
 | `DATA_DIR` | `/data` | Base directory for models and logs |
 
 **Auto-detection:** If `DATA_DIR` is not set and `/data` doesn't exist, the container checks for:
+
 1. `/runpod-volume` (RunPod Serverless)
-2. `/workspace` (RunPod Pods, Vast.ai)
+1. `/workspace` (RunPod Pods, Vast.ai)
 
 **Platform examples:**
+
 ```bash
 # Local Docker
 DATA_DIR=/data
@@ -77,19 +82,20 @@ DATA_DIR=/data
 DATA_DIR=/mnt/storage
 ```
 
----
+______________________________________________________________________
 
 ### Model Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `MODEL_NAME` | Yes* | — | Model filename in MODELS_DIR |
-| `MODEL_PATH` | Yes* | — | Full absolute path to model file |
-| `MODELS_DIR` | No | `$DATA_DIR/models` | Directory containing models |
+| Variable     | Required | Default            | Description                      |
+| ------------ | -------- | ------------------ | -------------------------------- |
+| `MODEL_NAME` | Yes\*    | —                  | Model filename in MODELS_DIR     |
+| `MODEL_PATH` | Yes\*    | —                  | Full absolute path to model file |
+| `MODELS_DIR` | No       | `$DATA_DIR/models` | Directory containing models      |
 
-*One of `MODEL_NAME` or `MODEL_PATH` is required.
+\*One of `MODEL_NAME` or `MODEL_PATH` is required.
 
 **Examples:**
+
 ```bash
 # Using MODEL_NAME (recommended)
 MODEL_NAME=Llama-3-8B-Instruct-Q4_K_M.gguf
@@ -103,19 +109,20 @@ MODELS_DIR=/mnt/fast-storage/models
 MODEL_NAME=model.gguf
 ```
 
----
+______________________________________________________________________
 
 ### Server Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8000` | Public gateway port |
-| `PORT_HEALTH` | `8001` | Health check port (for platform monitoring) |
-| `PORT_BACKEND` | `8080` | Internal llama-server port |
-| `BACKEND_PORT` | `8080` | ⚠️ **Deprecated** - Use `PORT_BACKEND` instead |
-| `HOST` | `0.0.0.0` | Bind address |
+| Variable       | Default   | Description                                    |
+| -------------- | --------- | ---------------------------------------------- |
+| `PORT`         | `8000`    | Public gateway port                            |
+| `PORT_HEALTH`  | `8001`    | Health check port (for platform monitoring)    |
+| `PORT_BACKEND` | `8080`    | Internal llama-server port                     |
+| `BACKEND_PORT` | `8080`    | ⚠️ **Deprecated** - Use `PORT_BACKEND` instead |
+| `HOST`         | `0.0.0.0` | Bind address                                   |
 
 **Port architecture:**
+
 ```
 Client → Health Server:8001 (platform checks, no auth)
 Client → Gateway:8000 (API, with auth) → llama-server:8080
@@ -126,11 +133,13 @@ Client → Gateway:8000 (API, with auth) → llama-server:8080
 ```
 
 **Port naming change:**
+
 - **New naming:** `PORT_BACKEND` (consistent with `PORT` and `PORT_HEALTH`)
 - **Old naming:** `BACKEND_PORT` is deprecated but still works with warning
 - Old name will be removed in future major version
 
 **Examples:**
+
 ```bash
 # Standard configuration (recommended)
 PORT=8000
@@ -146,44 +155,46 @@ PORT_BACKEND=9080
 BACKEND_PORT=8080  # Works but deprecated - use PORT_BACKEND instead
 ```
 
----
+______________________________________________________________________
 
 ### Inference Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NGL` | `99` | Number of layers to offload to GPU |
-| `CTX` | `16384` | Context length (max tokens) |
-| `THREADS` | `0` | CPU threads (0 = auto-detect) |
-| `EXTRA_ARGS` | — | Additional llama-server arguments |
+| Variable     | Default | Description                        |
+| ------------ | ------- | ---------------------------------- |
+| `NGL`        | `99`    | Number of layers to offload to GPU |
+| `CTX`        | `16384` | Context length (max tokens)        |
+| `THREADS`    | `0`     | CPU threads (0 = auto-detect)      |
+| `EXTRA_ARGS` | —       | Additional llama-server arguments  |
 
 **GPU Offload (NGL):**
+
 - `99` — Offload all layers that fit (recommended)
 - `0` — CPU only (for testing or no GPU)
 - `20-50` — Partial offload (large models on smaller GPUs)
 
-**Context Length (CTX):**
-Higher context = more memory usage. Common values:
+**Context Length (CTX):** Higher context = more memory usage. Common values:
+
 - `4096` — Basic chat
 - `8192` — Longer conversations
 - `16384` — Extended context (default)
 - `32768` — Very long documents
 
 **Extra Arguments:**
+
 ```bash
 # Example: verbose logging and temperature
 EXTRA_ARGS="--verbose --temp 0.7"
 ```
 
----
+______________________________________________________________________
 
 ### Logging Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LOG_NAME` | `llama` | Subdirectory name for logs (deprecated if using WORKER_TYPE) |
-| `WORKER_TYPE` | `""` | Worker classification for log organization |
-| `LOG_DIR` | `$DATA_DIR/logs` | Base log directory |
+| Variable      | Default          | Description                                                  |
+| ------------- | ---------------- | ------------------------------------------------------------ |
+| `LOG_NAME`    | `llama`          | Subdirectory name for logs (deprecated if using WORKER_TYPE) |
+| `WORKER_TYPE` | `""`             | Worker classification for log organization                   |
+| `LOG_DIR`     | `$DATA_DIR/logs` | Base log directory                                           |
 
 **Worker Type Organization:**
 
@@ -208,6 +219,7 @@ WORKER_TYPE=omni
 ```
 
 **Log filename format** (timestamp-first for chronological sorting):
+
 ```
 20240206_143022_server_instanceid.log  # Most recent
 20240206_120000_server_instanceid.log
@@ -215,6 +227,7 @@ WORKER_TYPE=omni
 ```
 
 **Log structure:**
+
 ```
 $DATA_DIR/logs/
 ├── _boot/                          # Boot/startup logs
@@ -225,8 +238,8 @@ $DATA_DIR/logs/
     └── latest.txt
 ```
 
-**Multiple deployments:**
-Use `WORKER_TYPE` to separate logs:
+**Multiple deployments:** Use `WORKER_TYPE` to separate logs:
+
 ```bash
 # Deployment 1: Instruct endpoint
 WORKER_TYPE=instruct
@@ -246,23 +259,24 @@ MODEL_NAME=omni-model.gguf
 # /data/logs/llama-omni/
 ```
 
----
+______________________________________________________________________
 
 ### Debug Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable      | Default | Description                              |
+| ------------- | ------- | ---------------------------------------- |
 | `DEBUG_SHELL` | `false` | Hold container without starting services |
 
 When enabled, container prints environment and waits 5 minutes for inspection.
 
----
+______________________________________________________________________
 
 ## Recommended Configurations
 
 ### RTX 4090 (24GB)
 
 **7B-13B Models:**
+
 ```bash
 MODEL_NAME=Llama-3-8B-Q4_K_M.gguf
 NGL=99
@@ -271,6 +285,7 @@ AUTH_ENABLED=true
 ```
 
 **30B Models:**
+
 ```bash
 MODEL_NAME=Qwen-30B-Q4_K_M.gguf
 NGL=99
@@ -279,6 +294,7 @@ AUTH_ENABLED=true
 ```
 
 **70B Models:**
+
 ```bash
 MODEL_NAME=Llama-3-70B-Q4_K_M.gguf
 NGL=35       # Partial offload
@@ -286,11 +302,12 @@ CTX=8192     # Reduced context
 AUTH_ENABLED=true
 ```
 
----
+______________________________________________________________________
 
 ### A100 (40GB)
 
 **70B Models:**
+
 ```bash
 MODEL_NAME=Llama-3-70B-Q4_K_M.gguf
 NGL=99
@@ -298,11 +315,12 @@ CTX=16384
 AUTH_ENABLED=true
 ```
 
----
+______________________________________________________________________
 
 ### A100 (80GB) / H100
 
 **70B Models (high quality):**
+
 ```bash
 MODEL_NAME=Llama-3-70B-Q8_0.gguf
 NGL=99
@@ -310,7 +328,7 @@ CTX=32768
 AUTH_ENABLED=true
 ```
 
----
+______________________________________________________________________
 
 ### CPU Only
 
@@ -322,11 +340,12 @@ THREADS=8
 AUTH_ENABLED=true
 ```
 
----
+______________________________________________________________________
 
 ### Multi-Worker Deployment
 
 **Instruct Worker:**
+
 ```bash
 MODEL_NAME=llama3-instruct.gguf
 WORKER_TYPE=instruct
@@ -336,6 +355,7 @@ AUTH_KEYS_FILE=/data/api_keys.txt
 ```
 
 **Coder Worker:**
+
 ```bash
 MODEL_NAME=codellama.gguf
 WORKER_TYPE=coder
@@ -345,6 +365,7 @@ AUTH_KEYS_FILE=/data/api_keys.txt
 ```
 
 **Omni Worker:**
+
 ```bash
 MODEL_NAME=omni-model.gguf
 WORKER_TYPE=omni
@@ -353,44 +374,44 @@ AUTH_ENABLED=true
 AUTH_KEYS_FILE=/data/api_keys.txt
 ```
 
----
+______________________________________________________________________
 
 ## Memory Estimation
 
 Rough VRAM requirements for Q4 models:
 
-| Component | Estimate |
-|-----------|----------|
-| 7B model | ~4 GB |
-| 13B model | ~8 GB |
-| 30B model | ~17 GB |
-| 70B model | ~40 GB |
-| KV cache | ~0.5 GB per 8K context |
-| Compute | ~0.5 GB |
+| Component | Estimate               |
+| --------- | ---------------------- |
+| 7B model  | ~4 GB                  |
+| 13B model | ~8 GB                  |
+| 30B model | ~17 GB                 |
+| 70B model | ~40 GB                 |
+| KV cache  | ~0.5 GB per 8K context |
+| Compute   | ~0.5 GB                |
 
----
+______________________________________________________________________
 
 ## Environment Variable Precedence
 
 1. Explicit environment variables (highest)
-2. Dockerfile ENV defaults
-3. Script defaults (lowest)
+1. Dockerfile ENV defaults
+1. Script defaults (lowest)
 
----
+______________________________________________________________________
 
 ## Validation
 
 The container validates at startup:
 
 1. **Model exists** — File present and readable
-2. **Binary exists** — llama-server found
-3. **Libraries load** — Shared libraries resolved
-4. **GPU status** — Reports GPU info (doesn't fail if missing)
-5. **Auth configuration** — Validates API keys file if auth enabled
+1. **Binary exists** — llama-server found
+1. **Libraries load** — Shared libraries resolved
+1. **GPU status** — Reports GPU info (doesn't fail if missing)
+1. **Auth configuration** — Validates API keys file if auth enabled
 
 Errors are logged to console and boot log.
 
----
+______________________________________________________________________
 
 ## Complete Example Configurations
 
@@ -446,29 +467,33 @@ WORKER_TYPE=omni
 PORT=8200
 ```
 
----
+______________________________________________________________________
 
 ## Security Best Practices
 
 ### API Keys
 
 1. **Use strong keys:**
+
    ```bash
    # Generate with:
    openssl rand -hex 32
    ```
 
-2. **Secure file permissions:**
+1. **Secure file permissions:**
+
    ```bash
    chmod 600 /data/api_keys.txt
    ```
 
-3. **Mount read-only:**
+1. **Mount read-only:**
+
    ```bash
    -v /data/api_keys.txt:/data/api_keys.txt:ro
    ```
 
-4. **Rotate regularly:**
+1. **Rotate regularly:**
+
    - Add new key
    - Update clients
    - Remove old key after grace period
@@ -476,21 +501,24 @@ PORT=8200
 ### Network Security
 
 1. **Use health port for platform checks:**
+
    ```bash
    PORT_HEALTH=8001  # Separate from API traffic
    ```
 
-2. **Reverse proxy for production:**
+1. **Reverse proxy for production:**
+
    - Put gateway behind nginx/traefik
    - Add TLS termination
    - Add additional rate limiting
 
-3. **Firewall rules:**
+1. **Firewall rules:**
+
    - Allow 8000 for API (authenticated)
    - Allow 8001 for health checks (platform only)
    - Block 8080 (internal llama-server)
 
----
+______________________________________________________________________
 
 ## Troubleshooting Configuration
 
@@ -507,24 +535,28 @@ DEBUG_SHELL=true
 ### Common Issues
 
 **Auth not working:**
+
 - Check `AUTH_ENABLED=true`
 - Verify `AUTH_KEYS_FILE` path is correct
 - Check file format: `key_id:api_key`
 - Verify file is mounted and readable
 
 **Logs not organized:**
+
 - Set `WORKER_TYPE` environment variable
 - Check logs directory: `ls -la $DATA_DIR/logs/`
 
 **Port conflicts:**
+
 - Ensure `PORT`, `PORT_HEALTH`, `PORT_BACKEND` are not in use
 - Check with: `netstat -tlnp | grep 8000`
 
 **Deprecation warnings:**
+
 - Replace `BACKEND_PORT` with `PORT_BACKEND`
 - Update deployment scripts
 
----
+______________________________________________________________________
 
 ## See Also
 

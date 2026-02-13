@@ -9,11 +9,13 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 ## Quick Start
 
 1. **Set your model:**
+
    ```bash
    MODEL_NAME=your-model.gguf
    ```
 
-2. **Run the container:**
+1. **Run the container:**
+
    ```bash
    # For testing (auth disabled)
    docker run --gpus all \
@@ -33,7 +35,8 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
      ghcr.io/zepfu/llama-gguf-inference
    ```
 
-3. **Send requests:**
+1. **Send requests:**
+
    ```bash
    # With authentication (production)
    curl -H "Authorization: Bearer your-api-key" \
@@ -67,14 +70,14 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 
 ## Supported Platforms
 
-| Platform | DATA_DIR | Notes |
-|----------|----------|-------|
-| Local Docker | `/data` (default) | Mount your models directory |
-| RunPod Serverless | `/runpod-volume` | Auto-detected |
-| RunPod Pods | `/workspace` | Auto-detected |
-| Vast.ai | `/workspace` | Auto-detected |
-| Lambda Labs | `/data` or custom | Set `DATA_DIR` |
-| Any Docker host | Custom | Set `DATA_DIR=/your/path` |
+| Platform          | DATA_DIR          | Notes                       |
+| ----------------- | ----------------- | --------------------------- |
+| Local Docker      | `/data` (default) | Mount your models directory |
+| RunPod Serverless | `/runpod-volume`  | Auto-detected               |
+| RunPod Pods       | `/workspace`      | Auto-detected               |
+| Vast.ai           | `/workspace`      | Auto-detected               |
+| Lambda Labs       | `/data` or custom | Set `DATA_DIR`              |
+| Any Docker host   | Custom            | Set `DATA_DIR=/your/path`   |
 
 ## Authentication
 
@@ -83,11 +86,13 @@ API key authentication is **enabled by default** to secure your inference endpoi
 ### Quick Start with Authentication
 
 **Option 1: Disable auth (testing only)**
+
 ```bash
 AUTH_ENABLED=false docker run ...
 ```
 
 **Option 2: Use API keys (recommended)**
+
 ```bash
 # 1. Create keys file
 cp api_keys.txt.example /data/api_keys.txt
@@ -122,6 +127,7 @@ curl -H "Authorization: Bearer sk-prod-abc123def456" \
 ### Health Endpoints (No Auth Required)
 
 Health check endpoints work without authentication:
+
 ```bash
 curl http://localhost:8000/ping    # Always works
 curl http://localhost:8000/health  # Always works
@@ -133,31 +139,31 @@ curl http://localhost:8000/health  # Always works
 
 ### Required
 
-| Variable | Description | Example |
-|----------|-------------|---------|
+| Variable     | Description                          | Example                  |
+| ------------ | ------------------------------------ | ------------------------ |
 | `MODEL_NAME` | Model filename in `DATA_DIR/models/` | `Llama-3-8B-Q4_K_M.gguf` |
 
 ### Optional
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AUTH_ENABLED` | `true` | Enable/disable API key authentication |
-| `AUTH_KEYS_FILE` | `$DATA_DIR/api_keys.txt` | Path to API keys file |
-| `MAX_REQUESTS_PER_MINUTE` | `100` | Rate limit per API key |
-| `MODEL_PATH` | — | Full path to model (alternative to MODEL_NAME) |
-| `DATA_DIR` | `/data` | Base directory for models and logs |
-| `MODELS_DIR` | `$DATA_DIR/models` | Override models directory |
-| `NGL` | `99` | GPU layers to offload (99 = all, 0 = CPU only) |
-| `CTX` | `16384` | Context length |
-| `PORT` | `8000` | Public gateway port |
-| `PORT_HEALTH` | `8001` | Health check port (for platform monitoring) |
-| `PORT_BACKEND` | `8080` | Internal llama-server port |
-| `BACKEND_PORT` | `8080` | ⚠️ **Deprecated** - Use `PORT_BACKEND` instead |
-| `LOG_NAME` | `llama` | Log folder name |
-| `WORKER_TYPE` | `""` | Worker classification (e.g., instruct, coder, omni) |
-| `THREADS` | `0` | CPU threads (0 = auto) |
-| `EXTRA_ARGS` | — | Additional llama-server arguments |
-| `DEBUG_SHELL` | `false` | Hold container for debugging |
+| Variable                  | Default                  | Description                                         |
+| ------------------------- | ------------------------ | --------------------------------------------------- |
+| `AUTH_ENABLED`            | `true`                   | Enable/disable API key authentication               |
+| `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file                               |
+| `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per API key                              |
+| `MODEL_PATH`              | —                        | Full path to model (alternative to MODEL_NAME)      |
+| `DATA_DIR`                | `/data`                  | Base directory for models and logs                  |
+| `MODELS_DIR`              | `$DATA_DIR/models`       | Override models directory                           |
+| `NGL`                     | `99`                     | GPU layers to offload (99 = all, 0 = CPU only)      |
+| `CTX`                     | `16384`                  | Context length                                      |
+| `PORT`                    | `8000`                   | Public gateway port                                 |
+| `PORT_HEALTH`             | `8001`                   | Health check port (for platform monitoring)         |
+| `PORT_BACKEND`            | `8080`                   | Internal llama-server port                          |
+| `BACKEND_PORT`            | `8080`                   | ⚠️ **Deprecated** - Use `PORT_BACKEND` instead      |
+| `LOG_NAME`                | `llama`                  | Log folder name                                     |
+| `WORKER_TYPE`             | `""`                     | Worker classification (e.g., instruct, coder, omni) |
+| `THREADS`                 | `0`                      | CPU threads (0 = auto)                              |
+| `EXTRA_ARGS`              | —                        | Additional llama-server arguments                   |
+| `DEBUG_SHELL`             | `false`                  | Hold container for debugging                        |
 
 ## Directory Structure
 
@@ -197,6 +203,7 @@ WORKER_TYPE=omni
 ```
 
 **Log filename format** (timestamp-first for chronological sorting):
+
 ```
 20240206_143022_server_instanceid.log  # Most recent
 20240206_120000_server_instanceid.log
@@ -205,18 +212,20 @@ WORKER_TYPE=omni
 
 ## API Endpoints
 
-| Endpoint | Auth Required | Description |
-|----------|---------------|-------------|
-| `GET /ping` | No | Quick health check (always returns 200) |
-| `GET /health` | No | Detailed health status with backend info (JSON) |
-| `GET /metrics` | No | Basic metrics (JSON) |
-| `POST /v1/chat/completions` | **Yes** | Chat completions (OpenAI format) |
-| `POST /v1/completions` | **Yes** | Text completions |
-| `GET /v1/models` | **Yes** | List models |
+| Endpoint                    | Auth Required | Description                                     |
+| --------------------------- | ------------- | ----------------------------------------------- |
+| `GET /ping`                 | No            | Quick health check (always returns 200)         |
+| `GET /health`               | No            | Detailed health status with backend info (JSON) |
+| `GET /metrics`              | No            | Basic metrics (JSON)                            |
+| `POST /v1/chat/completions` | **Yes**       | Chat completions (OpenAI format)                |
+| `POST /v1/completions`      | **Yes**       | Text completions                                |
+| `GET /v1/models`            | **Yes**       | List models                                     |
 
-**Note:** When `AUTH_ENABLED=true` (default), API endpoints require a valid API key via `Authorization: Bearer <key>` header. Health endpoints always work without authentication.
+**Note:** When `AUTH_ENABLED=true` (default), API endpoints require a valid API key via `Authorization: Bearer <key>`
+header. Health endpoints always work without authentication.
 
-**For serverless deployments:** Platform health checks should use `PORT_HEALTH` (default 8001) instead of `/ping` to enable proper scale-to-zero behavior.
+**For serverless deployments:** Platform health checks should use `PORT_HEALTH` (default 8001) instead of `/ping` to
+enable proper scale-to-zero behavior.
 
 ## Platform-Specific Setup
 
@@ -245,6 +254,7 @@ docker run --gpus all \
 ### RunPod Serverless
 
 Environment variables:
+
 ```
 MODEL_NAME=your-model.gguf
 AUTH_ENABLED=true
@@ -256,17 +266,20 @@ AUTH_KEYS_FILE=/runpod-volume/api_keys.txt
 The container auto-detects `/runpod-volume` and uses it for models and logs.
 
 **For scale-to-zero behavior:**
+
 - Set `Active Workers` to 0 in endpoint settings
 - Configure `Idle Timeout` (e.g., 5 seconds)
 - Expose ports: 8000 (API), 8001 (health checks)
 - Set `PORT_HEALTH=8001` environment variable
 - Configure RunPod to use port 8001 for health checks
 
-This setup separates platform health checks from your actual API traffic, allowing the worker to properly scale to zero when idle.
+This setup separates platform health checks from your actual API traffic, allowing the worker to properly scale to zero
+when idle.
 
 ### RunPod Pods / Vast.ai
 
 Environment variables:
+
 ```
 MODEL_NAME=your-model.gguf
 AUTH_ENABLED=true
@@ -326,16 +339,17 @@ AUTH_KEYS_FILE=/mnt/storage/api_keys.txt
 
 Rough VRAM requirements for Q4 quantized models:
 
-| Model Size | VRAM (full offload) | Good For |
-|------------|---------------------|----------|
-| 7B | ~4-5 GB | RTX 3060+, any cloud GPU |
-| 13B | ~8-9 GB | RTX 3080+, T4, L4 |
-| 30B | ~18-20 GB | RTX 4090, A10, L40 |
-| 70B | ~40+ GB | A100 40GB+, H100 |
+| Model Size | VRAM (full offload) | Good For                 |
+| ---------- | ------------------- | ------------------------ |
+| 7B         | ~4-5 GB             | RTX 3060+, any cloud GPU |
+| 13B        | ~8-9 GB             | RTX 3080+, T4, L4        |
+| 30B        | ~18-20 GB           | RTX 4090, A10, L40       |
+| 70B        | ~40+ GB             | A100 40GB+, H100         |
 
 ## Troubleshooting
 
 ### Model not found
+
 ```bash
 # Check model path
 ls -la $DATA_DIR/models/
@@ -343,6 +357,7 @@ ls -la $DATA_DIR/models/
 ```
 
 ### Out of memory
+
 ```bash
 # Reduce GPU layers
 NGL=40
@@ -354,18 +369,21 @@ CTX=4096
 ### Authentication Issues
 
 **Problem:** 401 Unauthorized
+
 - Check API key format in `api_keys.txt` (`key_id:api_key`)
 - Verify Authorization header: `Authorization: Bearer <key>`
 - Check `AUTH_ENABLED=true`
 - Verify `api_keys.txt` is mounted and readable
 
 **Problem:** Health endpoints don't work
+
 - Health endpoints (`/ping`, `/health`, `/metrics`) should always work without auth
 - If they require auth, there's a configuration issue
 
 **See [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) for detailed troubleshooting.**
 
 ### Debug mode
+
 ```bash
 DEBUG_SHELL=true
 # Container will pause and print environment
