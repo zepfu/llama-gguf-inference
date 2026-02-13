@@ -82,7 +82,7 @@ ______________________________________________________________________
 | **Severity** | MEDIUM               |
 | **File**     | `scripts/gateway.py` |
 | **Line**     | 758                  |
-| **Status**   | OPEN                 |
+| **Status**   | **FIXED**            |
 
 **Description:** The HTTP request line (e.g., `GET /path HTTP/1.1`) is read via `asyncio.StreamReader.readline()`
 without an explicit length limit. While `asyncio.StreamReader` has a default internal buffer limit of 64KB (`2**16`),
@@ -93,6 +93,9 @@ a very long request line (up to 64KB) consuming memory per-connection.
 length check similar to the header line size check (SEC-05). Not urgent for v1 since asyncio's default buffer provides a
 reasonable cap.
 
+**Fix Applied:** Added `MAX_REQUEST_LINE_SIZE` constant (default 8192 bytes) with an explicit length check on the
+request line after reading. Returns 414 URI Too Long if the request line exceeds the limit.
+
 ______________________________________________________________________
 
 ### SEC-08 [MEDIUM] — Container runs as root
@@ -102,7 +105,7 @@ ______________________________________________________________________
 | **Severity** | MEDIUM                         |
 | **File**     | `Dockerfile`, `Dockerfile.cpu` |
 | **Lines**    | All                            |
-| **Status**   | OPEN                           |
+| **Status**   | **FIXED**                      |
 
 **Description:** Neither Dockerfile defines a non-root `USER` directive. All container processes (llama-server, gateway,
 health server) run as root. If an attacker achieves code execution through a vulnerability in llama-server or the
@@ -118,6 +121,10 @@ gateway, they have full root privileges inside the container.
 base image or device permission configuration for GPU access. Document the rationale for running as root in the
 Dockerfiles.
 
+**Fix Applied:** Added a non-root `inference` user (UID 1000) to both Dockerfiles. The CUDA image includes `video` group
+membership for GPU device access. The CPU image has no GPU groups. Pre-created `/data` directories with correct
+ownership so the non-root user can write model data and keys. All container processes now run as the `inference` user.
+
 ______________________________________________________________________
 
 ### SEC-09 [MEDIUM] — Rate limiter state not bounded
@@ -127,7 +134,7 @@ ______________________________________________________________________
 | **Severity** | MEDIUM            |
 | **File**     | `scripts/auth.py` |
 | **Lines**    | 65, 235-255       |
-| **Status**   | OPEN              |
+| **Status**   | **FIXED**         |
 
 **Description:** The rate limiter uses `defaultdict(list)` mapping `key_id -> [timestamps]`. While old timestamps are
 pruned on each check, the pruning only occurs for the specific `key_id` being checked. If many distinct key_ids
@@ -141,6 +148,10 @@ limited since each timestamp is only 8 bytes and keys are validated (16-128 char
 **Recommendation:** Add periodic background cleanup of stale rate limiter entries (e.g., every 5 minutes, remove all
 key_ids with no recent timestamps). Not blocking for v1 but should be addressed for long-running production deployments.
 
+**Fix Applied:** Added lazy cleanup in `_check_rate_limit()` that runs every 5 minutes (`CLEANUP_INTERVAL = 300`). On
+each cleanup pass, all key_ids with no recent timestamps (outside the current rate limit window) are removed from the
+rate limiter dictionary, preventing unbounded memory growth over long-running instances.
+
 ______________________________________________________________________
 
 ### SEC-10 [LOW] — Content-Length parsing lacks error handling
@@ -150,7 +161,7 @@ ______________________________________________________________________
 | **Severity** | LOW                  |
 | **File**     | `scripts/gateway.py` |
 | **Line**     | 734                  |
-| **Status**   | OPEN                 |
+| **Status**   | **FIXED**            |
 
 **Description:** The `Content-Length` header value is parsed with `int(value.strip())` without a try/except for
 `ValueError`. If a client sends a malformed Content-Length (e.g., `Content-Length: abc`), the exception propagates to
@@ -159,6 +170,10 @@ receives no HTTP error response.
 
 **Recommendation:** Wrap `int()` in a try/except and return a 400 Bad Request response for malformed Content-Length
 values.
+
+**Fix Applied:** Wrapped the `int()` call in a try/except `ValueError` block. On malformed Content-Length values, the
+gateway now returns a 400 Bad Request response using the `send_bad_request()` helper, giving the client a clear error
+instead of a silent connection close.
 
 ______________________________________________________________________
 
@@ -169,7 +184,7 @@ ______________________________________________________________________
 | **Severity** | LOW               |
 | **File**     | `scripts/auth.py` |
 | **Lines**    | 374               |
-| **Status**   | OPEN              |
+| **Status**   | **FIXED**         |
 
 **Description:** The `log_access()` function writes `method` and `path` directly into the access log file without
 sanitization. A malicious client could craft a request line containing newlines or pipe characters to inject fake log
@@ -184,6 +199,9 @@ request line would require the raw bytes to contain `\r\n` followed by more data
 **Recommendation:** Sanitize `method` and `path` in `log_access()` by replacing control characters (e.g., `\n`, `\r`,
 `|`) before writing.
 
+**Fix Applied:** Added `_sanitize_log_field()` helper in `auth.py` that replaces `\n`, `\r`, `\t`, and `|` characters
+with underscores. Applied to `method`, `path`, and `key_id` fields in `log_access()` before writing to the access log.
+
 ______________________________________________________________________
 
 ### SEC-12 [LOW] — Health endpoint exposes internal metrics to unauthenticated clients
@@ -193,7 +211,7 @@ ______________________________________________________________________
 | **Severity** | LOW                  |
 | **File**     | `scripts/gateway.py` |
 | **Lines**    | 335-370, 381-417     |
-| **Status**   | OPEN                 |
+| **Status**   | **FIXED**            |
 
 **Description:** The `/health` and `/metrics` endpoints are unauthenticated and expose operational details including:
 
@@ -211,6 +229,10 @@ sensitive per-key metrics. The information is operational, not credential-relate
 **Recommendation:** Consider making `/metrics` optionally authenticated via a configuration flag for deployments where
 metric exposure is a concern. The current behavior is acceptable for v1 since operational monitoring is a primary use
 case.
+
+**Fix Applied:** Added `METRICS_AUTH_ENABLED` environment variable (default `false`). When set to `true`, the `/metrics`
+endpoint requires authentication (same as API endpoints). The `/ping` and `/health` endpoints remain public to support
+platform health checks and scale-to-zero behavior.
 
 ______________________________________________________________________
 
@@ -244,7 +266,7 @@ ______________________________________________________________________
 | **Severity** | INFO               |
 | **File**     | `scripts/start.sh` |
 | **Line**     | 494                |
-| **Status**   | OPEN               |
+| **Status**   | **FIXED**          |
 
 **Description:** The `EXTRA_ARGS` environment variable is word-split and appended to the llama-server command arguments
 without validation. This is intentional (shellcheck disable comment present) and allows operators to pass additional
@@ -253,6 +275,10 @@ flags. However, there is no documentation warning that this could override secur
 
 **Recommendation:** Add a comment and documentation note warning operators that `EXTRA_ARGS` can override security
 defaults, and consider a blocklist of dangerous overrides (e.g., `--host`).
+
+**Fix Applied:** Added a startup warning when `EXTRA_ARGS` is non-empty, logging the actual value to alert operators
+that custom arguments are being passed to llama-server. This makes the use of `EXTRA_ARGS` visible in container logs for
+audit and debugging purposes.
 
 ______________________________________________________________________
 
@@ -263,7 +289,7 @@ ______________________________________________________________________
 | **Severity** | INFO               |
 | **File**     | `scripts/start.sh` |
 | **Lines**    | 253-261            |
-| **Status**   | OPEN               |
+| **Status**   | **FIXED**          |
 
 **Description:** When `DEBUG_SHELL=true`, the script logs the complete environment (`env | sort`), which includes
 `BACKEND_API_KEY` and any other sensitive environment variables. This is intended for debugging only but could
@@ -275,6 +301,11 @@ backend key is generated per-session and would be invalidated on next restart.
 **Recommendation:** Filter sensitive variables from the `env | sort` output (e.g., exclude `*KEY*`, `*SECRET*`,
 `*TOKEN*`, `*PASSWORD*`).
 
+**Fix Applied:** Changed the debug environment dump from `env | sort` to
+`env | sort | grep -viE '(key|secret|token|password|credential)'` to filter out any environment variables whose names
+contain sensitive keywords. This prevents accidental disclosure of secrets in debug output while still providing useful
+diagnostic information.
+
 ______________________________________________________________________
 
 ### SEC-16 [INFO] — Backend key partial disclosure in startup log
@@ -284,7 +315,7 @@ ______________________________________________________________________
 | **Severity** | INFO               |
 | **File**     | `scripts/start.sh` |
 | **Line**     | 306                |
-| **Status**   | OPEN               |
+| **Status**   | **FIXED**          |
 
 **Description:** The startup log prints the first 8 and last 8 characters of the backend API key:
 `BACKEND_AUTH=enabled (key: ${BACKEND_API_KEY:0:8}...${BACKEND_API_KEY: -8})`. While this is a truncated form useful for
@@ -295,6 +326,10 @@ An attacker with access to container logs cannot reach the backend directly (bou
 and regenerated on restart.
 
 **Recommendation:** Reduce to showing only the first 8 characters (prefix only) for identification purposes.
+
+**Fix Applied:** Reduced the backend key disclosure from first 8 + last 8 characters (31% of the key) to first 8
+characters only. The startup log now shows `key: ${BACKEND_API_KEY:0:8}...` which is sufficient for identification while
+minimizing information disclosure.
 
 ______________________________________________________________________
 
@@ -335,14 +370,14 @@ ______________________________________________________________________
 
 ## Findings Summary
 
-| Severity  | Count  | Open  | Fixed |
-| --------- | ------ | ----- | ----- |
-| CRITICAL  | 0      | 0     | 0     |
-| HIGH      | 1      | 0     | 1     |
-| MEDIUM    | 3      | 3     | 0     |
-| LOW       | 4      | 3     | 1     |
-| INFO      | 3      | 3     | 0     |
-| **Total** | **11** | **9** | **2** |
+| Severity  | Count  | Open  | Fixed  |
+| --------- | ------ | ----- | ------ |
+| CRITICAL  | 0      | 0     | 0      |
+| HIGH      | 1      | 0     | 1      |
+| MEDIUM    | 3      | 0     | 3      |
+| LOW       | 4      | 0     | 4      |
+| INFO      | 3      | 0     | 3      |
+| **Total** | **11** | **0** | **11** |
 
 Previously fixed (verified): 5 (SEC-01 through SEC-05)
 
@@ -354,22 +389,35 @@ ______________________________________________________________________
 
 **Rationale:**
 
+- **All 11 findings from this audit are now FIXED.** Zero open findings across all severity levels.
+
 - **No open CRITICAL findings.** The codebase has no vulnerabilities that could lead to unauthorized access, data
   breach, or complete system compromise.
 
-- **No open HIGH findings.** The one HIGH finding (SEC-06: INSTANCE_ID path traversal) has been fixed in this audit.
+- **No open HIGH findings.** The one HIGH finding (SEC-06: INSTANCE_ID path traversal) was fixed during the audit.
 
-- **MEDIUM findings are acceptable risks for v1:**
+- **All MEDIUM findings have been resolved:**
 
-  - SEC-07 (request line length): Mitigated by asyncio's 64KB default buffer limit.
-  - SEC-08 (root container): Common for GPU workloads; mitigated by container isolation.
-  - SEC-09 (rate limiter unbounded): Only affects extremely long-running instances with many keys.
+  - SEC-07 (request line length): Explicit `MAX_REQUEST_LINE_SIZE` check added with 414 response.
+  - SEC-08 (root container): Non-root `inference` user added to both Dockerfiles with proper group memberships.
+  - SEC-09 (rate limiter unbounded): Lazy cleanup every 5 minutes removes stale entries.
 
-- **LOW and INFO findings** are documentation and hardening items appropriate for post-v1 improvement.
+- **All LOW findings have been resolved:**
+
+  - SEC-10 (Content-Length parsing): Proper error handling with 400 Bad Request response.
+  - SEC-11 (log injection): `_sanitize_log_field()` strips control characters from log entries.
+  - SEC-12 (metrics auth): `METRICS_AUTH_ENABLED` flag allows operators to require auth on `/metrics`.
+  - SEC-13 (backend response headers): `MAX_RESPONSE_HEADER_SIZE` enforced with 502 on overflow.
+
+- **All INFO findings have been resolved:**
+
+  - SEC-14 (EXTRA_ARGS): Startup warning logged when non-empty.
+  - SEC-15 (DEBUG_SHELL): Sensitive environment variables filtered from debug output.
+  - SEC-16 (backend key disclosure): Reduced to first 8 characters only.
 
 - **The security architecture is sound:** Defense-in-depth (frontend auth + backend auth + localhost binding),
   fail-closed defaults, constant-time comparisons, secure key lifecycle management, and proper input validation
   throughout.
 
-All CRITICAL and HIGH issues from this and prior audits have been resolved. The codebase meets the v1 release gate
-requirement for security.
+All findings from this and prior audits (SEC-01 through SEC-16) have been resolved. The codebase exceeds the v1 release
+gate requirement for security with zero open findings.
