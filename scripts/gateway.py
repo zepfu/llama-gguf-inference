@@ -112,6 +112,9 @@ MAX_HEADERS = int(os.environ.get("MAX_HEADERS", "64"))
 MAX_HEADER_LINE_SIZE = int(os.environ.get("MAX_HEADER_LINE_SIZE", "8192"))
 MAX_REQUEST_LINE_SIZE = int(os.environ.get("MAX_REQUEST_LINE_SIZE", "8192"))
 
+# Backend response header size limit (SEC-13: defense-in-depth)
+MAX_RESPONSE_HEADER_SIZE = 65536  # 64KB cumulative limit for backend response headers
+
 # Metrics authentication (SEC-12)
 METRICS_AUTH_ENABLED = os.environ.get("METRICS_AUTH_ENABLED", "false").lower() == "true"
 
@@ -634,6 +637,27 @@ def _inject_cors_into_headers(response_headers: bytes, request_origin: str) -> b
     return response_headers
 
 
+async def _read_backend_response_headers(
+    backend_reader: asyncio.StreamReader,
+) -> Optional[bytes]:
+    """Read response headers from the backend, enforcing a cumulative size limit.
+
+    Returns the raw header bytes (including the terminating blank line) on
+    success, or ``None`` if the cumulative size exceeds
+    ``MAX_RESPONSE_HEADER_SIZE`` (SEC-13).
+    """
+    response_headers = b""
+    while True:
+        line = await asyncio.wait_for(backend_reader.readline(), timeout=REQUEST_TIMEOUT)
+        if line == b"\r\n" or line == b"":
+            response_headers += line
+            break
+        response_headers += line
+        if len(response_headers) > MAX_RESPONSE_HEADER_SIZE:
+            return None
+    return response_headers
+
+
 async def proxy_request(
     method: str,
     path: str,
@@ -717,13 +741,25 @@ async def proxy_request(
 
         await backend_writer.drain()
 
-        # Read and forward response headers
-        response_headers = b""
-        while True:
-            line = await asyncio.wait_for(backend_reader.readline(), timeout=REQUEST_TIMEOUT)
-            response_headers += line
-            if line == b"\r\n" or line == b"":
-                break
+        # Read and forward response headers (SEC-13: cumulative size limit)
+        response_headers = await _read_backend_response_headers(backend_reader)
+        if response_headers is None:
+            log(
+                "Backend response headers too large",
+                level="error",
+                max_bytes=MAX_RESPONSE_HEADER_SIZE,
+            )
+            backend_writer.close()
+            await backend_writer.wait_closed()
+            error_response = (
+                "HTTP/1.1 502 Bad Gateway\r\n" "Content-Length: 0\r\n" "Connection: close\r\n\r\n"
+            )
+            writer.write(error_response.encode())
+            await writer.drain()
+            metrics.requests_error += 1
+            if AUTH_AVAILABLE:
+                await log_access(method, path, key_id, 502)
+            return
 
         # Inject CORS headers into the response before sending to client
         response_headers = _inject_cors_into_headers(response_headers, request_origin)

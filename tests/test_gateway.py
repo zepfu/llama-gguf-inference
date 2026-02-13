@@ -3639,6 +3639,177 @@ class TestLogFormatJson:
         assert entry["msg"] == "case test"
 
 
+class TestResponseHeaderSizeLimit:
+    """Tests for SEC-13: backend response header cumulative size limit."""
+
+    def test_default_max_response_header_size(self, monkeypatch):
+        """MAX_RESPONSE_HEADER_SIZE defaults to 65536 (64KB)."""
+        gw = _reload_gateway(monkeypatch)
+        assert gw.MAX_RESPONSE_HEADER_SIZE == 65536
+
+    def test_oversized_response_headers_returns_502(self, monkeypatch):
+        """Backend sending response headers exceeding limit triggers 502."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+        # Use a small limit so we don't need huge test data
+        gw.MAX_RESPONSE_HEADER_SIZE = 100
+
+        written_data = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        # Generate header lines that cumulatively exceed 100 bytes
+        oversized_header_lines = [
+            b"HTTP/1.1 200 OK\r\n",
+            b"X-Pad-A: " + b"A" * 50 + b"\r\n",
+            b"X-Pad-B: " + b"B" * 50 + b"\r\n",
+            # Would not reach the terminator before exceeding limit
+        ]
+
+        call_index = 0
+
+        async def mock_readline():
+            nonlocal call_index
+            if call_index < len(oversized_header_lines):
+                line = oversized_header_lines[call_index]
+                call_index += 1
+                return line
+            return b"\r\n"
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = mock_readline
+
+        mock_backend_writer = MagicMock()
+        mock_backend_writer.write = MagicMock()
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        initial_errors = gw.metrics.requests_error
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "502 Bad Gateway" in response
+        assert gw.metrics.requests_error == initial_errors + 1
+        # Verify backend connection was closed
+        mock_backend_writer.close.assert_called_once()
+
+    def test_normal_response_headers_pass_through(self, monkeypatch):
+        """Normal-sized response headers are forwarded to the client."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        header_lines = [
+            b"HTTP/1.1 200 OK\r\n",
+            b"Content-Type: application/json\r\n",
+            b"\r\n",
+        ]
+        body_chunks = [b'{"ok": true}', b""]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(side_effect=body_chunks)
+
+        mock_backend_writer = MagicMock()
+        mock_backend_writer.write = MagicMock()
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        initial_success = gw.metrics.requests_success
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "200 OK" in response
+        assert "Content-Type: application/json" in response
+        assert '{"ok": true}' in response
+        assert gw.metrics.requests_success == initial_success + 1
+
+    def test_headers_just_under_limit_pass_through(self, monkeypatch):
+        """Response headers exactly at the limit are allowed."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+        # Set a small limit for testing
+        gw.MAX_RESPONSE_HEADER_SIZE = 200
+
+        written_data = bytearray()
+
+        class MockClientWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        # Build headers that fit exactly within 200 bytes
+        status_line = b"HTTP/1.1 200 OK\r\n"  # 17 bytes
+        # Pad to reach close to 200 bytes total (leaving room for status line)
+        pad_size = 200 - len(status_line) - 2  # -2 for final header's \r\n
+        pad_header = b"X-Pad: " + b"P" * (pad_size - len(b"X-Pad: ") - 2) + b"\r\n"
+
+        total = len(status_line) + len(pad_header)
+        assert total <= 200, f"Test setup error: headers are {total} bytes, limit is 200"
+
+        header_lines = [status_line, pad_header, b"\r\n"]
+        body_chunks = [b"OK", b""]
+
+        mock_backend_reader = AsyncMock()
+        mock_backend_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_backend_reader.read = AsyncMock(side_effect=body_chunks)
+
+        mock_backend_writer = MagicMock()
+        mock_backend_writer.write = MagicMock()
+        mock_backend_writer.drain = AsyncMock()
+        mock_backend_writer.close = MagicMock()
+        mock_backend_writer.wait_closed = AsyncMock()
+
+        async def mock_open_connection(*args, **kwargs):
+            return mock_backend_reader, mock_backend_writer
+
+        async def run():
+            writer = MockClientWriter()
+            with patch("asyncio.open_connection", side_effect=mock_open_connection):
+                await gw.proxy_request("GET", "/v1/models", {}, None, writer, "test-key")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "200 OK" in response
+        assert "502 Bad Gateway" not in response
+
+
 class TestLogJsonHelper:
     """Tests for the _log_json() helper directly."""
 
