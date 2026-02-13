@@ -7,12 +7,21 @@ Welcome to the documentation for llama-gguf-inference, a production-ready infere
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: User Guides:
 
-   ARCHITECTURE
-   api/gateway
-   api/auth
-   api/health_server
+   AUTHENTICATION
+   CONFIGURATION
+   TESTING
+   TROUBLESHOOTING
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Auto-Generated:
+
+   auto/CHANGELOG
+   auto/ARCHITECTURE_AUTO
+   auto/REPO_MAP
+   auto/WORKFLOW_REGISTRY
 
 Quick Start
 -----------

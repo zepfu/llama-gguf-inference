@@ -5,7 +5,8 @@ auth.py - API Key Authentication Module for Gateway
 File-based authentication system that enforces API keys while maintaining
 OpenAI compatibility. Uses key_id:api_key format for easy management and auditing.
 
-Usage:
+Usage::
+
     from auth import api_validator, authenticate_request, log_access
 
     # In your request handler:
