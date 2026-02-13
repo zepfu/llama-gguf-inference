@@ -179,6 +179,10 @@ AUTH_ENABLED="${AUTH_ENABLED:-true}"
 AUTH_KEYS_FILE="${AUTH_KEYS_FILE:-$DATA_DIR/api_keys.txt}"
 MAX_REQUESTS_PER_MINUTE="${MAX_REQUESTS_PER_MINUTE:-100}"
 
+# Instance identity (must be defined before backend key file path uses it)
+INSTANCE_ID="${INSTANCE_ID:-${HOSTNAME:-unknown}}"
+INSTANCE_ID="${INSTANCE_ID//[^a-zA-Z0-9._-]/_}"
+
 # Backend authentication - generate random key for this session
 # This provides defense-in-depth: users auth to gateway, gateway auths to backend
 BACKEND_API_KEY=$(python3 -c "import secrets; print('gateway-' + secrets.token_urlsafe(32))")
@@ -229,10 +233,6 @@ if [[ ${#BACKEND_API_KEY} -ne 51 ]]; then
 fi
 
 log "Backend key file verified: $BACKEND_KEY_FILE"
-
-# Instance identity
-INSTANCE_ID="${INSTANCE_ID:-${HOSTNAME:-unknown}}"
-INSTANCE_ID="${INSTANCE_ID//[^a-zA-Z0-9._-]/_}"
 
 # Paths
 LLAMA_BIN="/app/llama-server"
