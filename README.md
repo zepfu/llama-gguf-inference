@@ -179,6 +179,7 @@ curl http://localhost:8000/health  # Always works
 | `PORT_HEALTH`             | `8001`                   | Health check port (for platform monitoring)         |
 | `PORT_BACKEND`            | `8080`                   | Internal llama-server port                          |
 | `BACKEND_PORT`            | `8080`                   | Deprecated - Use `PORT_BACKEND` instead             |
+| `LOG_FORMAT`              | `text`                   | Log format: `text` (plain) or `json` (JSONL)        |
 | `LOG_NAME`                | `llama`                  | Log folder name                                     |
 | `WORKER_TYPE`             | `""`                     | Worker classification (e.g., instruct, coder, omni) |
 | `THREADS`                 | `0`                      | CPU threads (0 = auto)                              |
