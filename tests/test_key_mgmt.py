@@ -696,3 +696,538 @@ class TestRemoveQuietMode:
         assert result == 0
         captured = capsys.readouterr()
         assert "Removed" not in captured.out
+
+
+# ---------------------------------------------------------------------------
+# parse_expiration tests
+# ---------------------------------------------------------------------------
+
+
+class TestParseExpiration:
+    """Tests for parse_expiration() helper function."""
+
+    def test_iso_8601_passthrough(self):
+        """ISO 8601 datetime string is returned as-is."""
+        result = key_mgmt.parse_expiration("2026-03-01T00:00:00")
+        assert result == "2026-03-01T00:00:00"
+
+    def test_relative_days(self):
+        """Relative '30d' produces a datetime ~30 days in the future."""
+        import datetime
+
+        before = datetime.datetime.now()
+        result = key_mgmt.parse_expiration("30d")
+        after = datetime.datetime.now()
+        parsed = datetime.datetime.fromisoformat(result)
+        assert parsed > before + datetime.timedelta(days=29, hours=23)
+        assert parsed < after + datetime.timedelta(days=30, seconds=1)
+
+    def test_relative_hours(self):
+        """Relative '24h' produces a datetime ~24 hours in the future."""
+        import datetime
+
+        before = datetime.datetime.now()
+        result = key_mgmt.parse_expiration("24h")
+        parsed = datetime.datetime.fromisoformat(result)
+        assert parsed > before + datetime.timedelta(hours=23, minutes=59)
+
+    def test_relative_minutes(self):
+        """Relative '60m' produces a datetime ~60 minutes in the future."""
+        import datetime
+
+        before = datetime.datetime.now()
+        result = key_mgmt.parse_expiration("60m")
+        parsed = datetime.datetime.fromisoformat(result)
+        assert parsed > before + datetime.timedelta(minutes=59)
+
+    def test_invalid_format_raises(self):
+        """Invalid format raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid expiration format"):
+            key_mgmt.parse_expiration("not-a-date")
+
+    def test_invalid_relative_unit_raises(self):
+        """Invalid relative unit (e.g. '30x') raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid expiration format"):
+            key_mgmt.parse_expiration("30x")
+
+
+# ---------------------------------------------------------------------------
+# build_key_line / parse_key_line tests
+# ---------------------------------------------------------------------------
+
+
+class TestBuildKeyLine:
+    """Tests for build_key_line() helper function."""
+
+    def test_simple_key(self):
+        """Build line with no optional fields."""
+        line = key_mgmt.build_key_line("mykey", "sk-test-1234567890abcdef")
+        assert line == "mykey:sk-test-1234567890abcdef"
+
+    def test_with_rate_limit(self):
+        """Build line with rate limit only."""
+        line = key_mgmt.build_key_line("mykey", "sk-test-1234567890abcdef", rate_limit="120")
+        assert line == "mykey:sk-test-1234567890abcdef:120"
+
+    def test_with_expiration_only(self):
+        """Build line with expiration but no rate limit."""
+        line = key_mgmt.build_key_line(
+            "mykey", "sk-test-1234567890abcdef", expiration="2026-03-01T00:00:00"
+        )
+        assert line == "mykey:sk-test-1234567890abcdef::2026-03-01T00:00:00"
+
+    def test_with_both(self):
+        """Build line with both rate limit and expiration."""
+        line = key_mgmt.build_key_line(
+            "mykey",
+            "sk-test-1234567890abcdef",
+            rate_limit="300",
+            expiration="2026-12-31T23:59:59",
+        )
+        assert line == "mykey:sk-test-1234567890abcdef:300:2026-12-31T23:59:59"
+
+
+class TestParseKeyLine:
+    """Tests for parse_key_line() helper function."""
+
+    def test_simple_key(self):
+        """Parse a simple key_id:api_key line."""
+        key_id, api_key, rl, exp = key_mgmt.parse_key_line("mykey:sk-test-1234567890abcdef")
+        assert key_id == "mykey"
+        assert api_key == "sk-test-1234567890abcdef"
+        assert rl == ""
+        assert exp == ""
+
+    def test_with_rate_limit(self):
+        """Parse line with rate limit."""
+        key_id, api_key, rl, exp = key_mgmt.parse_key_line("mykey:sk-test-1234567890abcdef:120")
+        assert rl == "120"
+        assert exp == ""
+
+    def test_with_expiration_only(self):
+        """Parse line with empty rate limit and expiration."""
+        key_id, api_key, rl, exp = key_mgmt.parse_key_line(
+            "mykey:sk-test-1234567890abcdef::2026-03-01T00:00:00"
+        )
+        assert rl == ""
+        assert exp == "2026-03-01T00:00:00"
+
+    def test_with_all_fields(self):
+        """Parse line with all fields."""
+        key_id, api_key, rl, exp = key_mgmt.parse_key_line(
+            "mykey:sk-test-1234567890abcdef:300:2026-12-31T23:59:59"
+        )
+        assert key_id == "mykey"
+        assert api_key == "sk-test-1234567890abcdef"
+        assert rl == "300"
+        assert exp == "2026-12-31T23:59:59"
+
+
+# ---------------------------------------------------------------------------
+# Generate with --rate-limit and --expires tests
+# ---------------------------------------------------------------------------
+
+
+class TestGenerateWithRateLimit:
+    """Tests for generate command with --rate-limit flag."""
+
+    def test_generate_with_rate_limit(self, tmp_path):
+        """Generate creates a key with per-key rate limit."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=120,
+            expires=None,
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 0
+        content = open(file_path).read()
+        # Should have 3 fields: key_id:api_key:120
+        key_lines = [ln for ln in content.strip().split("\n") if not ln.startswith("#")]
+        assert len(key_lines) == 1
+        parts = key_lines[0].split(":")
+        assert parts[0] == "test-key"
+        assert parts[1].startswith("sk-")
+        assert parts[2] == "120"
+
+    def test_generate_with_zero_rate_limit_fails(self, tmp_path):
+        """Generate rejects zero rate limit."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=0,
+            expires=None,
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 1
+
+    def test_generate_with_negative_rate_limit_fails(self, tmp_path):
+        """Generate rejects negative rate limit."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=-5,
+            expires=None,
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 1
+
+    def test_generate_rate_limit_output(self, tmp_path, capsys):
+        """Generate shows rate limit in non-quiet output."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=120,
+            expires=None,
+        )
+        key_mgmt.cmd_generate(args)
+        captured = capsys.readouterr()
+        assert "rate_limit=120/min" in captured.out
+
+
+class TestGenerateWithExpires:
+    """Tests for generate command with --expires flag."""
+
+    def test_generate_with_iso_expiration(self, tmp_path):
+        """Generate creates a key with ISO 8601 expiration."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=None,
+            expires="2026-03-01T00:00:00",
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 0
+        content = open(file_path).read()
+        assert "2026-03-01T00:00:00" in content
+
+    def test_generate_with_relative_expiration(self, tmp_path):
+        """Generate creates a key with relative expiration (30d)."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=None,
+            expires="30d",
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 0
+        content = open(file_path).read()
+        # Should contain a computed ISO 8601 date
+        key_lines = [ln for ln in content.strip().split("\n") if not ln.startswith("#")]
+        parts = key_lines[0].split(":", 3)
+        # key_id:api_key::expiration (4 parts, empty rate limit)
+        assert len(parts) >= 4
+        assert parts[2] == ""  # empty rate limit
+
+    def test_generate_with_invalid_expiration_fails(self, tmp_path):
+        """Generate rejects invalid expiration format."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=None,
+            expires="not-a-date",
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 1
+
+    def test_generate_with_both_rate_limit_and_expires(self, tmp_path):
+        """Generate creates a key with both rate limit and expiration."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=300,
+            expires="2026-12-31T23:59:59",
+        )
+        result = key_mgmt.cmd_generate(args)
+        assert result == 0
+        content = open(file_path).read()
+        key_lines = [ln for ln in content.strip().split("\n") if not ln.startswith("#")]
+        parts = key_lines[0].split(":", 3)
+        assert parts[0] == "test-key"
+        assert parts[2] == "300"
+        assert "2026-12-31T23:59:59" in parts[3]
+
+    def test_generate_expiration_output(self, tmp_path, capsys):
+        """Generate shows expiration in non-quiet output."""
+        file_path = str(tmp_path / "keys.txt")
+        args = argparse.Namespace(
+            name="test-key",
+            file=file_path,
+            quiet=False,
+            rate_limit=None,
+            expires="2026-03-01T00:00:00",
+        )
+        key_mgmt.cmd_generate(args)
+        captured = capsys.readouterr()
+        assert "expires=2026-03-01T00:00:00" in captured.out
+
+
+# ---------------------------------------------------------------------------
+# List with rate limit and expiration tests
+# ---------------------------------------------------------------------------
+
+
+class TestListWithExtendedFormat:
+    """Tests for list command showing rate limits and expiration."""
+
+    def test_list_shows_rate_limit(self, tmp_path, capsys):
+        """List shows per-key rate limit when configured."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa:120\n")
+        args = argparse.Namespace(file=str(path), quiet=False)
+        key_mgmt.cmd_list(args)
+        captured = capsys.readouterr()
+        assert "120/min" in captured.out
+        assert "RATE_LIMIT" in captured.out
+
+    def test_list_shows_default_rate_limit(self, tmp_path, capsys):
+        """List shows 'default' when no per-key rate limit is set."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa\n")
+        args = argparse.Namespace(file=str(path), quiet=False)
+        key_mgmt.cmd_list(args)
+        captured = capsys.readouterr()
+        assert "default" in captured.out
+
+    def test_list_shows_expiration(self, tmp_path, capsys):
+        """List shows expiration date when configured."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa::2026-03-01T00:00:00\n")
+        args = argparse.Namespace(file=str(path), quiet=False)
+        key_mgmt.cmd_list(args)
+        captured = capsys.readouterr()
+        assert "2026-03-01T00:00:00" in captured.out
+        assert "EXPIRES" in captured.out
+
+    def test_list_shows_expired_status(self, tmp_path, capsys):
+        """List shows 'expired' status for keys past their expiration."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa::2020-01-01T00:00:00\n")
+        args = argparse.Namespace(file=str(path), quiet=False)
+        key_mgmt.cmd_list(args)
+        captured = capsys.readouterr()
+        assert "expired" in captured.out
+
+    def test_list_shows_active_status(self, tmp_path, capsys):
+        """List shows 'active' status for non-expired keys."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa::2099-12-31T23:59:59\n")
+        args = argparse.Namespace(file=str(path), quiet=False)
+        key_mgmt.cmd_list(args)
+        captured = capsys.readouterr()
+        assert "active" in captured.out
+
+    def test_list_never_shows_key_values_extended(self, tmp_path, capsys):
+        """List never shows actual API key values even in extended format."""
+        path = tmp_path / "keys.txt"
+        path.write_text(
+            "test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa:120:2026-03-01T00:00:00\n"
+        )
+        args = argparse.Namespace(file=str(path), quiet=False)
+        key_mgmt.cmd_list(args)
+        captured = capsys.readouterr()
+        assert "sk-test-AAAA" not in captured.out
+
+
+# ---------------------------------------------------------------------------
+# Rotate with extended format tests
+# ---------------------------------------------------------------------------
+
+
+class TestRotateWithExtendedFormat:
+    """Tests for rotate command preserving rate limit and handling expiration."""
+
+    def test_rotate_preserves_rate_limit(self, tmp_path):
+        """Rotate preserves the existing per-key rate limit."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa:120\n")
+        args = argparse.Namespace(name="test-key", file=str(path), quiet=False, expires=None)
+        result = key_mgmt.cmd_rotate(args)
+        assert result == 0
+        content = open(str(path)).read()
+        key_lines = [ln for ln in content.strip().split("\n") if not ln.startswith("#")]
+        parts = key_lines[0].split(":", 3)
+        assert parts[0] == "test-key"
+        assert parts[1].startswith("sk-")
+        assert parts[1] != "sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa"  # key changed
+        assert parts[2] == "120"  # rate limit preserved
+
+    def test_rotate_preserves_expiration(self, tmp_path):
+        """Rotate preserves existing expiration when --expires is not passed."""
+        path = tmp_path / "keys.txt"
+        path.write_text(
+            "test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa:120:2026-12-31T23:59:59\n"
+        )
+        args = argparse.Namespace(name="test-key", file=str(path), quiet=False, expires=None)
+        result = key_mgmt.cmd_rotate(args)
+        assert result == 0
+        content = open(str(path)).read()
+        assert "2026-12-31T23:59:59" in content
+        assert "120" in content
+
+    def test_rotate_updates_expiration(self, tmp_path):
+        """Rotate updates expiration when --expires is passed."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa::2020-01-01T00:00:00\n")
+        args = argparse.Namespace(
+            name="test-key",
+            file=str(path),
+            quiet=False,
+            expires="2099-12-31T23:59:59",
+        )
+        result = key_mgmt.cmd_rotate(args)
+        assert result == 0
+        content = open(str(path)).read()
+        assert "2099-12-31T23:59:59" in content
+        assert "2020-01-01T00:00:00" not in content
+
+    def test_rotate_with_relative_expiration(self, tmp_path):
+        """Rotate accepts relative expiration (30d)."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa\n")
+        args = argparse.Namespace(
+            name="test-key",
+            file=str(path),
+            quiet=False,
+            expires="30d",
+        )
+        result = key_mgmt.cmd_rotate(args)
+        assert result == 0
+        content = open(str(path)).read()
+        # Should now have an expiration field
+        key_lines = [ln for ln in content.strip().split("\n") if not ln.startswith("#")]
+        parts = key_lines[0].split(":", 3)
+        assert len(parts) >= 4  # key_id:api_key::expiration
+
+    def test_rotate_invalid_expires_fails(self, tmp_path):
+        """Rotate rejects invalid expiration format."""
+        path = tmp_path / "keys.txt"
+        path.write_text("test-key:sk-test-AAAAAAAAAAAAAAAAAAAAAAAAAAAAaaaa\n")
+        args = argparse.Namespace(
+            name="test-key",
+            file=str(path),
+            quiet=False,
+            expires="not-valid",
+        )
+        result = key_mgmt.cmd_rotate(args)
+        assert result == 1
+
+
+# ---------------------------------------------------------------------------
+# CLI parser with new flags tests
+# ---------------------------------------------------------------------------
+
+
+class TestBuildParserExtended:
+    """Tests for build_parser() with new --rate-limit and --expires flags."""
+
+    def test_generate_rate_limit_flag(self):
+        """Parser accepts --rate-limit on generate subcommand."""
+        parser = key_mgmt.build_parser()
+        args = parser.parse_args(
+            [
+                "--file",
+                "/tmp/keys.txt",
+                "generate",
+                "--name",
+                "test-key",
+                "--rate-limit",
+                "120",
+            ]
+        )
+        assert args.rate_limit == 120
+
+    def test_generate_expires_flag(self):
+        """Parser accepts --expires on generate subcommand."""
+        parser = key_mgmt.build_parser()
+        args = parser.parse_args(
+            [
+                "--file",
+                "/tmp/keys.txt",
+                "generate",
+                "--name",
+                "test-key",
+                "--expires",
+                "30d",
+            ]
+        )
+        assert args.expires == "30d"
+
+    def test_generate_both_flags(self):
+        """Parser accepts both --rate-limit and --expires on generate."""
+        parser = key_mgmt.build_parser()
+        args = parser.parse_args(
+            [
+                "--file",
+                "/tmp/keys.txt",
+                "generate",
+                "--name",
+                "test-key",
+                "--rate-limit",
+                "300",
+                "--expires",
+                "2026-12-31T23:59:59",
+            ]
+        )
+        assert args.rate_limit == 300
+        assert args.expires == "2026-12-31T23:59:59"
+
+    def test_rotate_expires_flag(self):
+        """Parser accepts --expires on rotate subcommand."""
+        parser = key_mgmt.build_parser()
+        args = parser.parse_args(
+            [
+                "--file",
+                "/tmp/keys.txt",
+                "rotate",
+                "--name",
+                "test-key",
+                "--expires",
+                "24h",
+            ]
+        )
+        assert args.expires == "24h"
+
+    def test_generate_defaults_no_rate_limit(self):
+        """Default rate_limit is None when not specified."""
+        parser = key_mgmt.build_parser()
+        args = parser.parse_args(
+            [
+                "--file",
+                "/tmp/keys.txt",
+                "generate",
+                "--name",
+                "test-key",
+            ]
+        )
+        assert args.rate_limit is None
+
+    def test_generate_defaults_no_expires(self):
+        """Default expires is None when not specified."""
+        parser = key_mgmt.build_parser()
+        args = parser.parse_args(
+            [
+                "--file",
+                "/tmp/keys.txt",
+                "generate",
+                "--name",
+                "test-key",
+            ]
+        )
+        assert args.expires is None
