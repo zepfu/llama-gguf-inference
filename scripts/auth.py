@@ -26,12 +26,19 @@ Environment Variables:
     MAX_REQUESTS_PER_MINUTE   - Rate limit per key_id (default: 100)
 
 Keys File Format:
-    key_id:api_key
+    key_id:api_key[:rate_limit][:expiration]
+
+    Fields:
+        key_id      - Identifier for the key (alphanumeric, hyphens, underscores)
+        api_key     - The API key value (16-128 chars, alphanumeric/hyphens/underscores)
+        rate_limit  - Optional per-key requests per minute (overrides MAX_REQUESTS_PER_MINUTE)
+        expiration  - Optional ISO 8601 expiration timestamp (e.g. 2026-03-01T00:00:00)
 
 Example:
     production:sk-prod-abc123def456
-    alice-laptop:sk-alice-xyz789
-    development:sk-dev-test123
+    alice-laptop:sk-alice-xyz789:120
+    temp-key:sk-tmp-test123456::2026-03-01T00:00:00
+    vip:sk-vip-premium12345:300:2026-12-31T23:59:59
 """
 
 import asyncio
@@ -49,11 +56,16 @@ class APIKeyValidator:
     Validates API keys for incoming requests.
 
     Features:
-    - File-based configuration (key_id:api_key format)
-    - Rate limiting per key_id
+    - File-based configuration (key_id:api_key[:rate_limit][:expiration] format)
+    - Rate limiting per key_id (global default or per-key override)
+    - Key expiration via optional ISO 8601 timestamp
     - Key format validation
     - Audit trail with key_id tracking
+    - Periodic cleanup of stale rate limiter entries
     """
+
+    # Interval between rate limiter cleanups (seconds)
+    CLEANUP_INTERVAL = 300  # 5 minutes
 
     def __init__(self):
         self.enabled = os.environ.get("AUTH_ENABLED", "true").lower() == "true"
@@ -62,8 +74,14 @@ class APIKeyValidator:
             f"{os.environ.get('DATA_DIR', '/data')}/api_keys.txt",
         )
         self.keys = self._load_keys()  # Maps api_key -> key_id
+        self.key_rate_limits = {}  # Maps key_id -> per-key rate limit (int) or None
+        self.key_expirations = {}  # Maps key_id -> expiration datetime or None
         self.rate_limiter = defaultdict(list)  # Maps key_id -> [timestamps]
         self.max_requests_per_minute = int(os.environ.get("MAX_REQUESTS_PER_MINUTE", "100"))
+        self._last_cleanup = time.time()
+
+        # Parse extended key metadata from loaded keys
+        self._parse_key_metadata()
 
         if self.enabled:
             if self.keys:
@@ -79,19 +97,25 @@ class APIKeyValidator:
         Load API keys from file.
 
         File format:
-            key_id:api_key
+            key_id:api_key[:rate_limit][:expiration]
             # Comments allowed
 
         Returns:
             dict mapping api_key -> key_id for reverse lookup
             Example: {"sk-prod-abc123": "production", "sk-alice-xyz": "alice-laptop"}
+
+        Side effect:
+            Populates self._raw_key_metadata with (key_id, rate_limit_str, expiration_str)
+            tuples for later parsing by _parse_key_metadata().
         """
+        self._raw_key_metadata: list[tuple[str, str, str]] = []
+
         if not self.enabled:
             return {}
 
         if not os.path.exists(self.keys_file):
             print(f"⚠️  AUTH_ENABLED=true but keys file not found: {self.keys_file}")
-            print("    Create file with format: key_id:api_key")
+            print("    Create file with format: key_id:api_key[:rate_limit][:expiration]")
             print("    All requests will be REJECTED until keys file is configured.")
             return {}
 
@@ -105,18 +129,21 @@ class APIKeyValidator:
                     if not line or line.startswith("#"):
                         continue
 
-                    # Parse key_id:api_key
+                    # Parse key_id:api_key[:rate_limit][:expiration]
                     if ":" not in line:
                         print(f"⚠️  Line {line_num}: Invalid format (missing ':'), skipping")
                         continue
 
-                    parts = line.split(":", 1)
-                    if len(parts) != 2:
+                    # Split into at most 4 fields (expiration contains colons)
+                    parts = line.split(":", 3)
+                    if len(parts) < 2:
                         print(f"⚠️  Line {line_num}: Invalid format, skipping")
                         continue
 
                     key_id = parts[0].strip()
                     api_key = parts[1].strip()
+                    rate_limit_str = parts[2].strip() if len(parts) > 2 else ""
+                    expiration_str = parts[3].strip() if len(parts) > 3 else ""
 
                     # Validate key_id
                     if not key_id or not all(c.isalnum() or c in "-_" for c in key_id):
@@ -130,6 +157,34 @@ class APIKeyValidator:
                         )
                         continue
 
+                    # Validate rate limit if provided
+                    if rate_limit_str:
+                        try:
+                            rl = int(rate_limit_str)
+                            if rl <= 0:
+                                print(
+                                    f"⚠️  Line {line_num}: Rate limit must be positive "
+                                    f"for '{key_id}', skipping"
+                                )
+                                continue
+                        except ValueError:
+                            print(
+                                f"⚠️  Line {line_num}: Invalid rate limit '{rate_limit_str}' "
+                                f"for '{key_id}', skipping"
+                            )
+                            continue
+
+                    # Validate expiration if provided
+                    if expiration_str:
+                        try:
+                            datetime.datetime.fromisoformat(expiration_str)
+                        except ValueError:
+                            print(
+                                f"⚠️  Line {line_num}: Invalid expiration '{expiration_str}' "
+                                f"for '{key_id}', skipping"
+                            )
+                            continue
+
                     # Check for duplicate keys
                     if api_key in keys:
                         print(
@@ -139,6 +194,7 @@ class APIKeyValidator:
                         continue
 
                     keys[api_key] = key_id
+                    self._raw_key_metadata.append((key_id, rate_limit_str, expiration_str))
 
             if keys:
                 print(f"🔐 Loaded {len(keys)} API key(s) from {self.keys_file}")
@@ -152,6 +208,21 @@ class APIKeyValidator:
         except Exception as e:
             print(f"❌ Error loading keys from {self.keys_file}: {e}")
             return {}
+
+    def _parse_key_metadata(self) -> None:
+        """Parse per-key rate limits and expirations from raw metadata.
+
+        Called after _load_keys() to populate key_rate_limits and key_expirations
+        dictionaries from the _raw_key_metadata collected during key loading.
+        """
+        for key_id, rate_limit_str, expiration_str in getattr(self, "_raw_key_metadata", []):
+            # Per-key rate limit
+            if rate_limit_str:
+                self.key_rate_limits[key_id] = int(rate_limit_str)
+
+            # Key expiration
+            if expiration_str:
+                self.key_expirations[key_id] = datetime.datetime.fromisoformat(expiration_str)
 
     def validate(self, headers: dict) -> Tuple[bool, str]:
         """
@@ -197,6 +268,10 @@ class APIKeyValidator:
         if key_id is None:
             return False, "Invalid API key"
 
+        # Check if key has expired
+        if self._is_key_expired(key_id):
+            return False, "API key has expired"
+
         # Check rate limit
         if not self._check_rate_limit(key_id):
             return False, "rate_limit_exceeded"
@@ -205,6 +280,20 @@ class APIKeyValidator:
         self._record_request(key_id)
 
         return True, key_id
+
+    def _is_key_expired(self, key_id: str) -> bool:
+        """Check if a key has passed its expiration time.
+
+        Args:
+            key_id: The key identifier to check.
+
+        Returns:
+            True if the key has expired, False otherwise (including if no expiration set).
+        """
+        expiration = self.key_expirations.get(key_id)
+        if expiration is None:
+            return False
+        return bool(datetime.datetime.now() >= expiration)
 
     def _is_valid_format(self, key: str) -> bool:
         """
@@ -236,19 +325,60 @@ class APIKeyValidator:
         """
         Check if key_id has exceeded rate limit.
 
+        Uses per-key rate limit if configured, otherwise falls back to the
+        global MAX_REQUESTS_PER_MINUTE default.
+
+        Also triggers periodic cleanup of stale rate limiter entries for
+        inactive keys (every CLEANUP_INTERVAL seconds).
+
         Returns True if under limit, False if exceeded.
         """
         now = time.time()
         minute_ago = now - 60
 
-        # Clean old requests (older than 1 minute)
+        # Periodic cleanup of stale entries for inactive keys
+        self._cleanup_rate_limiter(now)
+
+        # Clean old requests for this key (older than 1 minute)
         self.rate_limiter[key_id] = [ts for ts in self.rate_limiter[key_id] if ts > minute_ago]
 
+        # Determine effective rate limit for this key
+        effective_limit = self.key_rate_limits.get(key_id, self.max_requests_per_minute)
+
         # Check if under limit
-        if len(self.rate_limiter[key_id]) >= self.max_requests_per_minute:
+        if len(self.rate_limiter[key_id]) >= effective_limit:
             return False
 
         return True
+
+    def _cleanup_rate_limiter(self, now: Optional[float] = None) -> None:
+        """Remove stale rate limiter entries for inactive keys.
+
+        Only runs if more than CLEANUP_INTERVAL seconds have elapsed since the
+        last cleanup. Removes entries for key_ids that have no timestamps within
+        the current rate limit window (60 seconds).
+
+        Args:
+            now: Current timestamp. If None, uses time.time().
+        """
+        if now is None:
+            now = time.time()
+
+        if now - self._last_cleanup < self.CLEANUP_INTERVAL:
+            return
+
+        self._last_cleanup = now
+        minute_ago = now - 60
+
+        # Collect keys to remove (can't modify dict during iteration)
+        stale_keys = [
+            key_id
+            for key_id, timestamps in self.rate_limiter.items()
+            if not any(ts > minute_ago for ts in timestamps)
+        ]
+
+        for key_id in stale_keys:
+            del self.rate_limiter[key_id]
 
     def _record_request(self, key_id: str):
         """Record a request timestamp for rate limiting."""
@@ -259,7 +389,7 @@ class APIKeyValidator:
         Get current rate limiter metrics per key_id.
 
         Returns:
-            dict with request counts and limits per key_id
+            dict with request counts, effective rate limits, and expiration per key_id
         """
         now = time.time()
         minute_ago = now - 60
@@ -268,10 +398,15 @@ class APIKeyValidator:
         for key_id, timestamps in self.rate_limiter.items():
             # Count recent requests
             recent = [ts for ts in timestamps if ts > minute_ago]
-            metrics[key_id] = {
+            effective_limit = self.key_rate_limits.get(key_id, self.max_requests_per_minute)
+            expiration = self.key_expirations.get(key_id)
+            entry = {
                 "requests_last_minute": len(recent),
-                "rate_limit": self.max_requests_per_minute,
+                "rate_limit": effective_limit,
             }
+            if expiration is not None:
+                entry["expires"] = expiration.isoformat()
+            metrics[key_id] = entry
 
         return metrics
 
@@ -354,14 +489,31 @@ async def send_rate_limit_error(writer: asyncio.StreamWriter):
     await writer.drain()
 
 
+def _sanitize_log_field(value: str) -> str:
+    """Sanitize a value for safe inclusion in log output.
+
+    Replaces control characters that could enable log injection attacks
+    (SEC-11): newlines, carriage returns, tabs, and pipe characters
+    (the log field delimiter) are replaced with underscores.
+    """
+    return value.replace("\n", "_").replace("\r", "_").replace("\t", "_").replace("|", "_")
+
+
+# Log format: read once at import time to match gateway.py behavior
+_LOG_FORMAT = os.environ.get("LOG_FORMAT", "text").lower()
+
+
 async def log_access(method: str, path: str, key_id: str, status_code: int):
     """
     Log API access for auditing.
 
     Logs to: /data/logs/api_access.log
 
-    Format: ISO8601_timestamp | key_id | method path | status_code
-    Example: 2024-02-06T14:30:22.123456 | production | POST /v1/chat/completions | 200
+    When LOG_FORMAT=json, writes JSONL entries. Otherwise writes
+    pipe-delimited text (default, backward-compatible).
+
+    Text format: ISO8601_timestamp | key_id | method path | status_code
+    JSON format: {"ts":"...","key_id":"...","method":"...","path":"...","status":200}
 
     Args:
         method: HTTP method
@@ -369,9 +521,25 @@ async def log_access(method: str, path: str, key_id: str, status_code: int):
         key_id: The key identifier (e.g., "production", "alice-laptop")
         status_code: HTTP status code
     """
-    timestamp = datetime.datetime.now().isoformat()
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-    log_entry = f"{timestamp} | {key_id} | {method} {path} | {status_code}"
+    if _LOG_FORMAT == "json":
+        log_entry = json.dumps(
+            {
+                "ts": timestamp,
+                "key_id": key_id,
+                "method": method,
+                "path": path,
+                "status": status_code,
+            },
+            separators=(",", ":"),
+        )
+    else:
+        # SEC-11: Sanitize log fields to prevent log injection
+        safe_method = _sanitize_log_field(method)
+        safe_path = _sanitize_log_field(path)
+        safe_key_id = _sanitize_log_field(key_id)
+        log_entry = f"{timestamp} | {safe_key_id} | {safe_method} {safe_path} | {status_code}"
 
     # Log to file
     log_file = "/data/logs/api_access.log"

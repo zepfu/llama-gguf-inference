@@ -3049,10 +3049,11 @@ class TestRouteHealth:
 class TestModuleLevelConfig:
     """Tests for module-level configuration parsing."""
 
-    def test_deprecated_backend_port_env(self, monkeypatch):
-        """BACKEND_PORT env var is supported but deprecated."""
+    def test_deprecated_backend_port_env_ignored(self, monkeypatch):
+        """BACKEND_PORT env var is deprecated and no longer overrides PORT_BACKEND."""
         gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", BACKEND_PORT="9090")
-        assert gw.BACKEND_PORT == 9090
+        # BACKEND_PORT is no longer supported; PORT_BACKEND (default 8080) is used
+        assert gw.BACKEND_PORT == 8080
 
     def test_port_backend_env(self, monkeypatch):
         """PORT_BACKEND env var sets backend port."""
@@ -3076,3 +3077,578 @@ class TestLogFunction:
         gw.log("test message")
         captured = capsys.readouterr()
         assert "[gateway] test message" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# SEC-07: Request line length limit tests
+# ---------------------------------------------------------------------------
+
+
+class TestRequestLineSizeConfig:
+    """Tests for MAX_REQUEST_LINE_SIZE env var parsing."""
+
+    def test_default_max_request_line_size(self, monkeypatch):
+        monkeypatch.delenv("MAX_REQUEST_LINE_SIZE", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.MAX_REQUEST_LINE_SIZE == 8192
+
+    def test_custom_max_request_line_size(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_REQUEST_LINE_SIZE="4096")
+        assert gw.MAX_REQUEST_LINE_SIZE == 4096
+
+
+class TestUriTooLongResponse:
+    """Tests for send_uri_too_long() response helper."""
+
+    def test_414_status_line(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_uri_too_long(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert response.startswith("HTTP/1.1 414 URI Too Long\r\n")
+
+    def test_json_body_format(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_uri_too_long(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["error"]["code"] == "uri_too_long"
+        assert data["error"]["type"] == "invalid_request_error"
+
+    def test_cors_headers_included(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_uri_too_long(writer, "https://example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+
+class TestRequestLineSizeEnforcement:
+    """Tests for request line size enforcement in handle_client."""
+
+    def test_oversized_request_line_returns_414(self, monkeypatch):
+        """Verify that a request with oversized request line gets 414."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_LINE_SIZE="100",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            # Create a request line longer than 100 bytes
+            long_path = "/v1/" + "a" * 200
+            request_data = (f"GET {long_path} HTTP/1.1\r\n" f"Host: localhost\r\n" f"\r\n").encode()
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 414 URI Too Long" in response
+
+    def test_request_line_at_limit_is_allowed(self, monkeypatch):
+        """Verify a request line exactly at the limit is accepted."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_LINE_SIZE="8192",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+        proxy_called = []
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def mock_proxy(*args, **kwargs):
+            proxy_called.append(True)
+
+        gw.proxy_request = mock_proxy
+
+        async def run():
+            request_data = b"GET /v1/models HTTP/1.1\r\n" b"Host: localhost\r\n" b"\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "414" not in response
+
+
+# ---------------------------------------------------------------------------
+# SEC-10: Bad Content-Length tests
+# ---------------------------------------------------------------------------
+
+
+class TestBadRequestResponse:
+    """Tests for send_bad_request() response helper."""
+
+    def test_400_status_line(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_bad_request(writer, "Test error message")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert response.startswith("HTTP/1.1 400 Bad Request\r\n")
+
+    def test_json_body_format(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_bad_request(writer, "Test error message")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["error"]["code"] == "bad_request"
+        assert data["error"]["type"] == "invalid_request_error"
+        assert data["error"]["message"] == "Test error message"
+
+    def test_cors_headers_included(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_bad_request(writer, "Error", "https://example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+
+class TestMalformedContentLength:
+    """Tests for malformed Content-Length handling in handle_client."""
+
+    def test_non_numeric_content_length_returns_400(self, monkeypatch):
+        """Verify that a non-numeric Content-Length triggers a 400 response."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: abc\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 400 Bad Request" in response
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["error"]["code"] == "bad_request"
+
+    def test_empty_content_length_returns_400(self, monkeypatch):
+        """Verify that an empty Content-Length triggers a 400 response."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: \r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 400 Bad Request" in response
+
+
+# ---------------------------------------------------------------------------
+# SEC-12: Metrics auth tests
+# ---------------------------------------------------------------------------
+
+
+class TestMetricsAuthConfig:
+    """Tests for METRICS_AUTH_ENABLED env var parsing."""
+
+    def test_default_metrics_auth_disabled(self, monkeypatch):
+        monkeypatch.delenv("METRICS_AUTH_ENABLED", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.METRICS_AUTH_ENABLED is False
+
+    def test_metrics_auth_enabled(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", METRICS_AUTH_ENABLED="true")
+        assert gw.METRICS_AUTH_ENABLED is True
+
+    def test_metrics_auth_case_insensitive(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", METRICS_AUTH_ENABLED="TRUE")
+        assert gw.METRICS_AUTH_ENABLED is True
+
+
+class TestMetricsAuthEnforcement:
+    """Tests for /metrics auth enforcement when METRICS_AUTH_ENABLED=true."""
+
+    def test_metrics_unauthenticated_when_auth_disabled(self, monkeypatch):
+        """Metrics returns 200 when METRICS_AUTH_ENABLED=false (default)."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", METRICS_AUTH_ENABLED="false")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = b"GET /metrics HTTP/1.1\r\n" b"Host: localhost\r\n" b"\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+
+    def test_ping_bypasses_metrics_auth(self, monkeypatch):
+        """Verify /ping still works when METRICS_AUTH_ENABLED=true."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", METRICS_AUTH_ENABLED="true")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = b"GET /ping HTTP/1.1\r\n" b"Host: localhost\r\n" b"\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+
+    def test_health_bypasses_metrics_auth(self, monkeypatch):
+        """Verify /health still works when METRICS_AUTH_ENABLED=true."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", METRICS_AUTH_ENABLED="true")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = b"GET /health HTTP/1.1\r\n" b"Host: localhost\r\n" b"\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+
+
+class TestLogFormatText:
+    """Tests for log() in text mode (default behavior)."""
+
+    def test_log_text_default(self, monkeypatch, capsys):
+        """log() outputs plain text to stderr when LOG_FORMAT is not set."""
+        gw = _reload_gateway(monkeypatch)
+        gw.log("hello world")
+        captured = capsys.readouterr()
+        assert "[gateway] hello world" in captured.err
+        # Should not be JSON
+        try:
+            json.loads(captured.err.strip())
+            assert False, "Expected plain text, got valid JSON"
+        except json.JSONDecodeError:
+            pass
+
+    def test_log_text_explicit(self, monkeypatch, capsys):
+        """log() outputs plain text when LOG_FORMAT=text."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="text")
+        gw.log("test message")
+        captured = capsys.readouterr()
+        assert "[gateway] test message" in captured.err
+
+    def test_log_text_ignores_extra_kwargs(self, monkeypatch, capsys):
+        """In text mode, extra kwargs are silently ignored."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="text")
+        gw.log("some msg", level="error", method="POST", path="/v1/test")
+        captured = capsys.readouterr()
+        assert "[gateway] some msg" in captured.err
+
+
+class TestLogFormatJson:
+    """Tests for log() in JSON mode.
+
+    Module reload emits module-level log lines (e.g. BACKEND_API_KEY warning).
+    We drain capsys after reload so only the explicit log() call is captured.
+    """
+
+    def test_log_json_basic(self, monkeypatch, capsys):
+        """log() outputs valid JSON to stderr when LOG_FORMAT=json."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="json")
+        capsys.readouterr()  # drain module-level output
+        gw.log("Gateway started")
+        captured = capsys.readouterr()
+        entry = json.loads(captured.err.strip())
+        assert entry["msg"] == "Gateway started"
+        assert entry["level"] == "info"
+        assert "ts" in entry
+
+    def test_log_json_with_level(self, monkeypatch, capsys):
+        """log() respects the level parameter in JSON mode."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="json")
+        capsys.readouterr()  # drain module-level output
+        gw.log("something broke", level="error")
+        captured = capsys.readouterr()
+        entry = json.loads(captured.err.strip())
+        assert entry["level"] == "error"
+        assert entry["msg"] == "something broke"
+
+    def test_log_json_with_structured_fields(self, monkeypatch, capsys):
+        """log() includes extra kwargs as structured fields in JSON mode."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="json")
+        capsys.readouterr()  # drain module-level output
+        gw.log(
+            "Request completed",
+            method="POST",
+            path="/v1/chat/completions",
+            status=200,
+            duration_ms=42.5,
+            key_id="production",
+        )
+        captured = capsys.readouterr()
+        entry = json.loads(captured.err.strip())
+        assert entry["msg"] == "Request completed"
+        assert entry["level"] == "info"
+        assert entry["method"] == "POST"
+        assert entry["path"] == "/v1/chat/completions"
+        assert entry["status"] == 200
+        assert entry["duration_ms"] == 42.5
+        assert entry["key_id"] == "production"
+        assert "ts" in entry
+
+    def test_log_json_timestamp_is_iso8601(self, monkeypatch, capsys):
+        """JSON log timestamp is ISO 8601 UTC."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="json")
+        capsys.readouterr()  # drain module-level output
+        gw.log("ts check")
+        captured = capsys.readouterr()
+        entry = json.loads(captured.err.strip())
+        ts = entry["ts"]
+        # Should contain UTC offset indicator
+        assert "+" in ts or ts.endswith("Z") or "+00:00" in ts
+
+    def test_log_json_single_line(self, monkeypatch, capsys):
+        """JSON log output is a single line (JSONL format)."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="json")
+        capsys.readouterr()  # drain module-level output
+        gw.log("line check", method="GET", path="/test")
+        captured = capsys.readouterr()
+        lines = [line for line in captured.err.strip().split("\n") if line.strip()]
+        assert len(lines) == 1
+
+    def test_log_json_case_insensitive_env(self, monkeypatch, capsys):
+        """LOG_FORMAT=JSON (uppercase) also enables JSON mode."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="JSON")
+        capsys.readouterr()  # drain module-level output
+        gw.log("case test")
+        captured = capsys.readouterr()
+        entry = json.loads(captured.err.strip())
+        assert entry["msg"] == "case test"
+
+
+class TestLogJsonHelper:
+    """Tests for the _log_json() helper directly."""
+
+    def test_log_json_helper_output(self, monkeypatch, capsys):
+        """_log_json() writes compact JSON to stderr."""
+        gw = _reload_gateway(monkeypatch, LOG_FORMAT="json")
+        capsys.readouterr()  # drain module-level output
+        gw._log_json("warn", "test warning", code=431)
+        captured = capsys.readouterr()
+        entry = json.loads(captured.err.strip())
+        assert entry["level"] == "warn"
+        assert entry["msg"] == "test warning"
+        assert entry["code"] == 431
