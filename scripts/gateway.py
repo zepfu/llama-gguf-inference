@@ -10,6 +10,8 @@ Features:
 - Basic metrics tracking
 - Graceful error handling
 - Per-key access logging
+- Configurable CORS headers
+- Prometheus text exposition format for /metrics
 
 Note: /ping and /health return 200 immediately without backend checks
 or authentication to enable scale-to-zero in serverless environments.
@@ -23,6 +25,7 @@ Environment Variables:
     HEALTH_TIMEOUT  - Health check timeout in seconds (default: 2)
     AUTH_ENABLED    - Enable API key authentication (default: true)
     AUTH_KEYS_FILE  - Path to API keys file (default: $DATA_DIR/api_keys.txt)
+    CORS_ORIGINS    - Comma-separated allowed CORS origins (default: empty = disabled)
 """
 
 import asyncio
@@ -80,6 +83,70 @@ if BACKEND_API_KEY:
 else:
     log("WARNING: BACKEND_API_KEY not set - backend will not require authentication")
 
+# CORS configuration
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "")
+_cors_origins_list: list[str] = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+CORS_ENABLED = len(_cors_origins_list) > 0
+CORS_WILDCARD = "*" in _cors_origins_list
+
+if CORS_ENABLED:
+    if CORS_WILDCARD:
+        log("CORS: enabled for all origins (*)")
+    else:
+        log(f"CORS: enabled for {len(_cors_origins_list)} origin(s)")
+
+
+def get_cors_headers(request_origin: str = "") -> list[str]:
+    """Return CORS response header lines for the given request origin.
+
+    Returns an empty list if CORS is not enabled or the origin is not allowed.
+    """
+    if not CORS_ENABLED:
+        return []
+
+    if CORS_WILDCARD:
+        allowed_origin = "*"
+    elif request_origin in _cors_origins_list:
+        allowed_origin = request_origin
+    else:
+        return []
+
+    return [
+        f"Access-Control-Allow-Origin: {allowed_origin}",
+        "Access-Control-Allow-Methods: GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers: Authorization, Content-Type",
+        "Access-Control-Max-Age: 86400",
+    ]
+
+
+def build_cors_header_str(request_origin: str = "") -> str:
+    """Return CORS headers as a joined string ready for HTTP response injection.
+
+    Returns empty string if CORS is not enabled or the origin is not allowed.
+    """
+    headers = get_cors_headers(request_origin)
+    if not headers:
+        return ""
+    return "\r\n".join(headers) + "\r\n"
+
+
+async def handle_options(writer: asyncio.StreamWriter, request_origin: str = ""):
+    """Handle OPTIONS preflight request with CORS headers.
+
+    Returns 204 No Content with appropriate CORS headers.
+    No authentication required.
+    """
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 204 No Content\r\n"
+        f"{cors}"
+        f"Content-Length: 0\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
 
 # Metrics (simple in-memory counters)
 @dataclass
@@ -104,6 +171,37 @@ class Metrics:
             "bytes_sent": self.bytes_sent,
             "uptime_seconds": int(time.time() - self.start_time),
         }
+
+    def to_prometheus(self) -> str:
+        """Return metrics in Prometheus text exposition format."""
+        uptime = int(time.time() - self.start_time)
+        lines = [
+            "# HELP gateway_requests_total Total requests handled",
+            "# TYPE gateway_requests_total counter",
+            f"gateway_requests_total {self.requests_total}",
+            "# HELP gateway_requests_success Total successful requests",
+            "# TYPE gateway_requests_success counter",
+            f"gateway_requests_success {self.requests_success}",
+            "# HELP gateway_requests_error Total failed requests",
+            "# TYPE gateway_requests_error counter",
+            f"gateway_requests_error {self.requests_error}",
+            "# HELP gateway_requests_active Currently active requests",
+            "# TYPE gateway_requests_active gauge",
+            f"gateway_requests_active {self.requests_active}",
+            "# HELP gateway_requests_authenticated Total authenticated requests",
+            "# TYPE gateway_requests_authenticated counter",
+            f"gateway_requests_authenticated {self.requests_authenticated}",
+            "# HELP gateway_requests_unauthorized Total unauthorized requests",
+            "# TYPE gateway_requests_unauthorized counter",
+            f"gateway_requests_unauthorized {self.requests_unauthorized}",
+            "# HELP gateway_bytes_sent Total bytes sent to clients",
+            "# TYPE gateway_bytes_sent counter",
+            f"gateway_bytes_sent {self.bytes_sent}",
+            "# HELP gateway_uptime_seconds Gateway uptime in seconds",
+            "# TYPE gateway_uptime_seconds gauge",
+            f"gateway_uptime_seconds {uptime}",
+        ]
+        return "\n".join(lines) + "\n"
 
 
 metrics = Metrics()
@@ -171,18 +269,21 @@ async def backend_health_check() -> dict:
         return {"status": "error", "error": str(e)}
 
 
-async def handle_ping(writer: asyncio.StreamWriter):
+async def handle_ping(writer: asyncio.StreamWriter, request_origin: str = ""):
     """Handle /ping endpoint for RunPod health checks.
 
     Always returns 200 OK without authentication or backend checks.
     For detailed backend status, use /health endpoint instead.
     """
-    response = "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 200 OK\r\n" f"{cors}" f"Content-Length: 0\r\n" f"Connection: close\r\n" f"\r\n"
+    )
     writer.write(response.encode())
     await writer.drain()
 
 
-async def handle_health(writer: asyncio.StreamWriter):
+async def handle_health(writer: asyncio.StreamWriter, request_origin: str = ""):
     """Handle /health endpoint with detailed backend status.
 
     No authentication required.
@@ -198,9 +299,11 @@ async def handle_health(writer: asyncio.StreamWriter):
         health["authentication"] = {"enabled": api_validator.enabled}
 
     body = json.dumps(health, indent=2)
+    cors = build_cors_header_str(request_origin)
     response = (
         f"HTTP/1.1 200 OK\r\n"
         f"Content-Type: application/json\r\n"
+        f"{cors}"
         f"Content-Length: {len(body)}\r\n"
         f"Connection: close\r\n"
         f"\r\n"
@@ -210,21 +313,44 @@ async def handle_health(writer: asyncio.StreamWriter):
     await writer.drain()
 
 
-async def handle_metrics(writer: asyncio.StreamWriter):
+def _wants_prometheus(accept_header: str) -> bool:
+    """Check if the Accept header requests Prometheus text format."""
+    if not accept_header:
+        return False
+    accept_lower = accept_header.lower()
+    return "text/plain" in accept_lower or "application/openmetrics-text" in accept_lower
+
+
+async def handle_metrics(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+    accept_header: str = "",
+):
     """Handle /metrics endpoint.
 
     No authentication required.
+    Returns Prometheus text format if Accept header contains text/plain
+    or application/openmetrics-text, otherwise returns JSON.
     """
-    metrics_data = {"gateway": metrics.to_dict()}
+    cors = build_cors_header_str(request_origin)
 
-    # Add auth metrics if available
-    if AUTH_AVAILABLE and api_validator.enabled:
-        metrics_data["authentication"] = api_validator.get_metrics()
+    if _wants_prometheus(accept_header):
+        body = metrics.to_prometheus()
+        content_type = "text/plain; version=0.0.4; charset=utf-8"
+    else:
+        metrics_data = {"gateway": metrics.to_dict()}
 
-    body = json.dumps(metrics_data, indent=2)
+        # Add auth metrics if available
+        if AUTH_AVAILABLE and api_validator.enabled:
+            metrics_data["authentication"] = api_validator.get_metrics()
+
+        body = json.dumps(metrics_data, indent=2)
+        content_type = "application/json"
+
     response = (
         f"HTTP/1.1 200 OK\r\n"
-        f"Content-Type: application/json\r\n"
+        f"Content-Type: {content_type}\r\n"
+        f"{cors}"
         f"Content-Length: {len(body)}\r\n"
         f"Connection: close\r\n"
         f"\r\n"
@@ -232,6 +358,18 @@ async def handle_metrics(writer: asyncio.StreamWriter):
     )
     writer.write(response.encode())
     await writer.drain()
+
+
+def _inject_cors_into_headers(response_headers: bytes, request_origin: str) -> bytes:
+    r"""Inject CORS headers into raw HTTP response headers.
+
+    Inserts CORS header lines before the final \r\n separator.
+    Returns the original headers unchanged if CORS is not applicable.
+    """
+    cors_str = build_cors_header_str(request_origin)
+    if cors_str and response_headers.endswith(b"\r\n"):
+        return response_headers[:-2] + cors_str.encode() + b"\r\n"
+    return response_headers
 
 
 async def proxy_request(
@@ -241,6 +379,7 @@ async def proxy_request(
     body: Optional[bytes],
     writer: asyncio.StreamWriter,
     key_id: str = "unknown",
+    request_origin: str = "",
 ):
     """Proxy a request to the backend with streaming support.
 
@@ -251,6 +390,7 @@ async def proxy_request(
         body: Request body bytes, or None for bodyless requests
         writer: asyncio StreamWriter for the client connection
         key_id: The authenticated key_id for logging
+        request_origin: The Origin header value for CORS header injection
     """
     metrics.requests_total += 1
     metrics.requests_active += 1
@@ -311,6 +451,9 @@ async def proxy_request(
             response_headers += line
             if line == b"\r\n" or line == b"":
                 break
+
+        # Inject CORS headers into the response before sending to client
+        response_headers = _inject_cors_into_headers(response_headers, request_origin)
 
         # Send headers to client
         writer.write(response_headers)
@@ -393,14 +536,23 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         if content_length > 0:
             body = await asyncio.wait_for(reader.readexactly(content_length), timeout=30)
 
+        # Extract origin for CORS
+        request_origin = headers.get("origin", "")
+        accept_header = headers.get("accept", "")
+
+        # Handle OPTIONS preflight (no auth required)
+        if method == "OPTIONS":
+            await handle_options(writer, request_origin)
+            return
+
         # Route request - health endpoints bypass auth
         if path in ("/ping", "/health", "/metrics"):
             if path == "/ping":
-                await handle_ping(writer)
+                await handle_ping(writer, request_origin)
             elif path == "/health":
-                await handle_health(writer)
+                await handle_health(writer, request_origin)
             elif path == "/metrics":
-                await handle_metrics(writer)
+                await handle_metrics(writer, request_origin, accept_header)
             return
 
         # All other endpoints require authentication
@@ -417,7 +569,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             key_id = "auth-disabled"
 
         # Proxy to backend
-        await proxy_request(method, path, headers, body, writer, key_id)
+        await proxy_request(method, path, headers, body, writer, key_id, request_origin)
 
     except asyncio.TimeoutError:
         pass
@@ -466,6 +618,12 @@ async def main():
     log(f"Gateway listening on http://{GATEWAY_HOST}:{GATEWAY_PORT}")
     log("Public endpoints (no auth): /ping, /health, /metrics")
     log("Protected endpoints (auth required): /v1/*")
+    log(
+        "Proxied endpoints: /v1/chat/completions, /v1/completions, "
+        "/v1/embeddings, /v1/models, ..."
+    )
+    if CORS_ENABLED:
+        log(f"CORS: enabled (origins: {CORS_ORIGINS})")
 
     async with server:
         await server.serve_forever()
