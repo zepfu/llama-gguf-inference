@@ -21,7 +21,7 @@
 
 - None — core functionality is complete and operational
 
-### Phase 2 — Stabilization & CI/CD — ACTIVE
+### Phase 2 — Stabilization & CI/CD — COMPLETE ✅
 
 **Built:**
 
@@ -33,22 +33,42 @@
 - Comprehensive documentation (auth, config, testing, troubleshooting)
 - Makefile with build targets
 - `.env.example` with full variable reference
+- Branch migrated to `main`, unit tests with coverage baseline (55%), release workflow, security audit complete
 
 **Gaps:**
 
-- Branch migration: master → main
-- Test coverage measurement and enforcement
-- Staged changes need to be committed (large pending changeset)
-- CI pipeline end-to-end validation on clean checkout
-- Automated release process (tag → build → publish)
+- None — all Phase 2 gate criteria met
 
-### Phase 3 — Feature Expansion — NOT STARTED
+### Phase 3 — Feature Expansion — GATE PENDING (awaiting live testing)
 
-**Planned:**
+**Built:**
 
-- See Phase 3 section below
+- Configurable CORS headers via `CORS_ORIGINS` env var (opt-in)
+- Prometheus text exposition format for `/metrics` (content negotiation)
+- OPTIONS preflight handling (204, no auth)
+- API key management CLI (`scripts/key_mgmt.py`): generate, list, remove, rotate
+- Multi-architecture Docker builds (CUDA amd64 + CPU amd64/arm64)
+- `.dockerignore`, `docker-compose.yml`, Dockerfile optimization
+- Request queuing and concurrency control (`MAX_CONCURRENT_REQUESTS`, `MAX_QUEUE_SIZE`)
+- Benchmark script (`scripts/benchmark.py`) for performance baseline
+- Security review complete (HIGH/MEDIUM findings fixed: SEC-01, SEC-02)
+- 190 tests passing, 57% coverage
+- Release candidate: v1.0.0-rc.1 tagged and published
 
-### Phase 4 — Polish & v1 Release — NOT STARTED
+**Gate criteria:**
+
+- [x] All new endpoints tested and documented
+- [x] No regressions in existing functionality
+- [x] Performance baseline tool ready (benchmark.py)
+- [x] Security review of new endpoints
+- [ ] Performance baseline established (requires live GPU instance)
+- [ ] API compatibility verified with OpenAI Python SDK (requires live GPU instance)
+
+**Gaps:**
+
+- Live testing on RunPod Serverless — operator to provision environment
+
+### Phase 4 — Polish & v1 Release — ACTIVE (non-blocking work started)
 
 ______________________________________________________________________
 
@@ -91,14 +111,14 @@ authentication.
 
 **Deliverable:** Enhanced inference capabilities and operational features.
 
-- [ ] Embeddings endpoint (`/v1/embeddings`)
-- [ ] Model info endpoint enhancements (parameter count, quantization type)
-- [ ] Request queuing / concurrency control
-- [ ] Prometheus metrics export
-- [ ] Configurable CORS headers
-- [ ] API key management CLI (add/remove/list keys)
-- [ ] Container image size optimization
-- [ ] Multi-architecture builds (amd64 + arm64)
+- [x] Embeddings endpoint (`/v1/embeddings`) — already works via catch-all proxy
+- [x] Model info endpoint enhancements — already works via catch-all proxy to `/v1/models`
+- [x] Request queuing / concurrency control
+- [x] Prometheus metrics export
+- [x] Configurable CORS headers
+- [x] API key management CLI (add/remove/list keys)
+- [ ] Container image size optimization (further)
+- [x] Multi-architecture builds (amd64 + arm64)
 
 ### Phase 4: Polish & v1 Release
 
@@ -109,7 +129,7 @@ authentication.
 - [ ] Load testing at target concurrency
 - [ ] Finalized documentation (all guides, API reference)
 - [ ] Release automation (changelog, tagging, publishing)
-- [ ] Helm chart or docker-compose examples
+- [x] Helm chart or docker-compose examples (docker-compose.yml delivered in Phase 3)
 - [ ] Migration guide for existing users
 
 ______________________________________________________________________
@@ -120,22 +140,22 @@ ______________________________________________________________________
 
 | Task                                 | Agent                             | Status  |
 | ------------------------------------ | --------------------------------- | ------- |
-| A1. Branch migration (master → main) | DEVOPS-ENGINEER                   | Pending |
-| A2. Commit and clean staged changes  | RELEASE-MANAGER                   | Pending |
-| A3. Test coverage measurement setup  | QA-ENGINEER                       | Pending |
-| A4. End-to-end CI validation         | DEVOPS-ENGINEER                   | Pending |
-| A5. Automated release workflow       | DEVOPS-ENGINEER + RELEASE-MANAGER | Pending |
-| A6. Security audit of auth module    | SECURITY-ENGINEER                 | Pending |
+| A1. Branch migration (master → main) | DEVOPS-ENGINEER                   | Done ✅ |
+| A2. Commit and clean staged changes  | RELEASE-MANAGER                   | Done ✅ |
+| A3. Test coverage measurement setup  | QA-ENGINEER                       | Done ✅ |
+| A4. End-to-end CI validation         | DEVOPS-ENGINEER                   | Done ✅ |
+| A5. Automated release workflow       | DEVOPS-ENGINEER + RELEASE-MANAGER | Done ✅ |
+| A6. Security audit of auth module    | SECURITY-ENGINEER                 | Done ✅ |
 
 ### Stream B: Phase 3 — Feature Expansion
 
-| Task                       | Agent                            | Branch               | Depends On |
-| -------------------------- | -------------------------------- | -------------------- | ---------- |
-| B1. Embeddings endpoint    | BACKEND-LEAD                     | `feature/embeddings` | A2         |
-| B2. Prometheus metrics     | BACKEND-LEAD                     | `feature/prometheus` | A2         |
-| B3. Request queuing        | BACKEND-LEAD                     | `feature/queue`      | A2         |
-| B4. API key management CLI | BACKEND-LEAD + SECURITY-ENGINEER | `feature/key-mgmt`   | A6         |
-| B5. Multi-arch builds      | INFRASTRUCTURE-ENGINEER          | `feature/multi-arch` | A4         |
+| Task                       | Agent                            | Branch              | Depends On |
+| -------------------------- | -------------------------------- | ------------------- | ---------- |
+| B1. Embeddings endpoint    | BACKEND-LEAD                     | n/a (already works) | A2         |
+| B2. Prometheus metrics     | BACKEND-LEAD                     | `main`              | A2         |
+| B3. Request queuing        | BACKEND-LEAD                     | `main`              | A2         |
+| B4. API key management CLI | BACKEND-LEAD + SECURITY-ENGINEER | `main`              | A6         |
+| B5. Multi-arch builds      | INFRASTRUCTURE-ENGINEER          | `main`              | A4         |
 
 ### Stream C: Documentation & DevOps
 
@@ -153,13 +173,13 @@ ______________________________________________________________________
 
 All must be true:
 
-- [ ] All tests passing in CI on clean checkout
-- [ ] Branch migrated to `main` with protection rules
-- [ ] Test coverage measured and baseline established
-- [ ] Security audit of auth module complete, no Critical/High open
-- [ ] All staged changes committed and pushed
-- [ ] Documentation up to date
-- [ ] Release workflow functional (can produce a tagged release)
+- [x] All tests passing in CI on clean checkout
+- [x] Branch migrated to `main` with protection rules
+- [x] Test coverage measured and baseline established
+- [x] Security audit of auth module complete, no Critical/High open
+- [x] All staged changes committed and pushed
+- [x] Documentation up to date
+- [x] Release workflow functional (can produce a tagged release)
 
 ### Phase 3 → Phase 4
 
