@@ -1,0 +1,72 @@
+# ==============================================================================
+# docker-compose.yml — llama-gguf-inference
+#
+# Example deployment configurations for local development and production.
+# Copy this file and adjust environment variables to match your setup.
+#
+# Usage:
+#   GPU:  docker compose up inference-gpu
+#   CPU:  docker compose up inference-cpu
+#   Both: docker compose up
+#
+# Prerequisites:
+#   - Place your GGUF model file in ./data/models/
+#   - For auth: create ./data/api_keys.txt with key_id:api_key entries
+#   - For GPU: install nvidia-container-toolkit
+# ==============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # GPU deployment (NVIDIA CUDA — amd64 only)
+  # --------------------------------------------------------------------------
+  inference-gpu:
+    image: ghcr.io/zepfu/llama-gguf-inference:latest
+    container_name: llama-inference-gpu
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      - MODEL_NAME=your-model.gguf
+      - AUTH_ENABLED=true
+      - AUTH_KEYS_FILE=/data/api_keys.txt
+      - NGL=99
+      - CTX=16384
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')"]
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+
+  # --------------------------------------------------------------------------
+  # CPU deployment (multi-arch: amd64, arm64)
+  # --------------------------------------------------------------------------
+  inference-cpu:
+    image: ghcr.io/zepfu/llama-gguf-inference:cpu
+    container_name: llama-inference-cpu
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      - MODEL_NAME=your-model.gguf
+      - AUTH_ENABLED=true
+      - AUTH_KEYS_FILE=/data/api_keys.txt
+      - NGL=0
+      - CTX=4096
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')"]
+      interval: 30s
+      timeout: 3s
+      start_period: 120s
+      retries: 3
