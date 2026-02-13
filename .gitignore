@@ -112,3 +112,12 @@ docs/_templates/*.generated.*
 # =============================================================================
 archive/
 logs/
+
+# =============================================================================
+# Project coordination (session state)
+# =============================================================================
+PROJECT_LOG.md
+TASKS.md
+CLAUDE_SUGGESTIONS.md
+agent-logs/
+.claude/settings.local.json
