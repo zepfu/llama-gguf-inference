@@ -138,6 +138,42 @@ The `/metrics` endpoint includes `queue_depth`, `queue_rejections`, and `queue_w
 
 ______________________________________________________________________
 
+### Security Limits
+
+| Variable                | Default           | Description                                   |
+| ----------------------- | ----------------- | --------------------------------------------- |
+| `MAX_REQUEST_BODY_SIZE` | `10485760` (10MB) | Maximum request body size in bytes            |
+| `MAX_HEADERS`           | `64`              | Maximum number of request headers             |
+| `MAX_HEADER_LINE_SIZE`  | `8192` (8KB)      | Maximum size of a single header line in bytes |
+
+The gateway enforces request size limits to prevent memory exhaustion and header flooding attacks. Requests exceeding
+these limits receive an error response before any body data is read.
+
+- **413 Payload Too Large** — returned when `Content-Length` exceeds `MAX_REQUEST_BODY_SIZE`
+- **431 Request Header Fields Too Large** — returned when header count exceeds `MAX_HEADERS` or a single header line
+  exceeds `MAX_HEADER_LINE_SIZE`
+
+Health endpoints (`/ping`, `/health`, `/metrics`) are subject to header limits but not body size limits (they have no
+request body).
+
+**Examples:**
+
+```bash
+# Defaults (suitable for most deployments)
+MAX_REQUEST_BODY_SIZE=10485760
+MAX_HEADERS=64
+MAX_HEADER_LINE_SIZE=8192
+
+# Increase body limit for large prompts
+MAX_REQUEST_BODY_SIZE=52428800  # 50MB
+
+# Stricter header limits
+MAX_HEADERS=32
+MAX_HEADER_LINE_SIZE=4096
+```
+
+______________________________________________________________________
+
 ### Data Directory
 
 | Variable   | Default | Description                        |
