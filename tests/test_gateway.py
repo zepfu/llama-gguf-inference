@@ -1040,7 +1040,7 @@ class TestConcurrencyLimiting:
         responses = {}
 
         async def make_health_request(path):
-            request_data = (f"GET {path} HTTP/1.1\r\n" f"Host: localhost\r\n" f"\r\n").encode()
+            request_data = (f"GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n").encode()
             reader = asyncio.StreamReader()
             reader.feed_data(request_data)
             reader.feed_eof()
@@ -1139,3 +1139,835 @@ class TestConcurrencyLimiting:
         # No 503 responses when queue is unlimited
         num_503 = sum(1 for r in responses if "503" in r)
         assert num_503 == 0, f"Expected zero 503s with unlimited queue, got: {num_503}"
+
+
+# ---------------------------------------------------------------------------
+# SEC-03: Request body size limit tests
+# ---------------------------------------------------------------------------
+
+
+class TestRequestBodySizeConfig:
+    """Tests for MAX_REQUEST_BODY_SIZE env var parsing."""
+
+    def test_default_max_request_body_size(self, monkeypatch):
+        monkeypatch.delenv("MAX_REQUEST_BODY_SIZE", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.MAX_REQUEST_BODY_SIZE == 10 * 1024 * 1024  # 10MB
+
+    def test_custom_max_request_body_size(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_REQUEST_BODY_SIZE="1048576")
+        assert gw.MAX_REQUEST_BODY_SIZE == 1048576  # 1MB
+
+
+class TestPayloadTooLargeResponse:
+    """Tests for send_payload_too_large() response helper."""
+
+    def test_413_status_line(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_payload_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert response.startswith("HTTP/1.1 413 Payload Too Large\r\n")
+
+    def test_json_body_format(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_payload_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert "error" in data
+        assert data["error"]["type"] == "invalid_request_error"
+        assert data["error"]["code"] == "payload_too_large"
+        assert (
+            "max" in data["error"]["message"].lower()
+            or "too large" in data["error"]["message"].lower()
+        )
+
+    def test_content_type_json(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_payload_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Content-Type: application/json\r\n" in response
+
+    def test_connection_close_header(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_payload_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Connection: close\r\n" in response
+
+    def test_cors_headers_included(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_payload_too_large(writer, "https://example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+
+class TestBodySizeLimitEnforcement:
+    """Tests for body size limit enforcement in handle_client."""
+
+    def test_oversized_body_returns_413(self, monkeypatch):
+        """Verify that a request with Content-Length exceeding the limit gets 413."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_BODY_SIZE="100",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            # Content-Length of 200 exceeds limit of 100
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 200\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 413 Payload Too Large" in response
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["error"]["code"] == "payload_too_large"
+
+    def test_body_at_limit_is_allowed(self, monkeypatch):
+        """Verify that a request with Content-Length exactly at the limit is accepted."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_BODY_SIZE="100",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        proxy_called = []
+
+        async def mock_proxy(*args, **kwargs):
+            proxy_called.append(True)
+
+        gw.proxy_request = mock_proxy
+
+        async def run():
+            body_content = b"x" * 100
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 100\r\n"
+                b"\r\n" + body_content
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        # Should NOT get a 413 — proxy should be called
+        response = written_data.decode()
+        assert "413" not in response
+        assert len(proxy_called) == 1
+
+    def test_body_under_limit_is_allowed(self, monkeypatch):
+        """Verify a small body is accepted normally."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_BODY_SIZE="1048576",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        proxy_called = []
+
+        async def mock_proxy(*args, **kwargs):
+            proxy_called.append(True)
+
+        gw.proxy_request = mock_proxy
+
+        class MockWriter:
+            def write(self, data):
+                pass
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 13\r\n"
+                b"\r\n"
+                b'{"test":true}'
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        assert len(proxy_called) == 1
+
+    def test_zero_body_bypasses_check(self, monkeypatch):
+        """Requests with no body (GET) bypass body size check."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_BODY_SIZE="100",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = b"GET /ping HTTP/1.1\r\nHost: localhost\r\n\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+        assert "413" not in response
+
+
+# ---------------------------------------------------------------------------
+# SEC-04: CORS origin validation tests
+# ---------------------------------------------------------------------------
+
+
+class TestCorsOriginValidation:
+    """Tests for SEC-04 CORS origin validation enhancements."""
+
+    def test_trailing_slash_stripped_from_config(self, monkeypatch):
+        """Trailing slashes on configured origins are stripped."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="https://app.example.com/",
+        )
+        assert "https://app.example.com" in gw._cors_origins_list
+        assert "https://app.example.com/" not in gw._cors_origins_list
+
+    def test_origin_matches_after_slash_strip(self, monkeypatch):
+        """Request origin matches even when config had trailing slash."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="https://app.example.com/",
+        )
+        headers = gw.get_cors_headers("https://app.example.com")
+        assert len(headers) == 5
+        assert "Access-Control-Allow-Origin: https://app.example.com" in headers
+
+    def test_oversized_origin_rejected(self, monkeypatch):
+        """Origins exceeding MAX_ORIGIN_LENGTH are rejected."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+        long_origin = "https://example.com/" + "a" * 2100
+        headers = gw.get_cors_headers(long_origin)
+        assert headers == []
+
+    def test_origin_at_max_length_accepted(self, monkeypatch):
+        """Origins exactly at MAX_ORIGIN_LENGTH are accepted (wildcard mode)."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+        origin = "https://" + "a" * (gw.MAX_ORIGIN_LENGTH - len("https://"))
+        assert len(origin) == gw.MAX_ORIGIN_LENGTH
+        headers = gw.get_cors_headers(origin)
+        assert len(headers) == 4
+        assert "Access-Control-Allow-Origin: *" in headers
+
+    def test_origin_one_over_max_rejected(self, monkeypatch):
+        """Origins one byte over MAX_ORIGIN_LENGTH are rejected."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+        origin = "https://" + "a" * (gw.MAX_ORIGIN_LENGTH - len("https://") + 1)
+        assert len(origin) == gw.MAX_ORIGIN_LENGTH + 1
+        headers = gw.get_cors_headers(origin)
+        assert headers == []
+
+    def test_multiple_origins_with_trailing_slashes(self, monkeypatch):
+        """Multiple origins with trailing slashes are all stripped."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="https://a.com/, https://b.com/",
+        )
+        assert "https://a.com" in gw._cors_origins_list
+        assert "https://b.com" in gw._cors_origins_list
+        headers_a = gw.get_cors_headers("https://a.com")
+        assert len(headers_a) == 5
+        headers_b = gw.get_cors_headers("https://b.com")
+        assert len(headers_b) == 5
+
+    def test_exact_match_prevents_suffix_attack(self, monkeypatch):
+        """Verify that origin matching is exact — no suffix/substring attacks."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="https://app.example.com",
+        )
+        # These should NOT match
+        assert gw.get_cors_headers("https://evil.com?https://app.example.com") == []
+        assert gw.get_cors_headers("https://notapp.example.com") == []
+        assert gw.get_cors_headers("https://app.example.com.evil.com") == []
+        # This should match
+        headers = gw.get_cors_headers("https://app.example.com")
+        assert len(headers) == 5
+
+
+# ---------------------------------------------------------------------------
+# SEC-05: Header count and size limit tests
+# ---------------------------------------------------------------------------
+
+
+class TestHeaderLimitsConfig:
+    """Tests for MAX_HEADERS and MAX_HEADER_LINE_SIZE env var parsing."""
+
+    def test_default_max_headers(self, monkeypatch):
+        monkeypatch.delenv("MAX_HEADERS", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.MAX_HEADERS == 64
+
+    def test_custom_max_headers(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_HEADERS="32")
+        assert gw.MAX_HEADERS == 32
+
+    def test_default_max_header_line_size(self, monkeypatch):
+        monkeypatch.delenv("MAX_HEADER_LINE_SIZE", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.MAX_HEADER_LINE_SIZE == 8192
+
+    def test_custom_max_header_line_size(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_HEADER_LINE_SIZE="4096")
+        assert gw.MAX_HEADER_LINE_SIZE == 4096
+
+
+class TestHeaderTooLargeResponse:
+    """Tests for send_header_too_large() response helper."""
+
+    def test_431_status_line(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_header_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert response.startswith("HTTP/1.1 431 Request Header Fields Too Large\r\n")
+
+    def test_json_body_format(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_header_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert "error" in data
+        assert data["error"]["type"] == "invalid_request_error"
+        assert data["error"]["code"] == "header_fields_too_large"
+
+    def test_content_type_json(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_header_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Content-Type: application/json\r\n" in response
+
+    def test_connection_close_header(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_header_too_large(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Connection: close\r\n" in response
+
+    def test_cors_headers_included(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_header_too_large(writer, "https://example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+
+class TestHeaderCountLimitEnforcement:
+    """Tests for header count limit enforcement in handle_client."""
+
+    def test_too_many_headers_returns_431(self, monkeypatch):
+        """Verify that exceeding MAX_HEADERS returns 431."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_HEADERS="3",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            # 4 headers, exceeds limit of 3
+            request_data = (
+                b"GET /v1/models HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Accept: application/json\r\n"
+                b"X-Custom-1: value1\r\n"
+                b"X-Custom-2: value2\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "431 Request Header Fields Too Large" in response
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["error"]["code"] == "header_fields_too_large"
+
+    def test_headers_at_limit_allowed(self, monkeypatch):
+        """Verify that exactly MAX_HEADERS headers are accepted."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_HEADERS="3",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            # Exactly 3 headers, at the limit
+            request_data = (
+                b"GET /ping HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Accept: text/plain\r\n"
+                b"Connection: close\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+        assert "431" not in response
+
+
+class TestHeaderLineSizeLimitEnforcement:
+    """Tests for individual header line size limit enforcement in handle_client."""
+
+    def test_oversized_header_line_returns_431(self, monkeypatch):
+        """Verify that a header line exceeding MAX_HEADER_LINE_SIZE returns 431."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_HEADER_LINE_SIZE="50",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            # Create a header line > 50 bytes
+            long_value = "x" * 60
+            request_data = (
+                b"GET /v1/models HTTP/1.1\r\n"
+                b"Host: localhost\r\n" + f"X-Long-Header: {long_value}\r\n".encode() + b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "431 Request Header Fields Too Large" in response
+
+    def test_header_line_at_limit_allowed(self, monkeypatch):
+        """Verify that a header line exactly at the limit is accepted."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_HEADER_LINE_SIZE="8192",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = b"GET /ping HTTP/1.1\r\nHost: localhost\r\n\r\n"
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+        assert "431" not in response
+
+    def test_normal_headers_accepted(self, monkeypatch):
+        """Verify that normal-sized headers work fine."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_HEADER_LINE_SIZE="8192",
+            MAX_HEADERS="64",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            request_data = (
+                b"GET /ping HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Accept: application/json\r\n"
+                b"Authorization: Bearer sk-test-key\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "HTTP/1.1 200 OK" in response
+
+
+class TestSecurityLimitsIntegration:
+    """Integration tests combining multiple security limits."""
+
+    def test_health_endpoints_still_work_with_limits(self, monkeypatch):
+        """Verify /ping, /health, /metrics work under default security limits."""
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        for path in ["/ping", "/metrics"]:
+            written_data = bytearray()
+
+            class MockWriter:
+                def write(self, data):
+                    written_data.extend(data)
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            async def run():
+                request_data = (f"GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n").encode()
+                reader = asyncio.StreamReader()
+                reader.feed_data(request_data)
+                reader.feed_eof()
+                await gw.handle_client(reader, MockWriter())
+
+            asyncio.run(run())
+
+            response = written_data.decode()
+            assert "HTTP/1.1 200 OK" in response, f"Expected 200 for {path}, got: {response[:80]}"
+
+    def test_413_before_body_read(self, monkeypatch):
+        """Verify 413 is returned before the server tries to read the body."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_REQUEST_BODY_SIZE="10",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+            def close(self):
+                pass
+
+            async def wait_closed(self):
+                pass
+
+        async def run():
+            # Claim a huge body but don't actually send it
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 999999999\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+            await gw.handle_client(reader, MockWriter())
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        # Should get 413 without trying to read 999999999 bytes
+        assert "413 Payload Too Large" in response

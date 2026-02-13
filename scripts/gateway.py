@@ -28,6 +28,9 @@ Environment Variables:
     CORS_ORIGINS    - Comma-separated allowed CORS origins (default: empty = disabled)
     MAX_CONCURRENT_REQUESTS - Max requests proxied simultaneously (default: 1)
     MAX_QUEUE_SIZE  - Max requests waiting in queue; 0 = unlimited (default: 0)
+    MAX_REQUEST_BODY_SIZE - Max request body in bytes (default: 10485760 = 10MB)
+    MAX_HEADERS     - Max number of request headers (default: 64)
+    MAX_HEADER_LINE_SIZE - Max size of a single header line in bytes (default: 8192)
 """
 
 import asyncio
@@ -73,6 +76,14 @@ HEALTH_TIMEOUT = float(os.environ.get("HEALTH_TIMEOUT", "2"))
 MAX_CONCURRENT_REQUESTS = int(os.environ.get("MAX_CONCURRENT_REQUESTS", "1"))
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", "0"))
 
+# Request size and header limits (SEC-03, SEC-05)
+MAX_REQUEST_BODY_SIZE = int(os.environ.get("MAX_REQUEST_BODY_SIZE", str(10 * 1024 * 1024)))
+MAX_HEADERS = int(os.environ.get("MAX_HEADERS", "64"))
+MAX_HEADER_LINE_SIZE = int(os.environ.get("MAX_HEADER_LINE_SIZE", "8192"))
+
+# CORS origin validation (SEC-04)
+MAX_ORIGIN_LENGTH = 2048
+
 # Concurrency semaphore — limits parallel proxy calls to llama-server
 _proxy_semaphore: asyncio.Semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
 
@@ -95,9 +106,11 @@ if BACKEND_API_KEY:
 else:
     log("WARNING: BACKEND_API_KEY not set - backend will not require authentication")
 
-# CORS configuration
+# CORS configuration (SEC-04: origin validation)
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "")
-_cors_origins_list: list[str] = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
+_cors_origins_list: list[str] = [
+    o.strip().rstrip("/") for o in CORS_ORIGINS.split(",") if o.strip()
+]
 CORS_ENABLED = len(_cors_origins_list) > 0
 CORS_WILDCARD = "*" in _cors_origins_list
 
@@ -105,6 +118,9 @@ if CORS_ENABLED:
     if CORS_WILDCARD:
         log("CORS: enabled for all origins (*)")
     else:
+        for origin in _cors_origins_list:
+            if not origin.startswith(("http://", "https://")):
+                log(f"CORS WARNING: origin '{origin}' missing scheme (http:// or https://)")
         log(f"CORS: enabled for {len(_cors_origins_list)} origin(s)")
 
 
@@ -112,8 +128,13 @@ def get_cors_headers(request_origin: str = "") -> list[str]:
     """Return CORS response header lines for the given request origin.
 
     Returns an empty list if CORS is not enabled or the origin is not allowed.
+    Rejects origins exceeding MAX_ORIGIN_LENGTH to prevent abuse (SEC-04).
     """
     if not CORS_ENABLED:
+        return []
+
+    # Reject oversized origins (SEC-04)
+    if len(request_origin) > MAX_ORIGIN_LENGTH:
         return []
 
     if CORS_WILDCARD:
@@ -306,9 +327,7 @@ async def handle_ping(writer: asyncio.StreamWriter, request_origin: str = ""):
     For detailed backend status, use /health endpoint instead.
     """
     cors = build_cors_header_str(request_origin)
-    response = (
-        f"HTTP/1.1 200 OK\r\n" f"{cors}" f"Content-Length: 0\r\n" f"Connection: close\r\n" f"\r\n"
-    )
+    response = f"HTTP/1.1 200 OK\r\n{cors}Content-Length: 0\r\nConnection: close\r\n\r\n"
     writer.write(response.encode())
     await writer.drain()
 
@@ -421,6 +440,69 @@ async def send_queue_full_response(
         f"HTTP/1.1 503 Service Unavailable\r\n"
         f"Content-Type: application/json\r\n"
         f"Retry-After: 5\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+        f"{body}"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
+async def send_payload_too_large(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+) -> None:
+    """Send a 413 Payload Too Large response when the request body exceeds the limit.
+
+    Uses OpenAI-compatible error format with CORS headers (SEC-03).
+    """
+    body = json.dumps(
+        {
+            "error": {
+                "message": f"Request body too large (max {MAX_REQUEST_BODY_SIZE} bytes)",
+                "type": "invalid_request_error",
+                "code": "payload_too_large",
+            }
+        }
+    )
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 413 Payload Too Large\r\n"
+        f"Content-Type: application/json\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+        f"{body}"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
+async def send_header_too_large(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+) -> None:
+    """Send a 431 Request Header Fields Too Large response.
+
+    Returned when header count or individual header line size exceeds limits.
+    Uses OpenAI-compatible error format with CORS headers (SEC-05).
+    """
+    body = json.dumps(
+        {
+            "error": {
+                "message": "Request headers too large or too many headers",
+                "type": "invalid_request_error",
+                "code": "header_fields_too_large",
+            }
+        }
+    )
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 431 Request Header Fields Too Large\r\n"
+        f"Content-Type: application/json\r\n"
         f"{cors}"
         f"Content-Length: {len(body)}\r\n"
         f"Connection: close\r\n"
@@ -611,6 +693,64 @@ async def _queued_proxy(
         _proxy_semaphore.release()
 
 
+async def _read_headers(
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+) -> Optional[tuple[dict[str, str], int]]:
+    """Read and validate HTTP headers from the client connection.
+
+    Enforces SEC-05 header count/size limits and returns parsed headers
+    with content length.  Sends 431 and returns ``None`` on violation.
+    """
+    headers: dict[str, str] = {}
+    content_length = 0
+    header_count = 0
+    while True:
+        header_line_raw = await asyncio.wait_for(reader.readline(), timeout=30)
+        if header_line_raw == b"\r\n" or header_line_raw == b"":
+            break
+
+        # SEC-05: Check individual header line size
+        if len(header_line_raw) > MAX_HEADER_LINE_SIZE:
+            log(
+                f"Header line too large: {len(header_line_raw)} bytes "
+                f"(max {MAX_HEADER_LINE_SIZE})"
+            )
+            await send_header_too_large(writer)
+            return None
+
+        # SEC-05: Check header count
+        header_count += 1
+        if header_count > MAX_HEADERS:
+            log(f"Too many headers: {header_count} (max {MAX_HEADERS})")
+            await send_header_too_large(writer)
+            return None
+
+        header_line = header_line_raw.decode("utf-8", errors="replace").strip()
+        if ":" in header_line:
+            key, value = header_line.split(":", 1)
+            headers[key.strip().lower()] = value.strip()
+            if key.lower() == "content-length":
+                content_length = int(value.strip())
+
+    return headers, content_length
+
+
+async def _route_health(
+    path: str,
+    writer: asyncio.StreamWriter,
+    request_origin: str,
+    accept_header: str,
+) -> None:
+    """Route health/metrics endpoints that bypass authentication."""
+    if path == "/ping":
+        await handle_ping(writer, request_origin)
+    elif path == "/health":
+        await handle_health(writer, request_origin)
+    elif path == "/metrics":
+        await handle_metrics(writer, request_origin, accept_header)
+
+
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     """Handle an incoming client connection."""
     try:
@@ -627,19 +767,18 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         method = parts[0]
         path = parts[1]
 
-        # Read headers
-        headers: dict[str, str] = {}
-        content_length = 0
-        while True:
-            header_line_raw = await asyncio.wait_for(reader.readline(), timeout=30)
-            if header_line_raw == b"\r\n" or header_line_raw == b"":
-                break
-            header_line = header_line_raw.decode("utf-8", errors="replace").strip()
-            if ":" in header_line:
-                key, value = header_line.split(":", 1)
-                headers[key.strip().lower()] = value.strip()
-                if key.lower() == "content-length":
-                    content_length = int(value.strip())
+        # Read and validate headers (SEC-05: count/size limits)
+        result = await _read_headers(reader, writer)
+        if result is None:
+            return
+        headers, content_length = result
+
+        # SEC-03: Check body size before reading
+        if content_length > MAX_REQUEST_BODY_SIZE:
+            log(f"Request body too large: {content_length} bytes (max {MAX_REQUEST_BODY_SIZE})")
+            request_origin = headers.get("origin", "")
+            await send_payload_too_large(writer, request_origin)
+            return
 
         # Read body if present
         body = None
@@ -657,12 +796,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
         # Route request - health endpoints bypass auth
         if path in ("/ping", "/health", "/metrics"):
-            if path == "/ping":
-                await handle_ping(writer, request_origin)
-            elif path == "/health":
-                await handle_health(writer, request_origin)
-            elif path == "/metrics":
-                await handle_metrics(writer, request_origin, accept_header)
+            await _route_health(path, writer, request_origin, accept_header)
             return
 
         # All other endpoints require authentication
