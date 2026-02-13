@@ -75,6 +75,7 @@ Run **GGUF models** with llama.cpp on any GPU cloud or local machine.
 - **Health checks** — Built-in `/ping` and `/health` endpoints
 - **API key authentication** — Secure your endpoint with API keys (enabled by default)
 - **Key management CLI** — Generate, list, rotate, and remove API keys
+- **Hot-reload API keys** — Reload keys via SIGHUP signal or `POST /reload` without restart
 - **CORS support** — Configurable cross-origin headers for browser-based clients
 - **Concurrency control** — Bounded request queuing with configurable limits
 - **Prometheus metrics** — `/metrics` endpoint with JSON and Prometheus text format
@@ -145,6 +146,19 @@ Health check endpoints work without authentication:
 ```bash
 curl http://localhost:8000/ping    # Always works
 curl http://localhost:8000/health  # Always works
+```
+
+### Hot-Reload API Keys
+
+Reload keys without restarting the container:
+
+```bash
+# Via signal
+docker kill -s HUP my-inference-container
+
+# Via API (requires authentication)
+curl -X POST -H "Authorization: Bearer <key>" http://localhost:8000/reload
+# {"status": "ok", "keys_loaded": 3}
 ```
 
 **For detailed authentication setup, see [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)**
@@ -242,6 +256,7 @@ WORKER_TYPE=omni
 | `GET /health`               | No            | Detailed health status with backend and queue info                   |
 | `GET /metrics`              | No            | Gateway metrics (JSON default, Prometheus with `Accept: text/plain`) |
 | `OPTIONS *`                 | No            | CORS preflight (when `CORS_ORIGINS` is set)                          |
+| `POST /reload`              | **Yes**       | Hot-reload API keys from disk                                        |
 | `POST /v1/chat/completions` | **Yes**       | Chat completions (OpenAI format)                                     |
 | `POST /v1/completions`      | **Yes**       | Text completions                                                     |
 | `GET /v1/models`            | **Yes**       | List models                                                          |

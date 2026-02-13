@@ -57,6 +57,70 @@ See [AUTHENTICATION.md](AUTHENTICATION.md) for complete authentication guide.
 
 ______________________________________________________________________
 
+### Hot-Reload API Keys
+
+API keys can be reloaded without restarting the container. This is useful for key rotation, adding new keys, or revoking
+compromised keys in production.
+
+**Two reload methods:**
+
+| Method        | How                                                                          | When to Use                   |
+| ------------- | ---------------------------------------------------------------------------- | ----------------------------- |
+| SIGHUP signal | `docker kill -s HUP <container>`                                             | Automation, scripted rotation |
+| POST /reload  | `curl -X POST -H "Authorization: Bearer <key>" http://localhost:8000/reload` | Ad-hoc reload, health checks  |
+
+**SIGHUP example:**
+
+```bash
+# From the host machine
+docker kill -s HUP $(docker ps -q --filter ancestor=ghcr.io/zepfu/llama-gguf-inference)
+
+# Or by container name
+docker kill -s HUP my-inference-container
+```
+
+**POST /reload example:**
+
+```bash
+# Requires a valid API key (when AUTH_ENABLED=true)
+curl -X POST \
+  -H "Authorization: Bearer sk-prod-abc123def456" \
+  http://localhost:8000/reload
+
+# Response:
+# {"status": "ok", "keys_loaded": 3}
+```
+
+**Behavior:**
+
+- Keys are replaced atomically -- either all keys update or none do
+- Rate limiter state (request timestamps) is preserved across reloads
+- If the keys file is missing or unreadable, the validator loads 0 keys (fail-closed: all requests rejected)
+- The `AUTH_KEYS_FILE` environment variable is re-read on each reload, so you can point to a new file at runtime
+- The gateway never crashes on reload failure; it logs the error and continues serving with the previous key set
+
+**Key rotation workflow:**
+
+```bash
+# 1. Add new key to the file
+echo "new-client:sk-new-$(openssl rand -hex 32)" >> /data/api_keys.txt
+
+# 2. Reload keys
+docker kill -s HUP my-inference-container
+
+# 3. Verify new key count in logs
+docker logs my-inference-container 2>&1 | tail -5
+# ... "API keys reloaded via SIGHUP: 4 key(s) loaded"
+
+# 4. Update clients to use new key
+
+# 5. Remove old key from file and reload again
+sed -i '/old-client/d' /data/api_keys.txt
+docker kill -s HUP my-inference-container
+```
+
+______________________________________________________________________
+
 ### CORS Configuration
 
 | Variable       | Default | Description                                        |
