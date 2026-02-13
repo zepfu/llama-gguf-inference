@@ -1,0 +1,1089 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>llama-gguf-inference Documentation &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="API_REFERENCE.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="auto/CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#unreleased">Unreleased</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id1">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id2">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id3">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">llama-gguf-inference Documentation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="llama-gguf-inference-documentation">
+<h1>llama-gguf-inference Documentation<a class="headerlink" href="#llama-gguf-inference-documentation" title="Link to this heading"></a></h1>
+<p><strong>GGUF model inference server using llama.cpp</strong></p>
+<p>Welcome to the documentation for llama-gguf-inference, a production-ready inference server for GGUF models.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API_REFERENCE.html#public-endpoints">Public Endpoints</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#key-management">Key Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#endpoint-access">Endpoint Access</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#error-responses">Error Responses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#rate-limiting">Rate Limiting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#security-best-practices">Security Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#recommended-configurations">Recommended Configurations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#security-best-practices">Security Best Practices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-pods">RunPod Pods</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#lambda-labs">Lambda Labs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#current-test-coverage">Current Test Coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#debugging-failed-tests">Debugging Failed Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#common-issues">Common Issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="auto/CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#unreleased">Unreleased</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#module-summary">Module Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#key-files">Key Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run with Docker</span>
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span>/path/to/models:/data/models<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">MODEL_NAME</span><span class="o">=</span>your-model.gguf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="w"> </span><span class="m">8000</span>:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>ghcr.io/zepfu/llama-gguf-inference
+</pre></div>
+</div>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>OpenAI-compatible API</strong> - Drop-in replacement</p></li>
+<li><p><strong>Authentication</strong> - API key-based access control</p></li>
+<li><p><strong>Streaming support</strong> - Real-time token streaming</p></li>
+<li><p><strong>Health monitoring</strong> - Separate health check port</p></li>
+<li><p><strong>Platform agnostic</strong> - Works anywhere Docker runs</p></li>
+</ul>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
+<section id="module-gateway">
+<span id="gateway-module"></span><h3>Gateway Module<a class="headerlink" href="#module-gateway" title="Link to this heading"></a></h3>
+<p>gateway.py – Async HTTP gateway for llama.cpp llama-server</p>
+<p>Features:
+- API key authentication with health endpoint exemption
+- Proper SSE/streaming support for chat completions
+- /ping and /health endpoints (no auth required)
+- Request timeout handling
+- Basic metrics tracking
+- Graceful error handling
+- Per-key access logging
+- Configurable CORS headers
+- Prometheus text exposition format for /metrics
+- Hot-reload API keys via SIGHUP or POST /reload</p>
+<p>Note: /ping and /health return 200 immediately without backend checks
+or authentication to enable scale-to-zero in serverless environments.</p>
+<dl class="simple">
+<dt>Environment Variables:</dt><dd><p>GATEWAY_PORT    - Port to listen on (default: 8000)
+BACKEND_HOST    - llama-server host (default: 127.0.0.1)
+PORT_BACKEND    - llama-server port (default: 8080)
+BACKEND_API_KEY - API key for backend authentication (optional)
+REQUEST_TIMEOUT - Total request timeout in seconds (default: 300)
+BACKEND_CONNECT_TIMEOUT - Backend TCP connect timeout in seconds (default: 10)
+CLIENT_HEADER_TIMEOUT - Client header read timeout in seconds (default: 30)
+HEALTH_TIMEOUT  - Health check timeout in seconds (default: 2)
+AUTH_ENABLED    - Enable API key authentication (default: true)
+AUTH_KEYS_FILE  - Path to API keys file (default: $DATA_DIR/api_keys.txt)
+CORS_ORIGINS    - Comma-separated allowed CORS origins (default: empty = disabled)
+MAX_CONCURRENT_REQUESTS - Max requests proxied simultaneously (default: 1)
+MAX_QUEUE_SIZE  - Max requests waiting in queue; 0 = unlimited (default: 0)
+MAX_REQUEST_BODY_SIZE - Max request body in bytes (default: 10485760 = 10MB)
+MAX_HEADERS     - Max number of request headers (default: 64)
+MAX_HEADER_LINE_SIZE - Max size of a single header line in bytes (default: 8192)
+MAX_REQUEST_LINE_SIZE - Max size of HTTP request line in bytes (default: 8192)
+METRICS_AUTH_ENABLED  - Require auth for /metrics endpoint (default: false)
+LOG_FORMAT      - Log output format: “text” (default) or “json” (JSONL to stderr)</p>
+</dd>
+</dl>
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.log">
+<span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'info'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.log" title="Link to this definition"></a></dt>
+<dd><p>Log a message to stderr.</p>
+<p>When LOG_FORMAT=json, outputs a JSON object per line (JSONL) with
+structured fields.  Otherwise, prints plain text with a [gateway] prefix.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.get_cors_headers">
+<span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">get_cors_headers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/gateway.html#get_cors_headers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.get_cors_headers" title="Link to this definition"></a></dt>
+<dd><p>Return CORS response header lines for the given request origin.</p>
+<p>Returns an empty list if CORS is not enabled or the origin is not allowed.
+Rejects origins exceeding MAX_ORIGIN_LENGTH to prevent abuse (SEC-04).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.build_cors_header_str">
+<span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">build_cors_header_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/gateway.html#build_cors_header_str"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.build_cors_header_str" title="Link to this definition"></a></dt>
+<dd><p>Return CORS headers as a joined string ready for HTTP response injection.</p>
+<p>Returns empty string if CORS is not enabled or the origin is not allowed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.handle_options">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">handle_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#handle_options"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.handle_options" title="Link to this definition"></a></dt>
+<dd><p>Handle OPTIONS preflight request with CORS headers.</p>
+<p>Returns 204 No Content with appropriate CORS headers.
+No authentication required.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="gateway.Metrics">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">Metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requests_total</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_active</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_authenticated</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_unauthorized</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes_sent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue_rejections</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue_wait_seconds_total</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#Metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.Metrics" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.requests_total">
+<span class="sig-name descname"><span class="pre">requests_total</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.requests_total" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.requests_success">
+<span class="sig-name descname"><span class="pre">requests_success</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.requests_success" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.requests_error">
+<span class="sig-name descname"><span class="pre">requests_error</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.requests_error" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.requests_active">
+<span class="sig-name descname"><span class="pre">requests_active</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.requests_active" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.requests_authenticated">
+<span class="sig-name descname"><span class="pre">requests_authenticated</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.requests_authenticated" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.requests_unauthorized">
+<span class="sig-name descname"><span class="pre">requests_unauthorized</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.requests_unauthorized" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.bytes_sent">
+<span class="sig-name descname"><span class="pre">bytes_sent</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.bytes_sent" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.queue_rejections">
+<span class="sig-name descname"><span class="pre">queue_rejections</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#gateway.Metrics.queue_rejections" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.queue_wait_seconds_total">
+<span class="sig-name descname"><span class="pre">queue_wait_seconds_total</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></span><a class="headerlink" href="#gateway.Metrics.queue_wait_seconds_total" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gateway.Metrics.start_time">
+<span class="sig-name descname"><span class="pre">start_time</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#gateway.Metrics.start_time" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gateway.Metrics.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#Metrics.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.Metrics.to_dict" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gateway.Metrics.to_prometheus">
+<span class="sig-name descname"><span class="pre">to_prometheus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/gateway.html#Metrics.to_prometheus"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.Metrics.to_prometheus" title="Link to this definition"></a></dt>
+<dd><p>Return metrics in Prometheus text exposition format.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gateway.Metrics.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">requests_total</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_active</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_authenticated</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requests_unauthorized</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bytes_sent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue_rejections</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">queue_wait_seconds_total</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_time</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#gateway.Metrics.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.backend_tcp_ready">
+<span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">backend_tcp_ready</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/gateway.html#backend_tcp_ready"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.backend_tcp_ready" title="Link to this definition"></a></dt>
+<dd><p>Check if backend is accepting TCP connections.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.backend_health_check">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">backend_health_check</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/gateway.html#backend_health_check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.backend_health_check" title="Link to this definition"></a></dt>
+<dd><p>Check backend health via /health endpoint.</p>
+<p>Returns health status dict or error.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.handle_ping">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">handle_ping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#handle_ping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.handle_ping" title="Link to this definition"></a></dt>
+<dd><p>Handle /ping endpoint for RunPod health checks.</p>
+<p>Always returns 200 OK without authentication or backend checks.
+For detailed backend status, use /health endpoint instead.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.handle_health">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">handle_health</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#handle_health"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.handle_health" title="Link to this definition"></a></dt>
+<dd><p>Handle /health endpoint with detailed backend status.</p>
+<p>No authentication required.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.handle_metrics">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">handle_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">accept_header</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#handle_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.handle_metrics" title="Link to this definition"></a></dt>
+<dd><p>Handle /metrics endpoint.</p>
+<p>No authentication required.
+Returns Prometheus text format if Accept header contains text/plain
+or application/openmetrics-text, otherwise returns JSON.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.send_queue_full_response">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">send_queue_full_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#send_queue_full_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.send_queue_full_response" title="Link to this definition"></a></dt>
+<dd><p>Send a 503 Service Unavailable response when the request queue is full.</p>
+<p>Includes a Retry-After header and a JSON error body matching the OpenAI
+error format used elsewhere in the gateway.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.send_payload_too_large">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">send_payload_too_large</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#send_payload_too_large"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.send_payload_too_large" title="Link to this definition"></a></dt>
+<dd><p>Send a 413 Payload Too Large response when the request body exceeds the limit.</p>
+<p>Uses OpenAI-compatible error format with CORS headers (SEC-03).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.send_header_too_large">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">send_header_too_large</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#send_header_too_large"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.send_header_too_large" title="Link to this definition"></a></dt>
+<dd><p>Send a 431 Request Header Fields Too Large response.</p>
+<p>Returned when header count or individual header line size exceeds limits.
+Uses OpenAI-compatible error format with CORS headers (SEC-05).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.send_uri_too_long">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">send_uri_too_long</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#send_uri_too_long"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.send_uri_too_long" title="Link to this definition"></a></dt>
+<dd><p>Send a 414 URI Too Long response when the request line exceeds the limit.</p>
+<p>Uses OpenAI-compatible error format with CORS headers (SEC-07).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.send_bad_request">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">send_bad_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#send_bad_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.send_bad_request" title="Link to this definition"></a></dt>
+<dd><p>Send a 400 Bad Request response for malformed requests.</p>
+<p>Uses OpenAI-compatible error format with CORS headers (SEC-10).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.send_gateway_timeout">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">send_gateway_timeout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#send_gateway_timeout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.send_gateway_timeout" title="Link to this definition"></a></dt>
+<dd><p>Send a 504 Gateway Timeout response when a proxied request times out.</p>
+<p>Uses OpenAI-compatible error format with CORS headers.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.proxy_request">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">proxy_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytes</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'unknown'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#proxy_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.proxy_request" title="Link to this definition"></a></dt>
+<dd><p>Proxy a request to the backend with streaming support.</p>
+<p>Applies BACKEND_CONNECT_TIMEOUT for the initial TCP connection and
+REQUEST_TIMEOUT for the entire backend interaction (send + receive +
+stream).  Returns 502 on connect failure and 504 on request timeout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – HTTP method (GET, POST, etc.)</p></li>
+<li><p><strong>path</strong> – Request path to forward to backend</p></li>
+<li><p><strong>headers</strong> – Request headers dict (lowercase keys)</p></li>
+<li><p><strong>body</strong> – Request body bytes, or None for bodyless requests</p></li>
+<li><p><strong>writer</strong> – asyncio StreamWriter for the client connection</p></li>
+<li><p><strong>key_id</strong> – The authenticated key_id for logging</p></li>
+<li><p><strong>request_origin</strong> – The Origin header value for CORS header injection</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.handle_reload">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">handle_reload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request_origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/gateway.html#handle_reload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.handle_reload" title="Link to this definition"></a></dt>
+<dd><p>Handle POST /reload endpoint to hot-reload API keys.</p>
+<p>Requires authentication (enforced by the caller in handle_client).
+Returns the count of keys loaded or an error message if the reload
+failed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.handle_client">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">handle_client</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reader</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamReader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#handle_client"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.handle_client" title="Link to this definition"></a></dt>
+<dd><p>Handle an incoming client connection.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gateway.main">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">gateway.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/gateway.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gateway.main" title="Link to this definition"></a></dt>
+<dd><p>Start the gateway server.</p>
+</dd></dl>
+
+</section>
+<section id="module-auth">
+<span id="authentication-module"></span><h3>Authentication Module<a class="headerlink" href="#module-auth" title="Link to this heading"></a></h3>
+<p>auth.py - API Key Authentication Module for Gateway</p>
+<p>File-based authentication system that enforces API keys while maintaining
+OpenAI compatibility. Uses key_id:api_key format for easy management and auditing.</p>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">api_validator</span><span class="p">,</span> <span class="n">authenticate_request</span><span class="p">,</span> <span class="n">log_access</span>
+
+<span class="c1"># In your request handler:</span>
+<span class="n">api_key_info</span> <span class="o">=</span> <span class="k">await</span> <span class="n">authenticate_request</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">api_key_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># 401 response already sent</span>
+    <span class="k">return</span>
+
+<span class="n">key_id</span> <span class="o">=</span> <span class="n">api_key_info</span>  <span class="c1"># The key_id for logging/tracking</span>
+
+<span class="c1"># Process request...</span>
+<span class="k">await</span> <span class="n">log_access</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key_id</span><span class="p">,</span> <span class="n">status_code</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl>
+<dt>Environment Variables:</dt><dd><p>AUTH_ENABLED              - Enable/disable authentication (default: true)
+AUTH_KEYS_FILE            - Path to keys file (default: $DATA_DIR/api_keys.txt)
+MAX_REQUESTS_PER_MINUTE   - Rate limit per key_id (default: 100)</p>
+</dd>
+<dt>Keys File Format:</dt><dd><p>key_id:api_key[:rate_limit][:expiration]</p>
+<dl class="simple">
+<dt>Fields:</dt><dd><p>key_id      - Identifier for the key (alphanumeric, hyphens, underscores)
+api_key     - The API key value (16-128 chars, alphanumeric/hyphens/underscores)
+rate_limit  - Optional per-key requests per minute (overrides MAX_REQUESTS_PER_MINUTE)
+expiration  - Optional ISO 8601 expiration timestamp (e.g. 2026-03-01T00:00:00)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<p>production:sk-prod-abc123def456
+alice-laptop:sk-alice-xyz789:120
+temp-key:sk-tmp-test123456::2026-03-01T00:00:00
+vip:sk-vip-premium12345:300:2026-12-31T23:59:59</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="auth.APIKeyValidator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">APIKeyValidator</span></span><a class="reference internal" href="_modules/auth.html#APIKeyValidator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.APIKeyValidator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Validates API keys for incoming requests.</p>
+<p>Features:
+- File-based configuration (key_id:api_key[:rate_limit][:expiration] format)
+- Rate limiting per key_id (global default or per-key override)
+- Key expiration via optional ISO 8601 timestamp
+- Key format validation
+- Audit trail with key_id tracking
+- Periodic cleanup of stale rate limiter entries</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="auth.APIKeyValidator.CLEANUP_INTERVAL">
+<span class="sig-name descname"><span class="pre">CLEANUP_INTERVAL</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">300</span></span><a class="headerlink" href="#auth.APIKeyValidator.CLEANUP_INTERVAL" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.APIKeyValidator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#APIKeyValidator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.APIKeyValidator.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.APIKeyValidator.validate">
+<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/auth.html#APIKeyValidator.validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.APIKeyValidator.validate" title="Link to this definition"></a></dt>
+<dd><p>Validate API key from request headers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>headers</strong> – Request headers (lowercase keys)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(is_valid, key_id_or_error_message)
+- If valid: (True, key_id)
+- If invalid: (False, error_message)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.APIKeyValidator.get_metrics">
+<span class="sig-name descname"><span class="pre">get_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/auth.html#APIKeyValidator.get_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.APIKeyValidator.get_metrics" title="Link to this definition"></a></dt>
+<dd><p>Get current rate limiter metrics per key_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict with request counts, effective rate limits, and expiration per key_id</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.reload_keys">
+<span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">reload_keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/auth.html#reload_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.reload_keys" title="Link to this definition"></a></dt>
+<dd><p>Reload API keys from the keys file without restarting the gateway.</p>
+<p>Re-reads the keys file from the same path used at startup and atomically
+replaces the validator’s keys, per-key rate limits, and expirations.
+Rate limiter state (request timestamps) is preserved so that existing
+rate limits for known keys survive the reload.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Number of keys loaded from the file.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>Exception</strong> – Propagated from file I/O so the caller can log and</p></li>
+<li><p><strong>continue serving with the previous key set.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.authenticate_request">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">authenticate_request</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">headers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/auth.html#authenticate_request"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.authenticate_request" title="Link to this definition"></a></dt>
+<dd><p>Authenticate an incoming request.</p>
+<p>If authentication fails, sends a 401 response and returns None.
+If authentication succeeds, returns the key_id.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>writer</strong> – asyncio StreamWriter to send response</p></li>
+<li><p><strong>headers</strong> – Request headers (lowercase keys)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>key_id if valid, None if invalid (401 response already sent)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.send_rate_limit_error">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">send_rate_limit_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StreamWriter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#send_rate_limit_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.send_rate_limit_error" title="Link to this definition"></a></dt>
+<dd><p>Send OpenAI-compatible rate limit error (429).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.log_access">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">log_access</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_code</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#log_access"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#auth.log_access" title="Link to this definition"></a></dt>
+<dd><p>Log API access for auditing.</p>
+<p>Logs to: /data/logs/api_access.log</p>
+<p>When LOG_FORMAT=json, writes JSONL entries. Otherwise writes
+pipe-delimited text (default, backward-compatible).</p>
+<p>Text format: ISO8601_timestamp | key_id | method path | status_code
+JSON format: {“ts”:”…”,”key_id”:”…”,”method”:”…”,”path”:”…”,”status”:200}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>method</strong> – HTTP method</p></li>
+<li><p><strong>path</strong> – Request path</p></li>
+<li><p><strong>key_id</strong> – The key identifier (e.g., “production”, “alice-laptop”)</p></li>
+<li><p><strong>status_code</strong> – HTTP status code</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-health_server">
+<span id="health-server-module"></span><h3>Health Server Module<a class="headerlink" href="#module-health_server" title="Link to this heading"></a></h3>
+<p>health_server.py — Ultra-lightweight health check server for RunPod</p>
+<p>This server runs on PORT_HEALTH (separate from the main gateway) and provides
+a minimal health check endpoint that doesn’t interact with the backend.</p>
+<p>This prevents RunPod’s periodic health checks from keeping the worker “active”
+and allows proper scale-to-zero behavior in serverless environments.</p>
+<dl class="simple">
+<dt>Environment Variables:</dt><dd><p>PORT_HEALTH - Port to listen on (default: 8001)</p>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="health_server.HealthHandler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">health_server.</span></span><span class="sig-name descname"><span class="pre">HealthHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">client_address</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/health_server.html#HealthHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#health_server.HealthHandler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseHTTPRequestHandler</span></code></p>
+<p>Minimal health check handler - just returns 200 OK.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="health_server.HealthHandler.do_GET">
+<span class="sig-name descname"><span class="pre">do_GET</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/health_server.html#HealthHandler.do_GET"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#health_server.HealthHandler.do_GET" title="Link to this definition"></a></dt>
+<dd><p>Handle GET requests - all paths return 200.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="health_server.HealthHandler.log_message">
+<span class="sig-name descname"><span class="pre">log_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/health_server.html#HealthHandler.log_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#health_server.HealthHandler.log_message" title="Link to this definition"></a></dt>
+<dd><p>Suppress request logging to reduce noise.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="health_server.main">
+<span class="sig-prename descclassname"><span class="pre">health_server.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/health_server.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#health_server.main" title="Link to this definition"></a></dt>
+<dd><p>Start the health server.</p>
+</dd></dl>
+
+</section>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="API_REFERENCE.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

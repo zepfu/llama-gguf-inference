@@ -1,0 +1,1276 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture (Auto-Generated) &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Repository Structure" href="REPO_MAP.html" />
+    <link rel="prev" title="Changelog" href="CHANGELOG.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CHANGELOG.html#unreleased">Unreleased</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#id1">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#id2">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#id3">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architecture (Auto-Generated)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/auto/ARCHITECTURE_AUTO.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="architecture-auto-generated">
+<h1>Architecture (Auto-Generated)<a class="headerlink" href="#architecture-auto-generated" title="Link to this heading"></a></h1>
+<p><strong>Generated:</strong> 2026-02-13 11:17:10 <strong>Project:</strong> /home/runner/work/llama-gguf-inference/llama-gguf-inference</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Analyzed <strong>10</strong> Python modules containing:</p>
+<ul class="simple">
+<li><p><strong>32</strong> classes</p></li>
+<li><p><strong>211</strong> functions</p></li>
+<li><p><strong>0</strong> async functions</p></li>
+</ul>
+<section id="detected-patterns">
+<h3>Detected Patterns<a class="headerlink" href="#detected-patterns" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>❌ <strong>Api</strong></p></li>
+<li><p>❌ <strong>Async</strong></p></li>
+<li><p>✅ <strong>Cli</strong></p></li>
+<li><p>❌ <strong>Database</strong></p></li>
+<li><p>❌ <strong>Dataclass</strong></p></li>
+<li><p>❌ <strong>Orm</strong></p></li>
+<li><p>✅ <strong>Server</strong></p></li>
+<li><p>❌ <strong>State Machine</strong></p></li>
+<li><p>✅ <strong>Workflows</strong></p></li>
+</ul>
+</section>
+</section>
+<section id="flowchart-diagram">
+<h2>Flowchart Diagram<a class="headerlink" href="#flowchart-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        flowchart TD
+    Start([Start]) --&gt; Init[Initialize]
+    Init --&gt; testuptimereflectsstarttime[test_uptime_reflects_start_time]
+    Init --&gt; testqueuedepthstartsatzero[test_queue_depth_starts_at_zero]
+    testqueuedepthstartsatzero --&gt; End([End])
+    </pre></section>
+<section id="state-diagram">
+<h2>State Diagram<a class="headerlink" href="#state-diagram" title="Link to this heading"></a></h2>
+<p><em>State diagram not applicable for this codebase.</em></p>
+</section>
+<section id="sequence-diagram">
+<h2>Sequence Diagram<a class="headerlink" href="#sequence-diagram" title="Link to this heading"></a></h2>
+<p><em>Sequence diagram not applicable for this codebase.</em></p>
+</section>
+<section id="architecture-diagram">
+<h2>Architecture Diagram<a class="headerlink" href="#architecture-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        architecture-beta
+    group tests(cloud)[Tests]
+        service tests_test_auth(server)[test_auth] in tests
+        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
+        service tests_conftest(server)[conftest] in tests
+    end
+    group docs(cloud)[Docs]
+        service docs_conf(server)[conf] in docs
+    end
+    group scripts(cloud)[Scripts]
+        service scripts_health_server(server)[health_server] in scripts
+        service scripts_key_mgmt(server)[key_mgmt] in scripts
+        service scripts_auth(server)[auth] in scripts
+    end
+    </pre></section>
+<section id="er-diagram">
+<h2>Er Diagram<a class="headerlink" href="#er-diagram" title="Link to this heading"></a></h2>
+<p><em>Er diagram not applicable for this codebase.</em></p>
+</section>
+<section id="class-diagram">
+<h2>Class Diagram<a class="headerlink" href="#class-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        classDiagram
+    class tests_test_auth_TestKeyFormatValidation {
+        +test_valid_key(noauth_env, monkeypatch)
+        +test_key_too_short(noauth_env, monkeypatch)
+        +test_key_too_long(noauth_env, monkeypatch)
+        +test_key_min_length(noauth_env, monkeypatch)
+        +test_key_max_length(noauth_env, monkeypatch)
+    }
+    class tests_test_auth_TestLoadKeys {
+        +test_load_valid_keys(keys_file, monkeypatch)
+        +test_load_disabled(keys_file, monkeypatch)
+        +test_load_missing_file(monkeypatch)
+        +test_load_empty_file(empty_keys_file, monkeypatch)
+        +test_load_with_comments(tmp_path, monkeypatch)
+    }
+    class tests_test_auth_TestValidate {
+        +test_auth_disabled(monkeypatch)
+        +test_no_keys_configured_rejects(monkeypatch)
+        +test_missing_auth_header(keys_file, monkeypatch)
+        +test_empty_auth_header(keys_file, monkeypatch)
+        +test_bearer_prefix(keys_file, monkeypatch)
+    }
+    class tests_test_auth_TestRateLimiting {
+        +test_under_limit(keys_file, monkeypatch)
+        +test_over_limit(keys_file, monkeypatch)
+        +test_different_keys_separate_limits(keys_file, monkeypatch)
+        +test_rate_limit_resets(keys_file, monkeypatch)
+    }
+    class tests_test_auth_TestMetrics {
+        +test_empty_metrics(noauth_env, monkeypatch)
+        +test_metrics_after_requests(keys_file, monkeypatch)
+    }
+    class tests_test_key_mgmt_TestValidateKeyId {
+        +test_valid_alphanumeric()
+        +test_valid_with_hyphens()
+        +test_valid_with_underscores()
+        +test_valid_mixed()
+        +test_valid_single_char()
+    }
+    class tests_test_key_mgmt_TestGenerateApiKey {
+        +test_starts_with_prefix()
+        +test_correct_length()
+        +test_unique_keys()
+        +test_valid_characters()
+    }
+    class tests_test_key_mgmt_TestGenerate {
+        +test_generate_creates_key(tmp_path)
+        +test_generate_duplicate_name_fails(keys_file)
+        +test_generate_invalid_name_fails(tmp_path)
+        +test_generate_quiet_mode(tmp_path, capsys)
+        +test_generate_preserves_comments(keys_file)
+    }
+    class tests_test_key_mgmt_TestList {
+        +test_list_empty_file(empty_keys_file, capsys)
+        +test_list_with_keys(keys_file, capsys)
+        +test_list_never_shows_key_values(keys_file, capsys)
+        +test_list_missing_file(tmp_path, capsys)
+    }
+    class tests_test_key_mgmt_TestRemove {
+        +test_remove_existing_key(keys_file)
+        +test_remove_nonexistent_fails(keys_file)
+        +test_remove_preserves_comments(keys_file)
+        +test_remove_missing_file_fails(tmp_path)
+    }
+    class tests_test_key_mgmt_TestRotate {
+        +test_rotate_existing_key(keys_file)
+        +test_rotate_nonexistent_fails(keys_file)
+        +test_rotate_quiet_mode(keys_file, capsys)
+        +test_rotate_preserves_other_keys(keys_file)
+        +test_rotate_missing_file_fails(tmp_path)
+    }
+    class tests_test_key_mgmt_TestFilePermissions {
+        +test_file_permissions_after_generate(tmp_path)
+        +test_file_permissions_after_remove(keys_file)
+        +test_file_permissions_after_rotate(keys_file)
+    }
+    class tests_test_key_mgmt_TestAtomicWrite {
+        +test_atomic_write_creates_file(tmp_path)
+        +test_atomic_write_replaces_file(tmp_path)
+        +test_atomic_write_no_temp_files_left(tmp_path)
+        +test_atomic_write_permissions(tmp_path)
+        +test_atomic_write_creates_parent_dirs(tmp_path)
+    }
+    class tests_test_key_mgmt_TestCLIIntegration {
+        +test_cli_generate_and_list(tmp_path)
+        +test_cli_quiet_generate(tmp_path)
+        +test_cli_no_command_shows_help()
+        +test_cli_remove_and_verify(tmp_path)
+        +test_cli_rotate_and_verify(tmp_path)
+    }
+    class tests_test_gateway_TestGetCorsHeaders {
+        +test_cors_disabled_returns_empty(monkeypatch)
+        +test_cors_wildcard_returns_star(monkeypatch)
+        +test_cors_specific_origin_allowed(monkeypatch)
+        +test_cors_specific_origin_denied(monkeypatch)
+        +test_cors_multiple_origins(monkeypatch)
+    }
+    </pre></section>
+<section id="journey-diagram">
+<h2>Journey Diagram<a class="headerlink" href="#journey-diagram" title="Link to this heading"></a></h2>
+<p><em>Journey diagram not applicable for this codebase.</em></p>
+</section>
+<section id="mindmap-diagram">
+<h2>Mindmap Diagram<a class="headerlink" href="#mindmap-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        mindmap
+  root((Project))
+    docs
+      conf
+    scripts
+      health_server
+      key_mgmt
+      auth
+      gateway
+    tests
+      test_auth
+      test_key_mgmt
+      conftest
+      test_gateway
+      __init__
+    </pre></section>
+<section id="workflow-pipeline-diagram">
+<h2>Workflow Pipeline Diagram<a class="headerlink" href="#workflow-pipeline-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        flowchart TD
+
+    Push --&gt;|Doc Changes| Docs[Build Docs]
+    Docs --&gt; docs[Documentation]
+
+    Tag[Release Tag] --&gt; Release[Release Process]
+    Release --&gt; release[Release]
+    </pre></section>
+<section id="workflow-triggers-diagram">
+<h2>Workflow Triggers Diagram<a class="headerlink" href="#workflow-triggers-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        graph TD
+    docs[Documentation]
+    ci[CI]
+    release[Release]
+    cd[CD]
+    </pre></section>
+<section id="workflow-jobs-diagram">
+<h2>Workflow Jobs Diagram<a class="headerlink" href="#workflow-jobs-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        flowchart LR
+    subgraph ci[CI]
+        pre_commit[pre-commit]
+        python_standards[python-standards]
+        shell_standards[shell-standards]
+        quality_checks[quality-checks]
+        config_validation[config-validation]
+        makefile_validation[makefile-validation]
+        unit_tests[unit-tests]
+        validate_project[validate-project]
+        docker_build[docker-build]
+        integration_test[integration-test]
+        python_standards --&gt; unit_tests
+        config_validation --&gt; validate_project
+        python_standards --&gt; docker_build
+        shell_standards --&gt; docker_build
+        quality_checks --&gt; docker_build
+        validate_project --&gt; docker_build
+        docker_build --&gt; integration_test
+    end
+    </pre></section>
+<section id="development-workflows">
+<h2>Development Workflows<a class="headerlink" href="#development-workflows" title="Link to this heading"></a></h2>
+<section id="github-workflows-summary">
+<h3>GitHub Workflows Summary<a class="headerlink" href="#github-workflows-summary" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Workflow</p></th>
+<th class="head"><p>Triggers</p></th>
+<th class="head"><p>Jobs</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CD</p></td>
+<td><p></p></td>
+<td><p>publish-cuda, publish-cpu</p></td>
+</tr>
+<tr class="row-odd"><td><p>CI</p></td>
+<td><p></p></td>
+<td><p>pre-commit, python-standards, shell-standards…</p></td>
+</tr>
+<tr class="row-even"><td><p>Documentation</p></td>
+<td><p></p></td>
+<td><p>build-docs, validate-rtd, update-docs</p></td>
+</tr>
+<tr class="row-odd"><td><p>Release</p></td>
+<td><p></p></td>
+<td><p>prepare, release-cuda, release-cpu…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="module-summary">
+<h2>Module Summary<a class="headerlink" href="#module-summary" title="Link to this heading"></a></h2>
+<section id="docs-conf">
+<h3><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code><a class="headerlink" href="#docs-conf" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 0</p></li>
+<li><p><strong>Functions:</strong> 0</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="scripts-auth">
+<h3><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code><a class="headerlink" href="#scripts-auth" title="Link to this heading"></a></h3>
+<p>auth.py - API Key Authentication Module for Gateway</p>
+<p>File-based authentication system that enforces API keys while maintaining OpenAI compatibility. Uses key_id:api_key
+format for easy management and …</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 1</p></li>
+<li><p><strong>Functions:</strong> 8</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="scripts-gateway">
+<h3><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code><a class="headerlink" href="#scripts-gateway" title="Link to this heading"></a></h3>
+<p>gateway.py – Async HTTP gateway for llama.cpp llama-server</p>
+<p>Features:</p>
+<ul class="simple">
+<li><p>API key authentication with health endpoint exemption</p></li>
+<li><p>Proper SSE/streaming support for chat completions</p></li>
+<li><p>/ping and /health en…</p></li>
+<li><p><strong>Classes:</strong> 1</p></li>
+<li><p><strong>Functions:</strong> 9</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="scripts-health-server">
+<h3><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code><a class="headerlink" href="#scripts-health-server" title="Link to this heading"></a></h3>
+<p>health_server.py — Ultra-lightweight health check server for RunPod</p>
+<p>This server runs on PORT_HEALTH (separate from the main gateway) and provides a minimal health check endpoint that
+doesn’t interact…</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 1</p></li>
+<li><p><strong>Functions:</strong> 3</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="scripts-key-mgmt">
+<h3><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code><a class="headerlink" href="#scripts-key-mgmt" title="Link to this heading"></a></h3>
+<p>key_mgmt.py - API Key Management CLI for llama-gguf-inference</p>
+<p>Standalone CLI tool for managing API keys used by the gateway’s authentication system. Keys are stored in a flat file
+with the format: ke…</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 0</p></li>
+<li><p><strong>Functions:</strong> 13</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="tests-init">
+<h3><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code><a class="headerlink" href="#tests-init" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 0</p></li>
+<li><p><strong>Functions:</strong> 0</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="tests-conftest">
+<h3><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code><a class="headerlink" href="#tests-conftest" title="Link to this heading"></a></h3>
+<p>Shared test fixtures for auth module tests.</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 0</p></li>
+<li><p><strong>Functions:</strong> 4</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="tests-test-auth">
+<h3><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code><a class="headerlink" href="#tests-test-auth" title="Link to this heading"></a></h3>
+<p>Unit tests for scripts/auth.py - API Key Authentication Module.</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 5</p></li>
+<li><p><strong>Functions:</strong> 34</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="tests-test-gateway">
+<h3><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code><a class="headerlink" href="#tests-test-gateway" title="Link to this heading"></a></h3>
+<p>Unit tests for scripts/gateway.py - Gateway module (CORS, Prometheus metrics, queue).</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 36</p></li>
+<li><p><strong>Functions:</strong> 91</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+</section>
+<section id="tests-test-key-mgmt">
+<h3><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code><a class="headerlink" href="#tests-test-key-mgmt" title="Link to this heading"></a></h3>
+<p>Unit tests for scripts/key_mgmt.py - API Key Management CLI.</p>
+<ul class="simple">
+<li><p><strong>Classes:</strong> 9</p></li>
+<li><p><strong>Functions:</strong> 49</p></li>
+<li><p><strong>Async Functions:</strong> 0</p></li>
+</ul>
+<hr class="docutils" />
+<p><em>Generated by: <code class="docutils literal notranslate"><span class="pre">generate_architecture.py</span></code> from repo-standards</em></p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="CHANGELOG.html" class="btn btn-neutral float-left" title="Changelog" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="REPO_MAP.html" class="btn btn-neutral float-right" title="Repository Structure" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

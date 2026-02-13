@@ -1,0 +1,919 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workflow Registry &amp; Tool Coverage &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Repository Structure" href="REPO_MAP.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CHANGELOG.html#unreleased">Unreleased</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#id1">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#id2">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CHANGELOG.html#id3">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Workflow Registry &amp; Tool Coverage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/auto/WORKFLOW_REGISTRY.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="workflow-registry-tool-coverage">
+<h1>Workflow Registry &amp; Tool Coverage<a class="headerlink" href="#workflow-registry-tool-coverage" title="Link to this heading"></a></h1>
+<p><strong>Auto-generated:</strong> 2026-02-13 11:17:10</p>
+<blockquote>
+<div><p>Complete reference for all reusable workflows: what tools they run, their inputs, blocking vs. advisory behavior, and
+overlap with pre-commit.</p>
+</div></blockquote>
+<section id="how-to-use-this-document">
+<h2>How to Use This Document<a class="headerlink" href="#how-to-use-this-document" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Adopting workflows?</strong> Jump to <a class="reference internal" href="#recommended-adoption-profiles"><span class="xref myst">Recommended Adoption Profiles</span></a> to see which
+combination fits your project.</p></li>
+<li><p><strong>Debugging a CI failure?</strong> Find the failing workflow in the <a class="reference internal" href="#workflow-registry"><span class="xref myst">Workflow Registry</span></a> to see exactly
+which tools run and whether failures are blocking.</p></li>
+<li><p><strong>Choosing between pre-commit and CI?</strong> See the <a class="reference internal" href="#tool-coverage-matrix"><span class="xref myst">Tool Coverage Matrix</span></a> for the full overlap
+picture.</p></li>
+</ul>
+</section>
+<section id="pre-commit-vs-ci-how-they-work-together">
+<h2>Pre-commit vs. CI: How They Work Together<a class="headerlink" href="#pre-commit-vs-ci-how-they-work-together" title="Link to this heading"></a></h2>
+<p>Many tools appear in <strong>both</strong> pre-commit hooks and CI workflows. This is intentional — they serve different roles:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head"><p>Pre-commit (local)</p></th>
+<th class="head"><p>CI Workflows (remote)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>When</strong></p></td>
+<td><p>Before each commit</p></td>
+<td><p>On push / PR</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Mode</strong></p></td>
+<td><p>Fix-then-commit — auto-fix in place</p></td>
+<td><p>Check-only — report violations without modifying</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Scope</strong></p></td>
+<td><p>Staged files only</p></td>
+<td><p>Full repository</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Purpose</strong></p></td>
+<td><p>Fast feedback; prevent bad commits</p></td>
+<td><p>Enforcement gate; catches skipped hooks</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Failure</strong></p></td>
+<td><p>Blocks <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code> locally</p></td>
+<td><p>Blocks PR merge</p></td>
+</tr>
+</tbody>
+</table>
+<section id="why-the-overlap-matters">
+<h3>Why the overlap matters<a class="headerlink" href="#why-the-overlap-matters" title="Link to this heading"></a></h3>
+<p>A downstream repo should run <strong>both</strong> pre-commit and CI workflows. Pre-commit gives developers instant feedback and
+auto-fixes. CI is the safety net that guarantees standards are met regardless of local setup — someone who clones fresh,
+skips <code class="docutils literal notranslate"><span class="pre">pre-commit</span> <span class="pre">install</span></code>, or uses <code class="docutils literal notranslate"><span class="pre">--no-verify</span></code> will still be caught.</p>
+</section>
+<section id="tools-unique-to-each-context">
+<h3>Tools unique to each context<a class="headerlink" href="#tools-unique-to-each-context" title="Link to this heading"></a></h3>
+<p>Some tools only run in one context:</p>
+<ul class="simple">
+<li><p><strong>CI only:</strong> Vulture (dead code), PyLint unreachable-code checks, py_compile syntax validation, Docker build, Sphinx
+docs build. These are too slow or too noisy for a pre-commit hook.</p></li>
+<li><p><strong>Pre-commit only:</strong> hadolint (Dockerfile linting), file-hygiene hooks (trailing whitespace, EOF fixer, merge conflict
+detection, private key detection). These are fast fixers best run locally.</p></li>
+</ul>
+<p>See the <a class="reference internal" href="#tool-coverage-matrix"><span class="xref myst">Tool Coverage Matrix</span></a> below for the complete mapping.</p>
+</section>
+</section>
+<section id="workflow-registry">
+<h2>Workflow Registry<a class="headerlink" href="#workflow-registry" title="Link to this heading"></a></h2>
+</section>
+<section id="tool-coverage-matrix">
+<h2>Tool Coverage Matrix<a class="headerlink" href="#tool-coverage-matrix" title="Link to this heading"></a></h2>
+<p>Which tools run where — at a glance.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Tool</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>CI Workflow(s)</p></th>
+<th class="head"><p>Pre-commit</p></th>
+<th class="head"><p>Unique to</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>actionlint</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>autoflake</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>bandit</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>black</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>check-added-large-files</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>check-case-conflict</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>check-executables-have-shebangs</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>check-json</p></td>
+<td><p>json-syntax</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>check-merge-conflict</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>check-shebang-scripts-are-executable</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>check-symlinks</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>check-toml</p></td>
+<td><p>toml-syntax</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>check-yaml</p></td>
+<td><p>yaml-syntax</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>checkmake</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>destroyed-symlinks</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>detect-private-key</p></td>
+<td><p>security</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>end-of-file-fixer</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>eradicate</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>fix-byte-order-marker</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>flake8</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>hadolint</p></td>
+<td><p>docker-linting</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>isort</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>mdformat</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>mixed-line-ending</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>mypy</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>pydocstyle</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>shellcheck</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-odd"><td><p>trailing-whitespace</p></td>
+<td><p>file-hygiene</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+<tr class="row-even"><td><p>yamllint</p></td>
+<td><p>other</p></td>
+<td><p>—</p></td>
+<td><p>✅</p></td>
+<td><p>pre-commit only</p></td>
+</tr>
+</tbody>
+</table>
+<section id="version-comparison-tools-in-both-ci-and-pre-commit">
+<h3>Version Comparison (tools in both CI and pre-commit)<a class="headerlink" href="#version-comparison-tools-in-both-ci-and-pre-commit" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Tool</p></th>
+<th class="head"><p>CI Version</p></th>
+<th class="head"><p>Pre-commit Rev</p></th>
+</tr>
+</thead>
+</table>
+<blockquote>
+<div><p><strong>⚠️ Version drift risk:</strong> CI workflows install tools via <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> without version pins, so they always get the
+latest release. Pre-commit pins specific revisions. A tool releasing a breaking change can cause CI to fail while
+pre-commit passes locally (or vice versa). If you hit this, check whether the versions in these two columns have
+diverged. Downstream repos that need stability should pin tool versions in their CI config or rely on pre-commit as
+the single source of truth for tool versions.</p>
+</div></blockquote>
+</section>
+<section id="scope-differences-between-ci-and-pre-commit">
+<h3>Scope Differences Between CI and Pre-commit<a class="headerlink" href="#scope-differences-between-ci-and-pre-commit" title="Link to this heading"></a></h3>
+<p>Some tools scan different file sets in CI vs. pre-commit, which can produce different results:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Tool</p></th>
+<th class="head"><p>CI Scope</p></th>
+<th class="head"><p>Pre-commit Scope</p></th>
+<th class="head"><p>Impact</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Bandit</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-r</span> <span class="pre">.</span></code> with <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> exclude_dirs</p></td>
+<td><p>All staged <code class="docutils literal notranslate"><span class="pre">.py</span></code> files with <code class="docutils literal notranslate"><span class="pre">-c</span> <span class="pre">pyproject.toml</span></code></p></td>
+<td><p>CI scans the full tree (minus excludes); pre-commit only scans staged files. New <code class="docutils literal notranslate"><span class="pre">.py</span></code> files outside <code class="docutils literal notranslate"><span class="pre">scripts/</span></code> may be missed locally until staged.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Black, isort</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">.</span> <span class="pre">(all</span> <span class="pre">Python)</span></code></p></td>
+<td><p>Staged <code class="docutils literal notranslate"><span class="pre">.py</span></code> files only</p></td>
+<td><p>CI catches unformatted files that weren’t staged in the committing developer’s working tree.</p></td>
+</tr>
+<tr class="row-even"><td><p>ShellCheck</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">**/*.sh</span></code> (full tree)</p></td>
+<td><p>Staged <code class="docutils literal notranslate"><span class="pre">.sh</span></code> files only</p></td>
+<td><p>Same pattern — CI is exhaustive, pre-commit is incremental.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Autoflake, Eradicate</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scripts/</span></code> (CI check-only)</p></td>
+<td><p>All staged <code class="docutils literal notranslate"><span class="pre">.py</span></code> (fix in-place)</p></td>
+<td><p>CI only checks <code class="docutils literal notranslate"><span class="pre">scripts/</span></code>; pre-commit fixes across all staged Python files.</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p>For most repos this is fine — pre-commit catches issues incrementally and CI validates the full tree. But if CI fails
+on a file that pre-commit never saw, scope difference is the likely cause.</p>
+</div></blockquote>
+</section>
+</section>
+<section id="blocking-vs-advisory-behavior">
+<h2>Blocking vs. Advisory Behavior<a class="headerlink" href="#blocking-vs-advisory-behavior" title="Link to this heading"></a></h2>
+<p>Understanding which tools will block your PR and which are informational.</p>
+<section id="blocking-will-fail-your-pr">
+<h3>Blocking (will fail your PR)<a class="headerlink" href="#blocking-will-fail-your-pr" title="Link to this heading"></a></h3>
+</section>
+<section id="advisory-warnings-only-will-not-fail">
+<h3>Advisory (warnings only, will not fail)<a class="headerlink" href="#advisory-warnings-only-will-not-fail" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="recommended-adoption-profiles">
+<h2>Recommended Adoption Profiles<a class="headerlink" href="#recommended-adoption-profiles" title="Link to this heading"></a></h2>
+<section id="python-project-minimal">
+<h3>Python Project (Minimal)<a class="headerlink" href="#python-project-minimal" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">python-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-python-ci.yml@main</span>
+<span class="w">  </span><span class="nt">pre-commit</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main</span>
+</pre></div>
+</div>
+<p><strong>What you get:</strong> Black, isort, Flake8, syntax validation via CI; full hook suite locally via pre-commit.</p>
+<p><strong>Overlap:</strong> Black, isort, Flake8 run in both <code class="docutils literal notranslate"><span class="pre">reusable-python-ci.yml</span></code> and pre-commit. See
+<a class="reference internal" href="#pre-commit-vs-ci-how-they-work-together"><span class="xref myst">Pre-commit vs. CI</span></a> for why both are recommended.</p>
+</section>
+<hr class="docutils" />
+<section id="python-project-comprehensive">
+<h3>Python Project (Comprehensive)<a class="headerlink" href="#python-project-comprehensive" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">python-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-python-ci.yml@main</span>
+<span class="w">  </span><span class="nt">quality-checks</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-quality-checks.yml@main</span>
+<span class="w">  </span><span class="nt">pre-commit</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main</span>
+<span class="w">  </span><span class="nt">config-validation</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main</span>
+</pre></div>
+</div>
+<p><strong>What you get:</strong> Everything from minimal, plus Bandit security scanning, mypy type checking, Vulture dead-code
+detection, pydocstyle, actionlint, and mdformat.</p>
+<p><strong>Overlap:</strong> <code class="docutils literal notranslate"><span class="pre">reusable-quality-checks.yml</span></code> runs Bandit, mypy, pydocstyle, actionlint, Autoflake, Eradicate, and mdformat
+— all of which also run via pre-commit hooks. The CI versions provide granular per-job visibility and add Vulture and
+PyLint unreachable-code checks (not in pre-commit). See <a class="reference internal" href="#pre-commit-vs-ci-how-they-work-together"><span class="xref myst">Pre-commit vs. CI</span></a>
+for why both are recommended.</p>
+</section>
+<hr class="docutils" />
+<section id="shell-project">
+<h3>Shell Project<a class="headerlink" href="#shell-project" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">shell-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-shell-ci.yml@main</span>
+<span class="w">  </span><span class="nt">pre-commit</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main</span>
+<span class="w">  </span><span class="nt">config-validation</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="python-docker-project">
+<h3>Python + Docker Project<a class="headerlink" href="#python-docker-project" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">python-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-python-ci.yml@main</span>
+<span class="w">  </span><span class="nt">quality-checks</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-quality-checks.yml@main</span>
+<span class="w">  </span><span class="nt">shell-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-shell-ci.yml@main</span>
+<span class="w">  </span><span class="nt">docker-build</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-docker-build.yml@main</span>
+<span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">python-standards</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">shell-standards</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">pre-commit</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main</span>
+<span class="w">  </span><span class="nt">config-validation</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main</span>
+</pre></div>
+</div>
+<p><strong>Note:</strong> hadolint (Dockerfile linting) is in pre-commit only — there is no dedicated CI workflow for it yet. Docker
+build validation happens via <code class="docutils literal notranslate"><span class="pre">reusable-docker-build.yml</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="full-stack-all-workflows">
+<h3>Full Stack (All Workflows)<a class="headerlink" href="#full-stack-all-workflows" title="Link to this heading"></a></h3>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">jobs</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">config-validation</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-config-validation.yml@main</span>
+<span class="w">  </span><span class="nt">python-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-python-ci.yml@main</span>
+<span class="w">  </span><span class="nt">shell-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-shell-ci.yml@main</span>
+<span class="w">  </span><span class="nt">yaml-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-yaml-ci.yml@main</span>
+<span class="w">  </span><span class="nt">makefile-standards</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-makefile-ci.yml@main</span>
+<span class="w">  </span><span class="nt">quality-checks</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-quality-checks.yml@main</span>
+<span class="w">  </span><span class="nt">docker-build</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-docker-build.yml@main</span>
+<span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">python-standards</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">shell-standards</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">pre-commit</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-pre-commit.yml@main</span>
+<span class="w">  </span><span class="nt">update-docs</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">zepfu/repo-standards/.github/workflows/reusable-update-docs.yml@main</span>
+<span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">python-standards</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">shell-standards</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="workflow-version-defaults">
+<h2>Workflow Version Defaults<a class="headerlink" href="#workflow-version-defaults" title="Link to this heading"></a></h2>
+<p>Key input defaults across workflows. Pin these in your CI config if you need stability — defaults may change when
+repo-standards is updated.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Workflow</p></th>
+<th class="head"><p>Input</p></th>
+<th class="head"><p>Current Default</p></th>
+</tr>
+</thead>
+</table>
+<blockquote>
+<div><p><strong>Tip:</strong> If your project requires Python 3.11, pass <code class="docutils literal notranslate"><span class="pre">python-version:</span> <span class="pre">'3.11'</span></code> explicitly rather than relying on the
+default, which is currently <code class="docutils literal notranslate"><span class="pre">3.13</span></code>.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p><em>This file is auto-generated by <code class="docutils literal notranslate"><span class="pre">generate_workflow_registry.py</span></code> from repo-standards.</em> <em>Manual edits will be
+overwritten.</em></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="REPO_MAP.html" class="btn btn-neutral float-left" title="Repository Structure" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

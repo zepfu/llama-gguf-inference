@@ -1,0 +1,1422 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration Guide &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Deployment Guide" href="DEPLOYMENT.html" />
+    <link rel="prev" title="Authentication Guide" href="AUTHENTICATION.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="auto/CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#unreleased">Unreleased</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id1">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id2">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id3">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Configuration Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/CONFIGURATION.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="configuration-guide">
+<h1>Configuration Guide<a class="headerlink" href="#configuration-guide" title="Link to this heading"></a></h1>
+<p>Complete reference for all configuration options.</p>
+<section id="environment-variables">
+<h2>Environment Variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h2>
+<section id="authentication-configuration">
+<h3>Authentication Configuration<a class="headerlink" href="#authentication-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AUTH_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Enable/disable API key authentication</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AUTH_KEYS_FILE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$DATA_DIR/api_keys.txt</span></code></p></td>
+<td><p>Path to API keys file</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_REQUESTS_PER_MINUTE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+<td><p>Rate limit per API key</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Authentication Details:</strong></p>
+<p>API key authentication is enabled by default to secure your endpoint. When enabled:</p>
+<ul class="simple">
+<li><p>API endpoints (<code class="docutils literal notranslate"><span class="pre">/v1/*</span></code>) require valid API key via <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">Bearer</span> <span class="pre">&lt;key&gt;</span></code> header</p></li>
+<li><p>Health endpoints (<code class="docutils literal notranslate"><span class="pre">/ping</span></code>, <code class="docutils literal notranslate"><span class="pre">/health</span></code>, <code class="docutils literal notranslate"><span class="pre">/metrics</span></code>) work without authentication</p></li>
+<li><p>Rate limiting is enforced per key_id</p></li>
+</ul>
+<p><strong>API Keys File Format:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># /data/api_keys.txt</span>
+<span class="c1"># Format: key_id:api_key</span>
+
+<span class="n">production</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">prod</span><span class="o">-</span><span class="n">abc123def456ghi789</span>
+<span class="n">development</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">dev</span><span class="o">-</span><span class="n">xyz789abc123def456</span>
+<span class="n">alice</span><span class="o">-</span><span class="n">laptop</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">alice</span><span class="o">-</span><span class="n">abc123</span>
+<span class="n">testing</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">test</span><span class="o">-</span><span class="mi">12345</span>
+
+<span class="c1"># Generate keys with:</span>
+<span class="c1"># openssl rand -hex 32</span>
+</pre></div>
+</div>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable auth with default file location</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="c1"># Uses: $DATA_DIR/api_keys.txt</span>
+
+<span class="c1"># Custom key file location</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/mnt/secrets/my-keys.txt
+
+<span class="c1"># Disable auth (testing only)</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">false</span>
+
+<span class="c1"># Custom rate limit</span>
+<span class="nv">MAX_REQUESTS_PER_MINUTE</span><span class="o">=</span><span class="m">200</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="AUTHENTICATION.html"><span class="std std-doc">AUTHENTICATION.md</span></a> for complete authentication guide.</p>
+</section>
+<hr class="docutils" />
+<section id="hot-reload-api-keys">
+<h3>Hot-Reload API Keys<a class="headerlink" href="#hot-reload-api-keys" title="Link to this heading"></a></h3>
+<p>API keys can be reloaded without restarting the container. This is useful for key rotation, adding new keys, or revoking
+compromised keys in production.</p>
+<p><strong>Two reload methods:</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>How</p></th>
+<th class="head"><p>When to Use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>SIGHUP signal</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">kill</span> <span class="pre">-s</span> <span class="pre">HUP</span> <span class="pre">&lt;container&gt;</span></code></p></td>
+<td><p>Automation, scripted rotation</p></td>
+</tr>
+<tr class="row-odd"><td><p>POST /reload</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">curl</span> <span class="pre">-X</span> <span class="pre">POST</span> <span class="pre">-H</span> <span class="pre">&quot;Authorization:</span> <span class="pre">Bearer</span> <span class="pre">&lt;key&gt;&quot;</span> <span class="pre">http://localhost:8000/reload</span></code></p></td>
+<td><p>Ad-hoc reload, health checks</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>SIGHUP example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From the host machine</span>
+docker<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-s<span class="w"> </span>HUP<span class="w"> </span><span class="k">$(</span>docker<span class="w"> </span>ps<span class="w"> </span>-q<span class="w"> </span>--filter<span class="w"> </span><span class="nv">ancestor</span><span class="o">=</span>ghcr.io/zepfu/llama-gguf-inference<span class="k">)</span>
+
+<span class="c1"># Or by container name</span>
+docker<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-s<span class="w"> </span>HUP<span class="w"> </span>my-inference-container
+</pre></div>
+</div>
+<p><strong>POST /reload example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Requires a valid API key (when AUTH_ENABLED=true)</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer sk-prod-abc123def456&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://localhost:8000/reload
+
+<span class="c1"># Response:</span>
+<span class="c1"># {&quot;status&quot;: &quot;ok&quot;, &quot;keys_loaded&quot;: 3}</span>
+</pre></div>
+</div>
+<p><strong>Behavior:</strong></p>
+<ul class="simple">
+<li><p>Keys are replaced atomically – either all keys update or none do</p></li>
+<li><p>Rate limiter state (request timestamps) is preserved across reloads</p></li>
+<li><p>If the keys file is missing or unreadable, the validator loads 0 keys (fail-closed: all requests rejected)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">AUTH_KEYS_FILE</span></code> environment variable is re-read on each reload, so you can point to a new file at runtime</p></li>
+<li><p>The gateway never crashes on reload failure; it logs the error and continues serving with the previous key set</p></li>
+</ul>
+<p><strong>Key rotation workflow:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Add new key to the file</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;new-client:sk-new-</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span><span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/data/api_keys.txt
+
+<span class="c1"># 2. Reload keys</span>
+docker<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-s<span class="w"> </span>HUP<span class="w"> </span>my-inference-container
+
+<span class="c1"># 3. Verify new key count in logs</span>
+docker<span class="w"> </span>logs<span class="w"> </span>my-inference-container<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-5
+<span class="c1"># ... &quot;API keys reloaded via SIGHUP: 4 key(s) loaded&quot;</span>
+
+<span class="c1"># 4. Update clients to use new key</span>
+
+<span class="c1"># 5. Remove old key from file and reload again</span>
+sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;/old-client/d&#39;</span><span class="w"> </span>/data/api_keys.txt
+docker<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-s<span class="w"> </span>HUP<span class="w"> </span>my-inference-container
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="cors-configuration">
+<h3>CORS Configuration<a class="headerlink" href="#cors-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CORS_ORIGINS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Comma-separated allowed origins (empty = disabled)</p></td>
+</tr>
+</tbody>
+</table>
+<p>When set, the gateway injects CORS headers into all responses and handles <code class="docutils literal notranslate"><span class="pre">OPTIONS</span></code> preflight requests automatically
+(204 No Content, no auth required).</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Disabled (default)</span>
+<span class="nv">CORS_ORIGINS</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+
+<span class="c1"># Allow a single origin</span>
+<span class="nv">CORS_ORIGINS</span><span class="o">=</span>https://my-app.example.com
+
+<span class="c1"># Allow multiple origins</span>
+<span class="nv">CORS_ORIGINS</span><span class="o">=</span>https://app.example.com,https://staging.example.com
+
+<span class="c1"># Allow all origins (wildcard)</span>
+<span class="nv">CORS_ORIGINS</span><span class="o">=</span>*
+</pre></div>
+</div>
+<p><strong>Injected headers:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Access</span><span class="o">-</span><span class="n">Control</span><span class="o">-</span><span class="n">Allow</span><span class="o">-</span><span class="n">Origin</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">origin</span> <span class="ow">or</span> <span class="o">*&gt;</span>
+<span class="n">Access</span><span class="o">-</span><span class="n">Control</span><span class="o">-</span><span class="n">Allow</span><span class="o">-</span><span class="n">Methods</span><span class="p">:</span> <span class="n">GET</span><span class="p">,</span> <span class="n">POST</span><span class="p">,</span> <span class="n">OPTIONS</span>
+<span class="n">Access</span><span class="o">-</span><span class="n">Control</span><span class="o">-</span><span class="n">Allow</span><span class="o">-</span><span class="n">Headers</span><span class="p">:</span> <span class="n">Authorization</span><span class="p">,</span> <span class="n">Content</span><span class="o">-</span><span class="n">Type</span>
+<span class="n">Access</span><span class="o">-</span><span class="n">Control</span><span class="o">-</span><span class="n">Max</span><span class="o">-</span><span class="n">Age</span><span class="p">:</span> <span class="mi">86400</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="request-timeouts">
+<h3>Request Timeouts<a class="headerlink" href="#request-timeouts" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">REQUEST_TIMEOUT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">300</span></code></p></td>
+<td><p>Total request timeout in seconds (5 minutes)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BACKEND_CONNECT_TIMEOUT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10</span></code></p></td>
+<td><p>Backend TCP connect timeout in seconds</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CLIENT_HEADER_TIMEOUT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">30</span></code></p></td>
+<td><p>Client header/body read timeout in seconds</p></td>
+</tr>
+</tbody>
+</table>
+<p>The gateway enforces three separate timeouts:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">REQUEST_TIMEOUT</span></code></strong> – Covers the entire backend interaction after the TCP connection is established: sending the
+request, reading response headers, and streaming the response body. If this timeout is exceeded, the gateway returns
+<code class="docutils literal notranslate"><span class="pre">504</span> <span class="pre">Gateway</span> <span class="pre">Timeout</span></code> in OpenAI error format. Set this high enough for your longest inference requests (large
+generation tasks can take several minutes).</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">BACKEND_CONNECT_TIMEOUT</span></code></strong> – Covers only the initial TCP connection to the llama-server backend. If the backend is
+unreachable or slow to accept connections, the gateway returns <code class="docutils literal notranslate"><span class="pre">502</span> <span class="pre">Bad</span> <span class="pre">Gateway</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">CLIENT_HEADER_TIMEOUT</span></code></strong> – Covers reading the HTTP request line, headers, and body from the client. Protects
+against slowloris-style attacks.</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Defaults (suitable for most deployments)</span>
+<span class="nv">REQUEST_TIMEOUT</span><span class="o">=</span><span class="m">300</span>
+<span class="nv">BACKEND_CONNECT_TIMEOUT</span><span class="o">=</span><span class="m">10</span>
+<span class="nv">CLIENT_HEADER_TIMEOUT</span><span class="o">=</span><span class="m">30</span>
+
+<span class="c1"># Long inference tasks (e.g., large context generation)</span>
+<span class="nv">REQUEST_TIMEOUT</span><span class="o">=</span><span class="m">600</span>
+
+<span class="c1"># Faster failure on backend issues</span>
+<span class="nv">BACKEND_CONNECT_TIMEOUT</span><span class="o">=</span><span class="m">5</span>
+
+<span class="c1"># Stricter client timeouts</span>
+<span class="nv">CLIENT_HEADER_TIMEOUT</span><span class="o">=</span><span class="m">15</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="concurrency-control">
+<h3>Concurrency Control<a class="headerlink" href="#concurrency-control" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_CONCURRENT_REQUESTS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Max simultaneous requests forwarded to the backend</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_QUEUE_SIZE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Max requests waiting in queue (0 = unlimited)</p></td>
+</tr>
+</tbody>
+</table>
+<p>The gateway queues incoming API requests and forwards them to the llama-server backend with bounded concurrency. Health
+endpoints (<code class="docutils literal notranslate"><span class="pre">/ping</span></code>, <code class="docutils literal notranslate"><span class="pre">/health</span></code>, <code class="docutils literal notranslate"><span class="pre">/metrics</span></code>) bypass the queue entirely.</p>
+<p>When the queue is full, the gateway returns <code class="docutils literal notranslate"><span class="pre">503</span> <span class="pre">Service</span> <span class="pre">Unavailable</span></code> with a <code class="docutils literal notranslate"><span class="pre">Retry-After:</span> <span class="pre">5</span></code> header.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Default: single request at a time, unlimited queue</span>
+<span class="nv">MAX_CONCURRENT_REQUESTS</span><span class="o">=</span><span class="m">1</span>
+<span class="nv">MAX_QUEUE_SIZE</span><span class="o">=</span><span class="m">0</span>
+
+<span class="c1"># Allow 4 concurrent requests, queue up to 20</span>
+<span class="nv">MAX_CONCURRENT_REQUESTS</span><span class="o">=</span><span class="m">4</span>
+<span class="nv">MAX_QUEUE_SIZE</span><span class="o">=</span><span class="m">20</span>
+
+<span class="c1"># High throughput with bounded queue</span>
+<span class="nv">MAX_CONCURRENT_REQUESTS</span><span class="o">=</span><span class="m">8</span>
+<span class="nv">MAX_QUEUE_SIZE</span><span class="o">=</span><span class="m">50</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">/health</span></code> endpoint includes a <code class="docutils literal notranslate"><span class="pre">queue</span></code> section showing current state:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;queue&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;max_concurrent&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;max_queue_size&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;active&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;waiting&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">/metrics</span></code> endpoint includes <code class="docutils literal notranslate"><span class="pre">queue_depth</span></code>, <code class="docutils literal notranslate"><span class="pre">queue_rejections</span></code>, and <code class="docutils literal notranslate"><span class="pre">queue_wait_seconds_total</span></code>.</p>
+</section>
+<hr class="docutils" />
+<section id="security-limits">
+<h3>Security Limits<a class="headerlink" href="#security-limits" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_REQUEST_BODY_SIZE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10485760</span></code> (10MB)</p></td>
+<td><p>Maximum request body size in bytes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_HEADERS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">64</span></code></p></td>
+<td><p>Maximum number of request headers</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_HEADER_LINE_SIZE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8192</span></code> (8KB)</p></td>
+<td><p>Maximum size of a single header line in bytes</p></td>
+</tr>
+</tbody>
+</table>
+<p>The gateway enforces request size limits to prevent memory exhaustion and header flooding attacks. Requests exceeding
+these limits receive an error response before any body data is read.</p>
+<ul class="simple">
+<li><p><strong>413 Payload Too Large</strong> — returned when <code class="docutils literal notranslate"><span class="pre">Content-Length</span></code> exceeds <code class="docutils literal notranslate"><span class="pre">MAX_REQUEST_BODY_SIZE</span></code></p></li>
+<li><p><strong>431 Request Header Fields Too Large</strong> — returned when header count exceeds <code class="docutils literal notranslate"><span class="pre">MAX_HEADERS</span></code> or a single header line
+exceeds <code class="docutils literal notranslate"><span class="pre">MAX_HEADER_LINE_SIZE</span></code></p></li>
+</ul>
+<p>Health endpoints (<code class="docutils literal notranslate"><span class="pre">/ping</span></code>, <code class="docutils literal notranslate"><span class="pre">/health</span></code>, <code class="docutils literal notranslate"><span class="pre">/metrics</span></code>) are subject to header limits but not body size limits (they have no
+request body).</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Defaults (suitable for most deployments)</span>
+<span class="nv">MAX_REQUEST_BODY_SIZE</span><span class="o">=</span><span class="m">10485760</span>
+<span class="nv">MAX_HEADERS</span><span class="o">=</span><span class="m">64</span>
+<span class="nv">MAX_HEADER_LINE_SIZE</span><span class="o">=</span><span class="m">8192</span>
+
+<span class="c1"># Increase body limit for large prompts</span>
+<span class="nv">MAX_REQUEST_BODY_SIZE</span><span class="o">=</span><span class="m">52428800</span><span class="w">  </span><span class="c1"># 50MB</span>
+
+<span class="c1"># Stricter header limits</span>
+<span class="nv">MAX_HEADERS</span><span class="o">=</span><span class="m">32</span>
+<span class="nv">MAX_HEADER_LINE_SIZE</span><span class="o">=</span><span class="m">4096</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="data-directory">
+<h3>Data Directory<a class="headerlink" href="#data-directory" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DATA_DIR</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/data</span></code></p></td>
+<td><p>Base directory for models and logs</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Auto-detection:</strong> If <code class="docutils literal notranslate"><span class="pre">DATA_DIR</span></code> is not set and <code class="docutils literal notranslate"><span class="pre">/data</span></code> doesn’t exist, the container checks for:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/runpod-volume</span></code> (RunPod Serverless)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/workspace</span></code> (RunPod Pods, Vast.ai)</p></li>
+</ol>
+<p><strong>Platform examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Local Docker</span>
+<span class="nv">DATA_DIR</span><span class="o">=</span>/data
+<span class="c1"># Mount: -v /path/to/data:/data</span>
+
+<span class="c1"># RunPod Serverless (auto-detected)</span>
+<span class="c1"># Uses /runpod-volume automatically</span>
+
+<span class="c1"># Custom path</span>
+<span class="nv">DATA_DIR</span><span class="o">=</span>/mnt/storage
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="model-configuration">
+<h3>Model Configuration<a class="headerlink" href="#model-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Required</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MODEL_NAME</span></code></p></td>
+<td><p>Yes*</p></td>
+<td><p>—</p></td>
+<td><p>Model filename in MODELS_DIR</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MODEL_PATH</span></code></p></td>
+<td><p>Yes*</p></td>
+<td><p>—</p></td>
+<td><p>Full absolute path to model file</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MODELS_DIR</span></code></p></td>
+<td><p>No</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$DATA_DIR/models</span></code></p></td>
+<td><p>Directory containing models</p></td>
+</tr>
+</tbody>
+</table>
+<p>*One of <code class="docutils literal notranslate"><span class="pre">MODEL_NAME</span></code> or <code class="docutils literal notranslate"><span class="pre">MODEL_PATH</span></code> is required.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Using MODEL_NAME (recommended)</span>
+<span class="nv">MODEL_NAME</span><span class="o">=</span>Llama-3-8B-Instruct-Q4_K_M.gguf
+<span class="c1"># Resolves to: $DATA_DIR/models/Llama-3-8B-Instruct-Q4_K_M.gguf</span>
+
+<span class="c1"># Using MODEL_PATH (full control)</span>
+<span class="nv">MODEL_PATH</span><span class="o">=</span>/custom/path/to/my-model.gguf
+
+<span class="c1"># Custom models directory</span>
+<span class="nv">MODELS_DIR</span><span class="o">=</span>/mnt/fast-storage/models
+<span class="nv">MODEL_NAME</span><span class="o">=</span>model.gguf
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="server-configuration">
+<h3>Server Configuration<a class="headerlink" href="#server-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PORT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8000</span></code></p></td>
+<td><p>Public gateway port</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PORT_HEALTH</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8001</span></code></p></td>
+<td><p>Health check port (for platform monitoring)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PORT_BACKEND</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8080</span></code></p></td>
+<td><p>Internal llama-server port</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BACKEND_PORT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8080</span></code></p></td>
+<td><p>⚠️ <strong>Deprecated</strong> - Use <code class="docutils literal notranslate"><span class="pre">PORT_BACKEND</span></code> instead</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HOST</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0.0.0</span></code></p></td>
+<td><p>Bind address</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Port architecture:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Client → Health Server:8001 (platform checks, no auth)
+Client → Gateway:8000 (API, with auth) → llama-server:8080
+              ↓
+         /ping (health, no auth)
+         /health (status, no auth)
+         /v1/* (API, requires auth)
+</pre></div>
+</div>
+<p><strong>Port naming change:</strong></p>
+<ul class="simple">
+<li><p><strong>New naming:</strong> <code class="docutils literal notranslate"><span class="pre">PORT_BACKEND</span></code> (consistent with <code class="docutils literal notranslate"><span class="pre">PORT</span></code> and <code class="docutils literal notranslate"><span class="pre">PORT_HEALTH</span></code>)</p></li>
+<li><p><strong>Old naming:</strong> <code class="docutils literal notranslate"><span class="pre">BACKEND_PORT</span></code> is deprecated but still works with warning</p></li>
+<li><p>Old name will be removed in future major version</p></li>
+</ul>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Standard configuration (recommended)</span>
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8000</span>
+<span class="nv">PORT_HEALTH</span><span class="o">=</span><span class="m">8001</span>
+<span class="nv">PORT_BACKEND</span><span class="o">=</span><span class="m">8080</span>
+
+<span class="c1"># Custom ports</span>
+<span class="nv">PORT</span><span class="o">=</span><span class="m">9000</span>
+<span class="nv">PORT_HEALTH</span><span class="o">=</span><span class="m">9001</span>
+<span class="nv">PORT_BACKEND</span><span class="o">=</span><span class="m">9080</span>
+
+<span class="c1"># Using old name (shows deprecation warning)</span>
+<span class="nv">BACKEND_PORT</span><span class="o">=</span><span class="m">8080</span><span class="w">  </span><span class="c1"># Works but deprecated - use PORT_BACKEND instead</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="inference-configuration">
+<h3>Inference Configuration<a class="headerlink" href="#inference-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">NGL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">99</span></code></p></td>
+<td><p>Number of layers to offload to GPU</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CTX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">16384</span></code></p></td>
+<td><p>Context length (max tokens)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">THREADS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>CPU threads (0 = auto-detect)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EXTRA_ARGS</span></code></p></td>
+<td><p>—</p></td>
+<td><p>Additional llama-server arguments</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>GPU Offload (NGL):</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">99</span></code> — Offload all layers that fit (recommended)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code> — CPU only (for testing or no GPU)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">20-50</span></code> — Partial offload (large models on smaller GPUs)</p></li>
+</ul>
+<p><strong>Context Length (CTX):</strong> Higher context = more memory usage. Common values:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">4096</span></code> — Basic chat</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">8192</span></code> — Longer conversations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">16384</span></code> — Extended context (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">32768</span></code> — Very long documents</p></li>
+</ul>
+<p><strong>Extra Arguments:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example: verbose logging and temperature</span>
+<span class="nv">EXTRA_ARGS</span><span class="o">=</span><span class="s2">&quot;--verbose --temp 0.7&quot;</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="logging-configuration">
+<h3>Logging Configuration<a class="headerlink" href="#logging-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LOG_FORMAT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>Log output format: <code class="docutils literal notranslate"><span class="pre">text</span></code> (plain) or <code class="docutils literal notranslate"><span class="pre">json</span></code> (JSONL)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LOG_NAME</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">llama</span></code></p></td>
+<td><p>Subdirectory name for logs (deprecated if using WORKER_TYPE)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WORKER_TYPE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Worker classification for log organization</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LOG_DIR</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$DATA_DIR/logs</span></code></p></td>
+<td><p>Base log directory</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Structured JSON Logging:</strong></p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">LOG_FORMAT=json</span></code> to enable structured JSON log output (JSONL format). Each log line is a single JSON object written
+to stderr, making it easy to ingest into log aggregation systems (Datadog, ELK, Grafana Loki, etc.).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable JSON logging</span>
+<span class="nv">LOG_FORMAT</span><span class="o">=</span>json
+</pre></div>
+</div>
+<p>When enabled, gateway stderr output looks like:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">&quot;ts&quot;</span><span class="p">:</span><span class="s2">&quot;2026-02-13T09:15:00.123456+00:00&quot;</span><span class="p">,</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="s2">&quot;info&quot;</span><span class="p">,</span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="s2">&quot;Gateway starting&quot;</span><span class="p">,</span><span class="nt">&quot;port&quot;</span><span class="p">:</span><span class="mi">8000</span><span class="p">}</span>
+<span class="p">{</span><span class="nt">&quot;ts&quot;</span><span class="p">:</span><span class="s2">&quot;2026-02-13T09:15:01.456789+00:00&quot;</span><span class="p">,</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="s2">&quot;info&quot;</span><span class="p">,</span><span class="nt">&quot;msg&quot;</span><span class="p">:</span><span class="s2">&quot;Request completed&quot;</span><span class="p">,</span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="s2">&quot;/v1/chat/completions&quot;</span><span class="p">,</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="mi">200</span><span class="p">,</span><span class="nt">&quot;duration_ms&quot;</span><span class="p">:</span><span class="mf">142.3</span><span class="p">,</span><span class="nt">&quot;key_id&quot;</span><span class="p">:</span><span class="s2">&quot;production&quot;</span><span class="p">,</span><span class="nt">&quot;bytes_sent&quot;</span><span class="p">:</span><span class="mi">1024</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Access logs (written to <code class="docutils literal notranslate"><span class="pre">/data/logs/api_access.log</span></code>) also switch to JSONL when <code class="docutils literal notranslate"><span class="pre">LOG_FORMAT=json</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">&quot;ts&quot;</span><span class="p">:</span><span class="s2">&quot;2026-02-13T09:15:01.456789+00:00&quot;</span><span class="p">,</span><span class="nt">&quot;key_id&quot;</span><span class="p">:</span><span class="s2">&quot;production&quot;</span><span class="p">,</span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;POST&quot;</span><span class="p">,</span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="s2">&quot;/v1/chat/completions&quot;</span><span class="p">,</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="mi">200</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>When <code class="docutils literal notranslate"><span class="pre">LOG_FORMAT=text</span></code> (default), all logging remains unchanged from previous behavior.</p>
+<p><strong>Worker Type Organization:</strong></p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">WORKER_TYPE</span></code> to organize logs by worker purpose:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Default (no worker type)</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span><span class="s2">&quot;&quot;</span>
+<span class="c1"># Logs go to: $DATA_DIR/logs/llama/</span>
+
+<span class="c1"># Instruct model worker</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>instruct
+<span class="c1"># Logs go to: $DATA_DIR/logs/llama-instruct/</span>
+
+<span class="c1"># Coding model worker</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>coder
+<span class="c1"># Logs go to: $DATA_DIR/logs/llama-coder/</span>
+
+<span class="c1"># Omni-modal worker</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>omni
+<span class="c1"># Logs go to: $DATA_DIR/logs/llama-omni/</span>
+</pre></div>
+</div>
+<p><strong>Log filename format</strong> (timestamp-first for chronological sorting):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">20240206_143022</span><span class="n">_server_instanceid</span><span class="o">.</span><span class="n">log</span>  <span class="c1"># Most recent</span>
+<span class="mi">20240206_120000</span><span class="n">_server_instanceid</span><span class="o">.</span><span class="n">log</span>
+<span class="mi">20240205_180000</span><span class="n">_server_instanceid</span><span class="o">.</span><span class="n">log</span>  <span class="c1"># Oldest</span>
+</pre></div>
+</div>
+<p><strong>Log structure:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$DATA_DIR/logs/
+├── _boot/                          # Boot/startup logs
+│   ├── 20240206_143022_boot_hostname.log
+│   └── latest.txt
+└── llama-{WORKER_TYPE}/            # Runtime logs (or just llama/ if no type)
+    ├── 20240206_143022_server_hostname.log
+    └── latest.txt
+</pre></div>
+</div>
+<p><strong>Multiple deployments:</strong> Use <code class="docutils literal notranslate"><span class="pre">WORKER_TYPE</span></code> to separate logs:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Deployment 1: Instruct endpoint</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>instruct
+<span class="nv">MODEL_NAME</span><span class="o">=</span>llama3-instruct.gguf
+
+<span class="c1"># Deployment 2: Coder endpoint</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>coder
+<span class="nv">MODEL_NAME</span><span class="o">=</span>codellama.gguf
+
+<span class="c1"># Deployment 3: Omni endpoint</span>
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>omni
+<span class="nv">MODEL_NAME</span><span class="o">=</span>omni-model.gguf
+
+<span class="c1"># Results in separate log directories:</span>
+<span class="c1"># /data/logs/llama-instruct/</span>
+<span class="c1"># /data/logs/llama-coder/</span>
+<span class="c1"># /data/logs/llama-omni/</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="debug-configuration">
+<h3>Debug Configuration<a class="headerlink" href="#debug-configuration" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DEBUG_SHELL</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Hold container without starting services</p></td>
+</tr>
+</tbody>
+</table>
+<p>When enabled, container prints environment and waits 5 minutes for inspection.</p>
+</section>
+</section>
+<hr class="docutils" />
+<section id="recommended-configurations">
+<h2>Recommended Configurations<a class="headerlink" href="#recommended-configurations" title="Link to this heading"></a></h2>
+<section id="rtx-4090-24gb">
+<h3>RTX 4090 (24GB)<a class="headerlink" href="#rtx-4090-24gb" title="Link to this heading"></a></h3>
+<p><strong>7B-13B Models:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>Llama-3-8B-Q4_K_M.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">99</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">16384</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+<p><strong>30B Models:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>Qwen-30B-Q4_K_M.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">99</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">16384</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+<p><strong>70B Models:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>Llama-3-70B-Q4_K_M.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">35</span><span class="w">       </span><span class="c1"># Partial offload</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">8192</span><span class="w">     </span><span class="c1"># Reduced context</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="a100-40gb">
+<h3>A100 (40GB)<a class="headerlink" href="#a100-40gb" title="Link to this heading"></a></h3>
+<p><strong>70B Models:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>Llama-3-70B-Q4_K_M.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">99</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">16384</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="a100-80gb-h100">
+<h3>A100 (80GB) / H100<a class="headerlink" href="#a100-80gb-h100" title="Link to this heading"></a></h3>
+<p><strong>70B Models (high quality):</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>Llama-3-70B-Q8_0.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">99</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">32768</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="cpu-only">
+<h3>CPU Only<a class="headerlink" href="#cpu-only" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>Llama-3-8B-Q4_K_M.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">0</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">4096</span>
+<span class="nv">THREADS</span><span class="o">=</span><span class="m">8</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="multi-worker-deployment">
+<h3>Multi-Worker Deployment<a class="headerlink" href="#multi-worker-deployment" title="Link to this heading"></a></h3>
+<p><strong>Instruct Worker:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>llama3-instruct.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>instruct
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8000</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+</pre></div>
+</div>
+<p><strong>Coder Worker:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>codellama.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>coder
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8100</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+</pre></div>
+</div>
+<p><strong>Omni Worker:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MODEL_NAME</span><span class="o">=</span>omni-model.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>omni
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8200</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="memory-estimation">
+<h2>Memory Estimation<a class="headerlink" href="#memory-estimation" title="Link to this heading"></a></h2>
+<p>Rough VRAM requirements for Q4 models:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Estimate</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>7B model</p></td>
+<td><p>~4 GB</p></td>
+</tr>
+<tr class="row-odd"><td><p>13B model</p></td>
+<td><p>~8 GB</p></td>
+</tr>
+<tr class="row-even"><td><p>30B model</p></td>
+<td><p>~17 GB</p></td>
+</tr>
+<tr class="row-odd"><td><p>70B model</p></td>
+<td><p>~40 GB</p></td>
+</tr>
+<tr class="row-even"><td><p>KV cache</p></td>
+<td><p>~0.5 GB per 8K context</p></td>
+</tr>
+<tr class="row-odd"><td><p>Compute</p></td>
+<td><p>~0.5 GB</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<hr class="docutils" />
+<section id="environment-variable-precedence">
+<h2>Environment Variable Precedence<a class="headerlink" href="#environment-variable-precedence" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Explicit environment variables (highest)</p></li>
+<li><p>Dockerfile ENV defaults</p></li>
+<li><p>Script defaults (lowest)</p></li>
+</ol>
+</section>
+<hr class="docutils" />
+<section id="validation">
+<h2>Validation<a class="headerlink" href="#validation" title="Link to this heading"></a></h2>
+<p>The container validates at startup:</p>
+<ol class="arabic simple">
+<li><p><strong>Model exists</strong> — File present and readable</p></li>
+<li><p><strong>Binary exists</strong> — llama-server found</p></li>
+<li><p><strong>Libraries load</strong> — Shared libraries resolved</p></li>
+<li><p><strong>GPU status</strong> — Reports GPU info (doesn’t fail if missing)</p></li>
+<li><p><strong>Auth configuration</strong> — Validates API keys file if auth enabled</p></li>
+</ol>
+<p>Errors are logged to console and boot log.</p>
+</section>
+<hr class="docutils" />
+<section id="complete-example-configurations">
+<h2>Complete Example Configurations<a class="headerlink" href="#complete-example-configurations" title="Link to this heading"></a></h2>
+<section id="local-development">
+<h3>Local Development<a class="headerlink" href="#local-development" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Minimal setup for local testing</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">false</span>
+<span class="nv">MODEL_NAME</span><span class="o">=</span>test-model.gguf
+<span class="nv">DATA_DIR</span><span class="o">=</span>/tmp/llama-test
+<span class="nv">NGL</span><span class="o">=</span><span class="m">0</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">4096</span>
+</pre></div>
+</div>
+</section>
+<section id="production-runpod-serverless">
+<h3>Production (RunPod Serverless)<a class="headerlink" href="#production-runpod-serverless" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Secure production setup</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/runpod-volume/api_keys.txt
+<span class="nv">MAX_REQUESTS_PER_MINUTE</span><span class="o">=</span><span class="m">100</span>
+<span class="nv">MODEL_NAME</span><span class="o">=</span>production-model.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>production
+<span class="nv">NGL</span><span class="o">=</span><span class="m">99</span>
+<span class="nv">CTX</span><span class="o">=</span><span class="m">16384</span>
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8000</span>
+<span class="nv">PORT_HEALTH</span><span class="o">=</span><span class="m">8001</span>
+<span class="nv">PORT_BACKEND</span><span class="o">=</span><span class="m">8080</span>
+</pre></div>
+</div>
+</section>
+<section id="multi-model-platform">
+<h3>Multi-Model Platform<a class="headerlink" href="#multi-model-platform" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Endpoint 1: Instruct</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+<span class="nv">MODEL_NAME</span><span class="o">=</span>llama3-instruct.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>instruct
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8000</span>
+
+<span class="c1"># Endpoint 2: Code</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+<span class="nv">MODEL_NAME</span><span class="o">=</span>codellama.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>coder
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8100</span>
+
+<span class="c1"># Endpoint 3: Omni</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+<span class="nv">MODEL_NAME</span><span class="o">=</span>omni-model.gguf
+<span class="nv">WORKER_TYPE</span><span class="o">=</span>omni
+<span class="nv">PORT</span><span class="o">=</span><span class="m">8200</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="security-best-practices">
+<h2>Security Best Practices<a class="headerlink" href="#security-best-practices" title="Link to this heading"></a></h2>
+<section id="api-keys">
+<h3>API Keys<a class="headerlink" href="#api-keys" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Use strong keys:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate with the key management CLI (recommended):</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>production
+
+<span class="c1"># Or generate manually:</span>
+openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Secure file permissions:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>/data/api_keys.txt
+</pre></div>
+</div>
+</li>
+<li><p><strong>Mount read-only:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>-v<span class="w"> </span>/data/api_keys.txt:/data/api_keys.txt:ro
+</pre></div>
+</div>
+</li>
+<li><p><strong>Rotate regularly:</strong></p>
+<ul class="simple">
+<li><p>Add new key</p></li>
+<li><p>Update clients</p></li>
+<li><p>Remove old key after grace period</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="network-security">
+<h3>Network Security<a class="headerlink" href="#network-security" title="Link to this heading"></a></h3>
+<ol class="arabic">
+<li><p><strong>Use health port for platform checks:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">PORT_HEALTH</span><span class="o">=</span><span class="m">8001</span><span class="w">  </span><span class="c1"># Separate from API traffic</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Reverse proxy for production:</strong></p>
+<ul class="simple">
+<li><p>Put gateway behind nginx/traefik</p></li>
+<li><p>Add TLS termination</p></li>
+<li><p>Add additional rate limiting</p></li>
+</ul>
+</li>
+<li><p><strong>Firewall rules:</strong></p>
+<ul class="simple">
+<li><p>Allow 8000 for API (authenticated)</p></li>
+<li><p>Allow 8001 for health checks (platform only)</p></li>
+<li><p>Block 8080 (internal llama-server)</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+<hr class="docutils" />
+<section id="troubleshooting-configuration">
+<h2>Troubleshooting Configuration<a class="headerlink" href="#troubleshooting-configuration" title="Link to this heading"></a></h2>
+<section id="check-current-configuration">
+<h3>Check Current Configuration<a class="headerlink" href="#check-current-configuration" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Enable debug mode</span>
+<span class="nv">DEBUG_SHELL</span><span class="o">=</span><span class="nb">true</span>
+
+<span class="c1"># Container will print all environment variables</span>
+<span class="c1"># Wait 5 minutes for inspection</span>
+</pre></div>
+</div>
+</section>
+<section id="common-issues">
+<h3>Common Issues<a class="headerlink" href="#common-issues" title="Link to this heading"></a></h3>
+<p><strong>Auth not working:</strong></p>
+<ul class="simple">
+<li><p>Check <code class="docutils literal notranslate"><span class="pre">AUTH_ENABLED=true</span></code></p></li>
+<li><p>Verify <code class="docutils literal notranslate"><span class="pre">AUTH_KEYS_FILE</span></code> path is correct</p></li>
+<li><p>Check file format: <code class="docutils literal notranslate"><span class="pre">key_id:api_key</span></code></p></li>
+<li><p>Verify file is mounted and readable</p></li>
+</ul>
+<p><strong>Logs not organized:</strong></p>
+<ul class="simple">
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">WORKER_TYPE</span></code> environment variable</p></li>
+<li><p>Check logs directory: <code class="docutils literal notranslate"><span class="pre">ls</span> <span class="pre">-la</span> <span class="pre">$DATA_DIR/logs/</span></code></p></li>
+</ul>
+<p><strong>Port conflicts:</strong></p>
+<ul class="simple">
+<li><p>Ensure <code class="docutils literal notranslate"><span class="pre">PORT</span></code>, <code class="docutils literal notranslate"><span class="pre">PORT_HEALTH</span></code>, <code class="docutils literal notranslate"><span class="pre">PORT_BACKEND</span></code> are not in use</p></li>
+<li><p>Check with: <code class="docutils literal notranslate"><span class="pre">netstat</span> <span class="pre">-tlnp</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">8000</span></code></p></li>
+</ul>
+<p><strong>Deprecation warnings:</strong></p>
+<ul class="simple">
+<li><p>Replace <code class="docutils literal notranslate"><span class="pre">BACKEND_PORT</span></code> with <code class="docutils literal notranslate"><span class="pre">PORT_BACKEND</span></code></p></li>
+<li><p>Update deployment scripts</p></li>
+</ul>
+</section>
+</section>
+<hr class="docutils" />
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#docs/CONFIGURATION.md"><span class="xref myst">CONFIGURATION.md</span></a> - Complete authentication guide</p></li>
+<li><p><a class="reference internal" href="TESTING.html"><span class="std std-doc">TESTING.md</span></a> - Testing procedures</p></li>
+<li><p><span class="xref myst">DEBUGGING.md</span> - Troubleshooting guide</p></li>
+<li><p><a class="reference internal" href="#../SCALE_TO_ZERO.md"><span class="xref myst">SCALE_TO_ZERO.md</span></a> - Serverless configuration</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="AUTHENTICATION.html" class="btn btn-neutral float-left" title="Authentication Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="DEPLOYMENT.html" class="btn btn-neutral float-right" title="Deployment Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

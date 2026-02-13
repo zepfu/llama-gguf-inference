@@ -1,0 +1,883 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Testing Guide — v1.0.0-rc.1 &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="AUTHENTICATION.html#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="auto/CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#unreleased">Unreleased</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id1">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id2">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id3">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Live Testing Guide — v1.0.0-rc.1</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/LIVE_TESTING_GUIDE.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="live-testing-guide-v1-0-0-rc-1">
+<h1>Live Testing Guide — v1.0.0-rc.1<a class="headerlink" href="#live-testing-guide-v1-0-0-rc-1" title="Link to this heading"></a></h1>
+<p>Step-by-step guide for validating <code class="docutils literal notranslate"><span class="pre">v1.0.0-rc.1</span></code> on a live RunPod Serverless environment with a real GPU and GGUF model.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>This testing covers the final Phase 3 gate criteria that require a live inference backend:</p>
+<ol class="arabic simple">
+<li><p><strong>Performance baseline</strong> — TTFT, tokens/sec, latency percentiles (p50/p95/p99)</p></li>
+<li><p><strong>OpenAI SDK compatibility</strong> — Verify <code class="docutils literal notranslate"><span class="pre">openai</span></code> Python SDK works without modification</p></li>
+<li><p><strong>Scale-to-zero validation</strong> — Health checks don’t keep the worker active</p></li>
+<li><p><strong>Queue behavior</strong> — Concurrency limiting and 503 responses under load</p></li>
+<li><p><strong>CORS validation</strong> — Cross-origin requests work when configured</p></li>
+</ol>
+</section>
+<section id="roles">
+<h2>Roles<a class="headerlink" href="#roles" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Step</p></th>
+<th class="head"><p>Who</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1. Provision environment</p></td>
+<td><p><strong>Operator</strong></p></td>
+<td><p>Create RunPod Serverless endpoint with RC image</p></td>
+</tr>
+<tr class="row-odd"><td><p>2. Provide access details</p></td>
+<td><p><strong>Operator</strong></p></td>
+<td><p>Share endpoint URL, API key, model info</p></td>
+</tr>
+<tr class="row-even"><td><p>3. Gateway overhead test</p></td>
+<td><p><strong>QA-ENGINEER</strong></p></td>
+<td><p>Run benchmark <code class="docutils literal notranslate"><span class="pre">--gateway-only</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>4. Inference performance</p></td>
+<td><p><strong>QA-ENGINEER</strong></p></td>
+<td><p>Run full benchmark at multiple concurrency levels</p></td>
+</tr>
+<tr class="row-even"><td><p>5. OpenAI SDK test</p></td>
+<td><p><strong>QA-ENGINEER</strong></p></td>
+<td><p>Run SDK compatibility checks</p></td>
+</tr>
+<tr class="row-odd"><td><p>6. Scale-to-zero test</p></td>
+<td><p><strong>INFRASTRUCTURE-ENGINEER</strong></p></td>
+<td><p>Verify idle worker scales down</p></td>
+</tr>
+<tr class="row-even"><td><p>7. Queue behavior test</p></td>
+<td><p><strong>QA-ENGINEER</strong></p></td>
+<td><p>Verify concurrency limits and 503 responses</p></td>
+</tr>
+<tr class="row-odd"><td><p>8. Results analysis</p></td>
+<td><p><strong>TECH-LEAD</strong></p></td>
+<td><p>Review results, determine pass/fail</p></td>
+</tr>
+<tr class="row-even"><td><p>9. Sign-off</p></td>
+<td><p><strong>PRODUCT-OWNER</strong></p></td>
+<td><p>Approve for Phase 4 gate</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="step-1-provision-runpod-serverless-environment-operator">
+<h2>Step 1: Provision RunPod Serverless Environment (Operator)<a class="headerlink" href="#step-1-provision-runpod-serverless-environment-operator" title="Link to this heading"></a></h2>
+<section id="docker-image">
+<h3>Docker Image<a class="headerlink" href="#docker-image" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ghcr</span><span class="o">.</span><span class="n">io</span><span class="o">/</span><span class="n">zepfu</span><span class="o">/</span><span class="n">llama</span><span class="o">-</span><span class="n">gguf</span><span class="o">-</span><span class="n">inference</span><span class="p">:</span><span class="mf">1.0.0</span><span class="o">-</span><span class="n">rc</span><span class="mf">.1</span>
+</pre></div>
+</div>
+</section>
+<section id="required-environment-variables">
+<h3>Required Environment Variables<a class="headerlink" href="#required-environment-variables" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MODEL_PATH</span></code></p></td>
+<td><p>Path to GGUF model file</p></td>
+<td><p>e.g., <code class="docutils literal notranslate"><span class="pre">/runpod-volume/models/your-model.gguf</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AUTH_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Use auth to test the full request path</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">GPU_LAYERS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-1</span></code></p></td>
+<td><p>Offload all layers to GPU (or set per model)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CONTEXT_SIZE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">4096</span></code></p></td>
+<td><p>Adjust per model</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="recommended-setup">
+<h3>Recommended Setup<a class="headerlink" href="#recommended-setup" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>GPU</strong>: A100 or L40S (for consistent benchmark results)</p></li>
+<li><p><strong>Model</strong>: A small-to-medium GGUF (7B-13B Q4/Q5) for reasonable test times</p></li>
+<li><p><strong>Volume</strong>: Attach a network volume with the model pre-downloaded</p></li>
+<li><p><strong>Min workers</strong>: 0 (to test scale-to-zero)</p></li>
+<li><p><strong>Max workers</strong>: 1 (to test queue behavior)</p></li>
+</ul>
+</section>
+<section id="generate-api-keys">
+<h3>Generate API Keys<a class="headerlink" href="#generate-api-keys" title="Link to this heading"></a></h3>
+<p>Before deploying, create an API keys file on the volume:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># On the volume (or bake into the container env)</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--file<span class="w"> </span>/runpod-volume/api_keys.txt<span class="w"> </span>--quiet
+<span class="c1"># Note the generated key for testing</span>
+</pre></div>
+</div>
+<p>Or set <code class="docutils literal notranslate"><span class="pre">AUTH_ENABLED=false</span></code> for initial smoke testing, then re-enable.</p>
+</section>
+</section>
+<section id="step-2-provide-access-details-operator">
+<h2>Step 2: Provide Access Details (Operator)<a class="headerlink" href="#step-2-provide-access-details-operator" title="Link to this heading"></a></h2>
+<p>Share the following with the team:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Endpoint</span> <span class="n">URL</span><span class="p">:</span> <span class="n">https</span><span class="p">:</span><span class="o">//&lt;</span><span class="n">runpod</span><span class="o">-</span><span class="n">endpoint</span><span class="o">-</span><span class="nb">id</span><span class="o">&gt;-</span><span class="mf">8000.</span><span class="n">proxy</span><span class="o">.</span><span class="n">runpod</span><span class="o">.</span><span class="n">net</span>
+<span class="n">API</span> <span class="n">Key</span><span class="p">:</span> <span class="n">sk</span><span class="o">-&lt;</span><span class="n">the</span><span class="o">-</span><span class="n">generated</span><span class="o">-</span><span class="n">key</span><span class="o">&gt;</span>
+<span class="n">Model</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">model</span><span class="o">-</span><span class="n">name</span><span class="o">-</span><span class="ow">and</span><span class="o">-</span><span class="n">quant</span><span class="o">&gt;</span>
+<span class="n">GPU</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">gpu</span><span class="o">-</span><span class="nb">type</span><span class="o">&gt;</span>
+<span class="n">Context</span> <span class="n">Size</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">context</span><span class="o">-</span><span class="n">size</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+</section>
+<section id="step-3-gateway-overhead-test-qa-engineer">
+<h2>Step 3: Gateway Overhead Test (QA-ENGINEER)<a class="headerlink" href="#step-3-gateway-overhead-test-qa-engineer" title="Link to this heading"></a></h2>
+<p>Measures proxy latency without touching the inference backend.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/benchmark.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--url<span class="w"> </span>https://&lt;endpoint&gt;:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway-only<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--requests<span class="w"> </span><span class="m">50</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--warmup<span class="w"> </span><span class="m">5</span>
+</pre></div>
+</div>
+<p><strong>Expected results:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/ping</span></code> latency: &lt; 5ms p99 (gateway-only, no backend)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/health</span></code> latency: &lt; 50ms p99 (includes backend health poll)</p></li>
+</ul>
+<p><strong>Save output:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/benchmark.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--url<span class="w"> </span>https://&lt;endpoint&gt;:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--gateway-only<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--requests<span class="w"> </span><span class="m">50</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--warmup<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span>results/gateway_overhead.json
+</pre></div>
+</div>
+</section>
+<section id="step-4-inference-performance-baseline-qa-engineer">
+<h2>Step 4: Inference Performance Baseline (QA-ENGINEER)<a class="headerlink" href="#step-4-inference-performance-baseline-qa-engineer" title="Link to this heading"></a></h2>
+<p>Run at multiple concurrency levels to establish baseline.</p>
+<section id="single-request-baseline-concurrency-1">
+<h3>Single-request baseline (concurrency=1)<a class="headerlink" href="#single-request-baseline-concurrency-1" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/benchmark.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--url<span class="w"> </span>https://&lt;endpoint&gt;:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--api-key<span class="w"> </span>sk-&lt;key&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--prompt<span class="w"> </span><span class="s2">&quot;Write a short poem about the sea&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--max-tokens<span class="w"> </span><span class="m">128</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--concurrency<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--requests<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--warmup<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span>results/inference_c1.json
+</pre></div>
+</div>
+</section>
+<section id="moderate-concurrency-concurrency-4">
+<h3>Moderate concurrency (concurrency=4)<a class="headerlink" href="#moderate-concurrency-concurrency-4" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/benchmark.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--url<span class="w"> </span>https://&lt;endpoint&gt;:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--api-key<span class="w"> </span>sk-&lt;key&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--prompt<span class="w"> </span><span class="s2">&quot;Write a short poem about the sea&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--max-tokens<span class="w"> </span><span class="m">128</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--concurrency<span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--requests<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--warmup<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span>results/inference_c4.json
+</pre></div>
+</div>
+</section>
+<section id="higher-concurrency-concurrency-8">
+<h3>Higher concurrency (concurrency=8)<a class="headerlink" href="#higher-concurrency-concurrency-8" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/benchmark.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--url<span class="w"> </span>https://&lt;endpoint&gt;:8000<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--api-key<span class="w"> </span>sk-&lt;key&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--prompt<span class="w"> </span><span class="s2">&quot;Explain quantum computing in simple terms&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--max-tokens<span class="w"> </span><span class="m">256</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--concurrency<span class="w"> </span><span class="m">8</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--requests<span class="w"> </span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--warmup<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span>results/inference_c8.json
+</pre></div>
+</div>
+<p><strong>Key metrics to capture:</strong></p>
+<ul class="simple">
+<li><p><strong>TTFT</strong> (Time to First Token): p50, p95, p99</p></li>
+<li><p><strong>Tokens/sec</strong> (generation throughput): mean, p50</p></li>
+<li><p><strong>Total latency</strong>: p50, p95, p99</p></li>
+<li><p><strong>Error rate</strong>: should be 0% for concurrency within limits</p></li>
+</ul>
+</section>
+</section>
+<section id="step-5-openai-sdk-compatibility-qa-engineer">
+<h2>Step 5: OpenAI SDK Compatibility (QA-ENGINEER)<a class="headerlink" href="#step-5-openai-sdk-compatibility-qa-engineer" title="Link to this heading"></a></h2>
+<p>Verify the <code class="docutils literal notranslate"><span class="pre">openai</span></code> Python SDK works without modification against our gateway.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># test_openai_sdk.py — run from any machine with `pip install openai`</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">(</span>
+    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://&lt;endpoint&gt;:8000/v1&quot;</span><span class="p">,</span>
+    <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;sk-&lt;key&gt;&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># --- Chat completion (non-streaming) ---</span>
+<span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;local-model&quot;</span><span class="p">,</span>      <span class="c1"># model name doesn&#39;t matter, single-model server</span>
+    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;Say hello in 3 languages&quot;</span><span class="p">}],</span>
+    <span class="n">max_tokens</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Non-streaming:&quot;</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">,</span> <span class="s2">&quot;Empty response&quot;</span>
+<span class="k">assert</span> <span class="n">response</span><span class="o">.</span><span class="n">usage</span><span class="o">.</span><span class="n">total_tokens</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;No usage data&quot;</span>
+
+<span class="c1"># --- Chat completion (streaming) ---</span>
+<span class="n">stream</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;local-model&quot;</span><span class="p">,</span>
+    <span class="n">messages</span><span class="o">=</span><span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;Count to 5&quot;</span><span class="p">}],</span>
+    <span class="n">max_tokens</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+    <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">stream</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+        <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">delta</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+<span class="n">full_response</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Streaming:&quot;</span><span class="p">,</span> <span class="n">full_response</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Stream should produce multiple chunks&quot;</span>
+
+<span class="c1"># --- Model listing ---</span>
+<span class="n">models</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">list</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Models:&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">data</span><span class="p">])</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;No models listed&quot;</span>
+
+<span class="c1"># --- Embeddings (if model supports it) ---</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">emb</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">embeddings</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="s2">&quot;local-model&quot;</span><span class="p">,</span>
+        <span class="nb">input</span><span class="o">=</span><span class="s2">&quot;test embedding input&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Embeddings dim:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">emb</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">embedding</span><span class="p">))</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Embeddings not supported by this model: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">All OpenAI SDK compatibility tests PASSED&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Pass criteria:</strong> All assertions pass. No SDK errors or unexpected response formats.</p>
+</section>
+<section id="step-6-scale-to-zero-validation-infrastructure-engineer">
+<h2>Step 6: Scale-to-Zero Validation (INFRASTRUCTURE-ENGINEER)<a class="headerlink" href="#step-6-scale-to-zero-validation-infrastructure-engineer" title="Link to this heading"></a></h2>
+<p>Verify that idle workers scale down when no inference requests are active.</p>
+<ol class="arabic simple">
+<li><p><strong>Confirm worker is active</strong> — send a request, verify response</p></li>
+<li><p><strong>Stop sending requests</strong> — wait for RunPod idle timeout (usually 5-10 min)</p></li>
+<li><p><strong>Check RunPod dashboard</strong> — worker count should drop to 0</p></li>
+<li><p><strong>Verify health endpoint still responds</strong> — <code class="docutils literal notranslate"><span class="pre">curl</span> <span class="pre">https://&lt;endpoint&gt;:8001/ping</span></code> should return <code class="docutils literal notranslate"><span class="pre">pong</span></code> (health server
+on port 8001, independent of worker)</p></li>
+<li><p><strong>Send a new request</strong> — worker should cold-start and respond</p></li>
+</ol>
+<p><strong>Critical check:</strong> Health probes on port 8001 must NOT prevent scale-down. The health server is a separate lightweight
+process that doesn’t touch the llama-server backend.</p>
+<blockquote>
+<div><p><strong>Note:</strong> On RunPod Serverless, the proxy routing may differ from direct Docker. The key test is that the health
+endpoint doesn’t trigger worker activation.</p>
+</div></blockquote>
+</section>
+<section id="step-7-queue-behavior-test-qa-engineer">
+<h2>Step 7: Queue Behavior Test (QA-ENGINEER)<a class="headerlink" href="#step-7-queue-behavior-test-qa-engineer" title="Link to this heading"></a></h2>
+<p>Test concurrency limiting and queue overflow behavior.</p>
+<section id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Link to this heading"></a></h3>
+<p>Deploy with these env vars to make queue behavior observable:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MAX_CONCURRENT_REQUESTS</span><span class="o">=</span><span class="mi">1</span>
+<span class="n">MAX_QUEUE_SIZE</span><span class="o">=</span><span class="mi">2</span>
+</pre></div>
+</div>
+</section>
+<section id="test-sequence">
+<h3>Test sequence<a class="headerlink" href="#test-sequence" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Send 1 request</strong> — should succeed normally</p></li>
+<li><p><strong>Send 4 concurrent requests</strong> — 1 active, 2 queued, 1 should get 503 with <code class="docutils literal notranslate"><span class="pre">Retry-After:</span> <span class="pre">5</span></code></p></li>
+<li><p><strong>Check /health</strong> — should show queue depth: <code class="docutils literal notranslate"><span class="pre">curl</span> <span class="pre">https://&lt;endpoint&gt;:8000/health</span> <span class="pre">|</span> <span class="pre">jq</span> <span class="pre">.queue</span></code></p></li>
+<li><p><strong>Check /metrics</strong> — should show <code class="docutils literal notranslate"><span class="pre">queue_depth</span></code>, <code class="docutils literal notranslate"><span class="pre">queue_rejections</span></code>, <code class="docutils literal notranslate"><span class="pre">queue_wait_seconds_total</span></code></p></li>
+</ol>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Quick parallel test with curl</span>
+<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="m">4</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">  </span>curl<span class="w"> </span>-s<span class="w"> </span>-w<span class="w"> </span><span class="s2">&quot;\n%{http_code}\n&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer sk-&lt;key&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;:&quot;m&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Count to 100&quot;}],&quot;max_tokens&quot;:200}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>https://&lt;endpoint&gt;:8000/v1/chat/completions<span class="w"> </span><span class="p">&amp;</span>
+<span class="k">done</span>
+<span class="nb">wait</span>
+</pre></div>
+</div>
+<p><strong>Expected:</strong> 1 returns 200, 2 return 200 (after waiting), 1 returns 503.</p>
+</section>
+</section>
+<section id="step-8-results-analysis-tech-lead">
+<h2>Step 8: Results Analysis (TECH-LEAD)<a class="headerlink" href="#step-8-results-analysis-tech-lead" title="Link to this heading"></a></h2>
+<p>Review all JSON output files and determine pass/fail.</p>
+<section id="performance-baseline-thresholds-suggested">
+<h3>Performance baseline thresholds (suggested)<a class="headerlink" href="#performance-baseline-thresholds-suggested" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>Target</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Gateway <code class="docutils literal notranslate"><span class="pre">/ping</span></code> p99</p></td>
+<td><p>&lt; 5ms</p></td>
+<td><p>Pure proxy overhead</p></td>
+</tr>
+<tr class="row-odd"><td><p>TTFT p50 (c=1)</p></td>
+<td><p>&lt; 500ms</p></td>
+<td><p>Depends heavily on model size</p></td>
+</tr>
+<tr class="row-even"><td><p>TTFT p95 (c=1)</p></td>
+<td><p>&lt; 1000ms</p></td>
+<td><p>Acceptable first-token latency</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tokens/sec mean (c=1)</p></td>
+<td><p>&gt; 20 tok/s</p></td>
+<td><p>Depends on GPU + model + quant</p></td>
+</tr>
+<tr class="row-even"><td><p>Error rate</p></td>
+<td><p>0%</p></td>
+<td><p>Within concurrency limits</p></td>
+</tr>
+<tr class="row-odd"><td><p>SDK compatibility</p></td>
+<td><p>All pass</p></td>
+<td><p>Non-streaming, streaming, models list</p></td>
+</tr>
+<tr class="row-even"><td><p>Scale-to-zero</p></td>
+<td><p>Worker scales down</p></td>
+<td><p>Health checks don’t prevent it</p></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<div><p>Exact targets depend on GPU type and model size. The first run establishes the baseline; subsequent releases compare
+against it.</p>
+</div></blockquote>
+</section>
+<section id="report-format">
+<h3>Report format<a class="headerlink" href="#report-format" title="Link to this heading"></a></h3>
+<div class="highlight-markdown notranslate"><div class="highlight"><pre><span></span><span class="gu">## Performance Baseline — v1.0.0-rc.1</span>
+<span class="k">-</span><span class="w"> </span>GPU: &lt;type&gt;
+<span class="k">-</span><span class="w"> </span>Model: &lt;name&gt; (&lt;quant&gt;)
+<span class="k">-</span><span class="w"> </span>Date: &lt;date&gt;
+
+<span class="gu">### Gateway Overhead</span>
+<span class="k">-</span><span class="w"> </span>/ping p50: Xms, p95: Xms, p99: Xms
+<span class="k">-</span><span class="w"> </span>/health p50: Xms, p95: Xms, p99: Xms
+
+<span class="gu">### Inference (concurrency=1)</span>
+<span class="k">-</span><span class="w"> </span>TTFT p50: Xms, p95: Xms, p99: Xms
+<span class="k">-</span><span class="w"> </span>Tokens/sec mean: X, p50: X
+<span class="k">-</span><span class="w"> </span>Total latency p50: Xms, p95: Xms, p99: Xms
+
+<span class="gu">### Inference (concurrency=4)</span>
+<span class="k">-</span><span class="w"> </span>[same metrics]
+
+<span class="gu">### OpenAI SDK: PASS / FAIL</span>
+<span class="gu">### Scale-to-Zero: PASS / FAIL</span>
+<span class="gu">### Queue Behavior: PASS / FAIL</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="step-9-sign-off-product-owner">
+<h2>Step 9: Sign-Off (PRODUCT-OWNER)<a class="headerlink" href="#step-9-sign-off-product-owner" title="Link to this heading"></a></h2>
+<p>Review the TECH-LEAD’s analysis. If all gate criteria pass:</p>
+<ul class="simple">
+<li><p>Approve Phase 3 → Phase 4 transition</p></li>
+<li><p>Record <code class="docutils literal notranslate"><span class="pre">[GATE]</span></code> entry in PROJECT_LOG.md</p></li>
+<li><p>Update <code class="docutils literal notranslate"><span class="pre">.claude/PHASES.md</span></code> Phase 3 status to COMPLETE</p></li>
+</ul>
+</section>
+<section id="file-outputs">
+<h2>File Outputs<a class="headerlink" href="#file-outputs" title="Link to this heading"></a></h2>
+<p>All test results should be saved to a <code class="docutils literal notranslate"><span class="pre">results/</span></code> directory (gitignored):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">results</span><span class="o">/</span>
+  <span class="n">gateway_overhead</span><span class="o">.</span><span class="n">json</span>
+  <span class="n">inference_c1</span><span class="o">.</span><span class="n">json</span>
+  <span class="n">inference_c4</span><span class="o">.</span><span class="n">json</span>
+  <span class="n">inference_c8</span><span class="o">.</span><span class="n">json</span>
+  <span class="n">openai_sdk_test</span><span class="o">.</span><span class="n">log</span>
+  <span class="n">scale_to_zero</span><span class="o">.</span><span class="n">log</span>
+  <span class="n">queue_behavior</span><span class="o">.</span><span class="n">log</span>
+  <span class="n">baseline_report</span><span class="o">.</span><span class="n">md</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

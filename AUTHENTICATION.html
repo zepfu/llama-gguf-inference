@@ -1,0 +1,1248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Authentication Guide &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8d563738"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Configuration Guide" href="CONFIGURATION.html" />
+    <link rel="prev" title="API Reference" href="API_REFERENCE.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="CONFIGURATION.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="auto/CHANGELOG.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#unreleased">Unreleased</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#security">Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/CHANGELOG.html#rc-1-2026-02-13">1.0.0-rc.1 - 2026-02-13</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id1">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id2">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/CHANGELOG.html#id3">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/ARCHITECTURE_AUTO.html#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto/WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Authentication Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/AUTHENTICATION.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="authentication-guide">
+<h1>Authentication Guide<a class="headerlink" href="#authentication-guide" title="Link to this heading"></a></h1>
+<p>Complete guide to API key authentication in llama-gguf-inference.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The gateway supports optional API key authentication to secure access to your inference endpoints while keeping health
+checks publicly accessible.</p>
+<p><strong>Key Features:</strong></p>
+<ul class="simple">
+<li><p>File-based API key management</p></li>
+<li><p>Key ID tracking for audit logs</p></li>
+<li><p>Per-key rate limiting (global default or per-key override)</p></li>
+<li><p>Key expiration with ISO 8601 timestamps or relative durations</p></li>
+<li><p>Hot-reload keys via SIGHUP signal or <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/reload</span></code> endpoint</p></li>
+<li><p>OpenAI-compatible auth format</p></li>
+<li><p>Health endpoints always accessible (no auth required)</p></li>
+</ul>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<section id="create-api-keys-file">
+<h3>1. Create API Keys File<a class="headerlink" href="#create-api-keys-file" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copy example file</span>
+cp<span class="w"> </span>api_keys.txt.example<span class="w"> </span>/data/api_keys.txt
+
+<span class="c1"># Generate a secure key</span>
+<span class="nv">KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;production:sk-prod-</span><span class="nv">$KEY</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/data/api_keys.txt
+
+<span class="c1"># Secure the file</span>
+chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>/data/api_keys.txt
+</pre></div>
+</div>
+</section>
+<section id="enable-authentication">
+<h3>2. Enable Authentication<a class="headerlink" href="#enable-authentication" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set environment variable (default is already true)</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+</pre></div>
+</div>
+</section>
+<section id="make-authenticated-requests">
+<h3>3. Make Authenticated Requests<a class="headerlink" href="#make-authenticated-requests" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># With Bearer token (OpenAI format)</span>
+curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer sk-prod-YOUR_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://localhost:8000/v1/chat/completions<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;:&quot;any&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hello&quot;}]}&#39;</span>
+
+<span class="c1"># Without Bearer prefix (also works)</span>
+curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: sk-prod-YOUR_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://localhost:8000/v1/chat/completions<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;model&quot;:&quot;any&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;Hello&quot;}]}&#39;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
+<section id="environment-variables">
+<h3>Environment Variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AUTH_ENABLED</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Enable/disable authentication</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">AUTH_KEYS_FILE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$DATA_DIR/api_keys.txt</span></code></p></td>
+<td><p>Path to API keys file</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MAX_REQUESTS_PER_MINUTE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+<td><p>Rate limit per key ID</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="keys-file-format">
+<h3>Keys File Format<a class="headerlink" href="#keys-file-format" title="Link to this heading"></a></h3>
+<p>File: <code class="docutils literal notranslate"><span class="pre">/data/api_keys.txt</span></code> (or custom path via <code class="docutils literal notranslate"><span class="pre">AUTH_KEYS_FILE</span></code>)</p>
+<p>Format: <code class="docutils literal notranslate"><span class="pre">key_id:api_key[:rate_limit][:expiration]</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Comments are allowed</span>
+<span class="n">production</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">prod</span><span class="o">-</span><span class="n">a1b2c3d4e5f6</span><span class="o">...</span>
+<span class="n">development</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">dev</span><span class="o">-</span><span class="n">x9y8z7w6v5u4</span><span class="o">...</span>
+<span class="n">alice</span><span class="o">-</span><span class="n">laptop</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">alice</span><span class="o">-</span><span class="n">m1n2o3p4</span><span class="o">...</span>
+
+<span class="c1"># Blank lines are ignored</span>
+<span class="n">staging</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">staging</span><span class="o">-</span><span class="n">q5r6s7t8</span><span class="o">...</span>
+
+<span class="c1"># With per-key rate limit (requests per minute)</span>
+<span class="n">batch</span><span class="o">-</span><span class="n">user</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">batch</span><span class="o">-</span><span class="n">a1b2c3d4e5f6</span><span class="o">...</span><span class="p">:</span><span class="mi">120</span>
+
+<span class="c1"># With expiration only (ISO 8601 timestamp)</span>
+<span class="n">temp</span><span class="o">-</span><span class="n">key</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">temp</span><span class="o">-</span><span class="n">x9y8z7w6v5u4</span><span class="o">...</span><span class="p">::</span><span class="mi">2026</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">01</span><span class="n">T00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+
+<span class="c1"># With both rate limit and expiration</span>
+<span class="n">vip</span><span class="o">-</span><span class="n">client</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">vip</span><span class="o">-</span><span class="n">m1n2o3p4</span><span class="o">...</span><span class="p">:</span><span class="mi">300</span><span class="p">:</span><span class="mi">2026</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">31</span><span class="n">T23</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span>
+</pre></div>
+</div>
+<p><strong>Key format reference (all optional fields):</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key_id</span><span class="p">:</span><span class="n">api_key</span>                           <span class="c1"># basic</span>
+<span class="n">key_id</span><span class="p">:</span><span class="n">api_key</span><span class="p">:</span><span class="mi">120</span>                       <span class="c1"># with per-key rate limit</span>
+<span class="n">key_id</span><span class="p">:</span><span class="n">api_key</span><span class="p">::</span><span class="mi">2026</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">01</span><span class="n">T00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>     <span class="c1"># with expiration</span>
+<span class="n">key_id</span><span class="p">:</span><span class="n">api_key</span><span class="p">:</span><span class="mi">300</span><span class="p">:</span><span class="mi">2026</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">31</span><span class="n">T23</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span>  <span class="c1"># with both</span>
+</pre></div>
+</div>
+<p><strong>Rules:</strong></p>
+<ul class="simple">
+<li><p>One key per line</p></li>
+<li><p>Format: <code class="docutils literal notranslate"><span class="pre">key_id:api_key[:rate_limit][:expiration]</span></code> (colon-separated)</p></li>
+<li><p>key_id: Alphanumeric, hyphens, underscores (e.g., <code class="docutils literal notranslate"><span class="pre">production</span></code>, <code class="docutils literal notranslate"><span class="pre">dev-team</span></code>)</p></li>
+<li><p>api_key: 16-128 characters, alphanumeric with hyphens/underscores</p></li>
+<li><p>rate_limit: Optional positive integer (requests per minute), overrides <code class="docutils literal notranslate"><span class="pre">MAX_REQUESTS_PER_MINUTE</span></code></p></li>
+<li><p>expiration: Optional ISO 8601 timestamp (e.g., <code class="docutils literal notranslate"><span class="pre">2026-03-01T00:00:00</span></code>)</p></li>
+<li><p>Comments start with <code class="docutils literal notranslate"><span class="pre">#</span></code></p></li>
+<li><p>Duplicate keys are rejected</p></li>
+</ul>
+</section>
+</section>
+<section id="key-management">
+<h2>Key Management<a class="headerlink" href="#key-management" title="Link to this heading"></a></h2>
+<section id="key-management-cli">
+<h3>Key Management CLI<a class="headerlink" href="#key-management-cli" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">key_mgmt.py</span></code> tool provides safe key management with atomic writes and proper file permissions.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>&lt;command&gt;<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
+</pre></div>
+</div>
+<p><strong>Commands:</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Requires <code class="docutils literal notranslate"><span class="pre">--name</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">generate</span></code></p></td>
+<td><p>Create a new API key</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">list</span></code></p></td>
+<td><p>List configured key IDs</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">remove</span></code></p></td>
+<td><p>Remove a key by key ID</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rotate</span></code></p></td>
+<td><p>Regenerate key for existing ID</p></td>
+<td><p>Yes</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Global options:</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--file</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Path to keys file (default: <code class="docutils literal notranslate"><span class="pre">$AUTH_KEYS_FILE</span></code> or <code class="docutils literal notranslate"><span class="pre">$DATA_DIR/api_keys.txt</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--quiet</span></code>, <code class="docutils literal notranslate"><span class="pre">-q</span></code></p></td>
+<td><p>Suppress output except key values (useful for scripting)</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Generate options:</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--rate-limit</span> <span class="pre">N</span></code></p></td>
+<td><p>Per-key rate limit in requests per minute (overrides global default)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--expires</span> <span class="pre">VALUE</span></code></p></td>
+<td><p>Key expiration: ISO 8601 datetime or relative format (<code class="docutils literal notranslate"><span class="pre">30d</span></code>, <code class="docutils literal notranslate"><span class="pre">24h</span></code>, <code class="docutils literal notranslate"><span class="pre">60m</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rotate options:</strong></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--expires</span> <span class="pre">VALUE</span></code></p></td>
+<td><p>New expiration (preserves existing rate limit)</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key format:</strong> <code class="docutils literal notranslate"><span class="pre">sk-</span></code> prefix + 43 base64url characters (46 characters total), generated with a CSPRNG.</p>
+<p><strong>Examples:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate a new key</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>production
+<span class="c1"># Output: Generated key for &#39;production&#39;: sk-abc123...</span>
+
+<span class="c1"># Generate with per-key rate limit (requests per minute)</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>batch-user<span class="w"> </span>--rate-limit<span class="w"> </span><span class="m">120</span>
+
+<span class="c1"># Generate with expiration (ISO 8601 or relative: 30d, 24h, 60m)</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>temp-key<span class="w"> </span>--expires<span class="w"> </span><span class="m">2026</span>-03-01T00:00:00
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>temp-key<span class="w"> </span>--expires<span class="w"> </span>30d
+
+<span class="c1"># Generate with both rate limit and expiration</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>vip<span class="w"> </span>--rate-limit<span class="w"> </span><span class="m">300</span><span class="w"> </span>--expires<span class="w"> </span>365d
+
+<span class="c1"># Generate and capture for scripting</span>
+<span class="nv">KEY</span><span class="o">=</span><span class="k">$(</span>python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>ci-runner<span class="w"> </span>--quiet<span class="k">)</span>
+
+<span class="c1"># List all configured keys (never shows key values, shows rate limit and expiration status)</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>list
+
+<span class="c1"># Rotate a key (regenerate with same key_id, preserves rate limit)</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>rotate<span class="w"> </span>--name<span class="w"> </span>production
+
+<span class="c1"># Rotate and update expiration</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>rotate<span class="w"> </span>--name<span class="w"> </span>alice-laptop<span class="w"> </span>--expires<span class="w"> </span>30d
+
+<span class="c1"># Remove a key</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>remove<span class="w"> </span>--name<span class="w"> </span>old-client
+
+<span class="c1"># Use a custom keys file</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>staging<span class="w"> </span>--file<span class="w"> </span>/secrets/api_keys.txt
+</pre></div>
+</div>
+<p><strong>Safety features:</strong></p>
+<ul class="simple">
+<li><p>Atomic writes (temp file + rename) prevent corruption</p></li>
+<li><p>File permissions set to <code class="docutils literal notranslate"><span class="pre">0600</span></code> (owner read/write only)</p></li>
+<li><p>Creates parent directories and keys file if they do not exist</p></li>
+<li><p>Rejects duplicate key IDs on generate (use <code class="docutils literal notranslate"><span class="pre">rotate</span></code> instead)</p></li>
+<li><p>Never displays existing key values (only newly generated keys)</p></li>
+</ul>
+</section>
+<section id="manual-key-generation">
+<h3>Manual Key Generation<a class="headerlink" href="#manual-key-generation" title="Link to this heading"></a></h3>
+<p>If you prefer to generate keys manually:</p>
+<p><strong>Method 1: OpenSSL</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span>
+<span class="c1"># Outputs 64 hex characters</span>
+<span class="c1"># Use as: sk-prod-&lt;output&gt;</span>
+</pre></div>
+</div>
+<p><strong>Method 2: Python</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import secrets; print(&#39;sk-&#39; + secrets.token_hex(32))&quot;</span>
+<span class="c1"># Outputs: sk-&lt;64 hex characters&gt;</span>
+</pre></div>
+</div>
+</section>
+<section id="add-new-key-manual">
+<h3>Add New Key (Manual)<a class="headerlink" href="#add-new-key-manual" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate key</span>
+<span class="nv">NEW_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span><span class="k">)</span>
+
+<span class="c1"># Add to file with descriptive ID</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;alice-laptop:sk-alice-</span><span class="nv">$NEW_KEY</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/data/api_keys.txt
+
+<span class="c1"># Share key securely with user (via encrypted channel)</span>
+</pre></div>
+</div>
+</section>
+<section id="rotate-key-manual">
+<h3>Rotate Key (Manual)<a class="headerlink" href="#rotate-key-manual" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 1. Generate new key</span>
+<span class="nv">NEW_KEY</span><span class="o">=</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">32</span><span class="k">)</span>
+
+<span class="c1"># 2. Add new key (keep old key temporarily)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;production-v2:sk-prod-</span><span class="nv">$NEW_KEY</span><span class="s2">&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>/data/api_keys.txt
+
+<span class="c1"># 3. Update clients to use new key</span>
+
+<span class="c1"># 4. After grace period, remove old key</span>
+<span class="c1"># Edit /data/api_keys.txt and delete old production line</span>
+
+<span class="c1"># 5. Optionally rename production-v2 to production</span>
+</pre></div>
+</div>
+</section>
+<section id="revoke-key">
+<h3>Revoke Key<a class="headerlink" href="#revoke-key" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Using the CLI (recommended)</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>remove<span class="w"> </span>--name<span class="w"> </span>alice-laptop
+
+<span class="c1"># Or manually edit the keys file</span>
+nano<span class="w"> </span>/data/api_keys.txt
+<span class="c1"># Comment out or delete the line</span>
+<span class="c1"># alice-laptop:sk-alice-xyz...  (REVOKED 2024-02-06)</span>
+
+<span class="c1"># Changes take effect immediately (no restart needed)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="endpoint-access">
+<h2>Endpoint Access<a class="headerlink" href="#endpoint-access" title="Link to this heading"></a></h2>
+<section id="public-endpoints-no-auth-required">
+<h3>Public Endpoints (No Auth Required)<a class="headerlink" href="#public-endpoints-no-auth-required" title="Link to this heading"></a></h3>
+<p>These endpoints are always accessible without authentication:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>GET<span class="w"> </span>/ping<span class="w">           </span><span class="c1"># Quick health check</span>
+GET<span class="w"> </span>/health<span class="w">         </span><span class="c1"># Detailed status</span>
+GET<span class="w"> </span>/metrics<span class="w">        </span><span class="c1"># Gateway metrics</span>
+</pre></div>
+</div>
+<p><strong>Why?</strong> Health endpoints must remain public for:</p>
+<ul class="simple">
+<li><p>Platform health checks (RunPod, Vast.ai, etc.)</p></li>
+<li><p>Scale-to-zero functionality in serverless deployments</p></li>
+<li><p>Monitoring systems</p></li>
+</ul>
+</section>
+<section id="protected-endpoints-auth-required">
+<h3>Protected Endpoints (Auth Required)<a class="headerlink" href="#protected-endpoints-auth-required" title="Link to this heading"></a></h3>
+<p>These endpoints require valid API key when <code class="docutils literal notranslate"><span class="pre">AUTH_ENABLED=true</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>POST<span class="w"> </span>/v1/chat/completions
+POST<span class="w"> </span>/v1/completions
+GET<span class="w">  </span>/v1/models
+<span class="c1"># All other /v1/* endpoints</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="authentication-flow">
+<h2>Authentication Flow<a class="headerlink" href="#authentication-flow" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.</span> <span class="n">Client</span> <span class="n">sends</span> <span class="n">request</span> <span class="k">with</span> <span class="n">Authorization</span> <span class="n">header</span>
+   <span class="n">GET</span> <span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">models</span>
+   <span class="n">Authorization</span><span class="p">:</span> <span class="n">Bearer</span> <span class="n">sk</span><span class="o">-</span><span class="n">prod</span><span class="o">-</span><span class="n">abc123</span><span class="o">...</span>
+
+<span class="mf">2.</span> <span class="n">Gateway</span> <span class="n">validates</span> <span class="n">key</span>
+   <span class="o">-</span> <span class="n">Extract</span> <span class="n">key</span> <span class="kn">from</span><span class="w"> </span><span class="nn">header</span> <span class="p">(</span><span class="k">with</span> <span class="ow">or</span> <span class="n">without</span> <span class="s2">&quot;Bearer &quot;</span> <span class="n">prefix</span><span class="p">)</span>
+   <span class="o">-</span> <span class="n">Check</span> <span class="k">if</span> <span class="n">key</span> <span class="n">exists</span> <span class="ow">in</span> <span class="n">loaded</span> <span class="n">keys</span>
+   <span class="o">-</span> <span class="n">Check</span> <span class="n">rate</span> <span class="n">limit</span> <span class="k">for</span> <span class="n">this</span> <span class="n">key_id</span>
+
+<span class="mi">3</span><span class="n">a</span><span class="o">.</span> <span class="n">If</span> <span class="n">valid</span><span class="p">:</span>
+   <span class="o">-</span> <span class="n">Record</span> <span class="n">request</span> <span class="k">for</span> <span class="n">rate</span> <span class="n">limiting</span>
+   <span class="o">-</span> <span class="n">Log</span> <span class="n">access</span> <span class="k">with</span> <span class="n">key_id</span>
+   <span class="o">-</span> <span class="n">Forward</span> <span class="n">request</span> <span class="n">to</span> <span class="n">backend</span>
+
+<span class="mi">3</span><span class="n">b</span><span class="o">.</span> <span class="n">If</span> <span class="n">invalid</span><span class="p">:</span>
+   <span class="o">-</span> <span class="n">Return</span> <span class="mi">401</span> <span class="n">Unauthorized</span>
+   <span class="o">-</span> <span class="n">Log</span> <span class="n">unauthorized</span> <span class="n">attempt</span>
+   <span class="o">-</span> <span class="n">Close</span> <span class="n">connection</span>
+</pre></div>
+</div>
+</section>
+<section id="error-responses">
+<h2>Error Responses<a class="headerlink" href="#error-responses" title="Link to this heading"></a></h2>
+<section id="unauthorized">
+<h3>401 Unauthorized<a class="headerlink" href="#unauthorized" title="Link to this heading"></a></h3>
+<p><strong>Missing header:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Missing Authorization header&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;invalid_request_error&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;param&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;authorization&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;invalid_api_key&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>Invalid key:</strong></p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Invalid API key&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;invalid_request_error&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;param&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;authorization&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;invalid_api_key&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="rate-limit-exceeded">
+<h3>429 Rate Limit Exceeded<a class="headerlink" href="#rate-limit-exceeded" title="Link to this heading"></a></h3>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Rate limit exceeded. Please slow down your requests.&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rate_limit_error&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;rate_limit_exceeded&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Headers include:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Retry</span><span class="o">-</span><span class="n">After</span><span class="p">:</span> <span class="mi">60</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="rate-limiting">
+<h2>Rate Limiting<a class="headerlink" href="#rate-limiting" title="Link to this heading"></a></h2>
+<p>Rate limits are enforced <strong>per key_id</strong>, not per IP address.</p>
+<p><strong>Configuration:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MAX_REQUESTS_PER_MINUTE</span><span class="o">=</span><span class="m">100</span><span class="w">  </span><span class="c1"># Default</span>
+</pre></div>
+</div>
+<p><strong>Behavior:</strong></p>
+<ul class="simple">
+<li><p>Sliding window: Last 60 seconds</p></li>
+<li><p>Counted per key_id (e.g., “production”, “alice-laptop”)</p></li>
+<li><p>Separate limits for each key</p></li>
+<li><p>Resets automatically after 60 seconds</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># production key: 100 req/min (global default)</span>
+<span class="c1"># development key: 100 req/min (global default)</span>
+<span class="c1"># alice-laptop key: 100 req/min (global default)</span>
+<span class="c1"># Each has independent limit</span>
+</pre></div>
+</div>
+<section id="per-key-rate-limits">
+<h3>Per-Key Rate Limits<a class="headerlink" href="#per-key-rate-limits" title="Link to this heading"></a></h3>
+<p>Individual keys can override the global <code class="docutils literal notranslate"><span class="pre">MAX_REQUESTS_PER_MINUTE</span></code> by specifying a per-key rate limit in the keys file.
+This allows different usage tiers – for example, a VIP key with a higher limit or a batch processing key with a lower
+limit.</p>
+<p><strong>Setting via keys file:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Format: key_id:api_key:rate_limit</span>
+<span class="n">vip</span><span class="o">-</span><span class="n">client</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">vip</span><span class="o">-</span><span class="n">abc123</span><span class="o">...</span><span class="p">:</span><span class="mi">300</span>
+<span class="n">batch</span><span class="o">-</span><span class="n">user</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">batch</span><span class="o">-</span><span class="n">xyz789</span><span class="o">...</span><span class="p">:</span><span class="mi">50</span>
+<span class="n">standard</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">std</span><span class="o">-</span><span class="n">def456</span><span class="o">...</span>          <span class="c1"># uses global default (100)</span>
+</pre></div>
+</div>
+<p><strong>Setting via key_mgmt.py:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>vip-client<span class="w"> </span>--rate-limit<span class="w"> </span><span class="m">300</span>
+</pre></div>
+</div>
+<p><strong>Behavior:</strong></p>
+<ul class="simple">
+<li><p>Per-key rate limits override the global <code class="docutils literal notranslate"><span class="pre">MAX_REQUESTS_PER_MINUTE</span></code> for that specific key</p></li>
+<li><p>Keys without a per-key limit fall back to the global default</p></li>
+<li><p>Rate limits use the same sliding 60-second window as the global limiter</p></li>
+<li><p>Per-key limits are preserved during hot-reload</p></li>
+</ul>
+</section>
+<section id="key-expiration">
+<h3>Key Expiration<a class="headerlink" href="#key-expiration" title="Link to this heading"></a></h3>
+<p>Keys can be given an expiration time, after which they will be rejected with a 401 response. This is useful for
+temporary access, trial keys, or enforcing periodic key rotation.</p>
+<p><strong>Setting via keys file:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Format: key_id:api_key::expiration (note the empty rate_limit field)</span>
+<span class="n">temp</span><span class="o">-</span><span class="n">key</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">temp</span><span class="o">-</span><span class="n">abc123</span><span class="o">...</span><span class="p">::</span><span class="mi">2026</span><span class="o">-</span><span class="mi">03</span><span class="o">-</span><span class="mi">01</span><span class="n">T00</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+
+<span class="c1"># With both rate limit and expiration</span>
+<span class="n">vip</span><span class="o">-</span><span class="n">key</span><span class="p">:</span><span class="n">sk</span><span class="o">-</span><span class="n">vip</span><span class="o">-</span><span class="n">xyz789</span><span class="o">...</span><span class="p">:</span><span class="mi">300</span><span class="p">:</span><span class="mi">2026</span><span class="o">-</span><span class="mi">12</span><span class="o">-</span><span class="mi">31</span><span class="n">T23</span><span class="p">:</span><span class="mi">59</span><span class="p">:</span><span class="mi">59</span>
+</pre></div>
+</div>
+<p><strong>Setting via key_mgmt.py:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># ISO 8601 datetime</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>temp-key<span class="w"> </span>--expires<span class="w"> </span><span class="m">2026</span>-03-01T00:00:00
+
+<span class="c1"># Relative formats</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>trial-key<span class="w"> </span>--expires<span class="w"> </span>30d<span class="w">    </span><span class="c1"># 30 days from now</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>demo-key<span class="w"> </span>--expires<span class="w"> </span>24h<span class="w">     </span><span class="c1"># 24 hours from now</span>
+python3<span class="w"> </span>scripts/key_mgmt.py<span class="w"> </span>generate<span class="w"> </span>--name<span class="w"> </span>test-key<span class="w"> </span>--expires<span class="w"> </span>60m<span class="w">     </span><span class="c1"># 60 minutes from now</span>
+</pre></div>
+</div>
+<p><strong>Behavior:</strong></p>
+<ul class="simple">
+<li><p>Expired keys receive a <code class="docutils literal notranslate"><span class="pre">401</span> <span class="pre">Unauthorized</span></code> response with the message <code class="docutils literal notranslate"><span class="pre">API</span> <span class="pre">key</span> <span class="pre">has</span> <span class="pre">expired</span></code></p></li>
+<li><p>Expiration is checked on every request after key validation</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">list</span></code> command shows expiration status (active, expired) for each key</p></li>
+<li><p>Expiration can be updated when rotating a key with <code class="docutils literal notranslate"><span class="pre">--expires</span></code></p></li>
+</ul>
+</section>
+<section id="hot-reload-api-keys">
+<h3>Hot-Reload API Keys<a class="headerlink" href="#hot-reload-api-keys" title="Link to this heading"></a></h3>
+<p>API keys can be reloaded without restarting the gateway, allowing you to add, remove, or modify keys with zero downtime.</p>
+<p><strong>Via SIGHUP signal:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Docker</span>
+docker<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-s<span class="w"> </span>HUP<span class="w"> </span>my-inference-container
+
+<span class="c1"># Direct process signal (inside the container)</span>
+<span class="nb">kill</span><span class="w"> </span>-HUP<span class="w"> </span><span class="k">$(</span>pgrep<span class="w"> </span>-f<span class="w"> </span>gateway.py<span class="k">)</span>
+</pre></div>
+</div>
+<p><strong>Via POST /reload endpoint (requires authentication):</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer YOUR_API_KEY&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://localhost:8000/reload
+<span class="c1"># {&quot;status&quot;: &quot;ok&quot;, &quot;keys_loaded&quot;: 3}</span>
+</pre></div>
+</div>
+<p><strong>Behavior:</strong></p>
+<ul class="simple">
+<li><p><strong>Atomic replacement:</strong> Either all keys are replaced or the previous set is preserved unchanged</p></li>
+<li><p><strong>Fail-closed:</strong> If the reload fails (e.g., file not found, parse error), the gateway continues serving with the
+previous keys</p></li>
+<li><p><strong>Rate limiter preserved:</strong> Request timestamps for known keys survive the reload, preventing rate limit bypass by
+triggering a reload</p></li>
+<li><p><strong>Re-reads environment:</strong> The <code class="docutils literal notranslate"><span class="pre">AUTH_KEYS_FILE</span></code> path is re-read from the environment at reload time, allowing you to
+point to a new file without restarting</p></li>
+</ul>
+<p><strong>Typical workflow:</strong></p>
+<ol class="arabic simple">
+<li><p>Edit the keys file to add/remove/modify keys</p></li>
+<li><p>Send <code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code> or call <code class="docutils literal notranslate"><span class="pre">POST</span> <span class="pre">/reload</span></code></p></li>
+<li><p>Verify the response shows the expected key count</p></li>
+<li><p>Gateway immediately uses the new keys for all subsequent requests</p></li>
+</ol>
+</section>
+</section>
+<section id="access-logging">
+<h2>Access Logging<a class="headerlink" href="#access-logging" title="Link to this heading"></a></h2>
+<p>All authenticated requests are logged to <code class="docutils literal notranslate"><span class="pre">/data/logs/api_access.log</span></code></p>
+<p><strong>Format:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">timestamp</span> <span class="o">|</span> <span class="n">key_id</span> <span class="o">|</span> <span class="n">method</span> <span class="n">path</span> <span class="o">|</span> <span class="n">status_code</span>
+</pre></div>
+</div>
+<p><strong>Example:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">2024</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">06</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">22.123456</span> <span class="o">|</span> <span class="n">production</span> <span class="o">|</span> <span class="n">POST</span> <span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">chat</span><span class="o">/</span><span class="n">completions</span> <span class="o">|</span> <span class="mi">200</span>
+<span class="mi">2024</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">06</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">25.654321</span> <span class="o">|</span> <span class="n">alice</span><span class="o">-</span><span class="n">laptop</span> <span class="o">|</span> <span class="n">POST</span> <span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">chat</span><span class="o">/</span><span class="n">completions</span> <span class="o">|</span> <span class="mi">200</span>
+<span class="mi">2024</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">06</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">28.987654</span> <span class="o">|</span> <span class="n">development</span> <span class="o">|</span> <span class="n">GET</span> <span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">models</span> <span class="o">|</span> <span class="mi">200</span>
+<span class="mi">2024</span><span class="o">-</span><span class="mi">02</span><span class="o">-</span><span class="mi">06</span><span class="n">T14</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span><span class="mf">31.456789</span> <span class="o">|</span> <span class="n">unknown</span><span class="o">-</span><span class="n">key</span> <span class="o">|</span> <span class="n">POST</span> <span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">chat</span><span class="o">/</span><span class="n">completions</span> <span class="o">|</span> <span class="mi">401</span>
+</pre></div>
+</div>
+<p><strong>Benefits:</strong></p>
+<ul class="simple">
+<li><p>Know who made each request</p></li>
+<li><p>Track usage per key/user/system</p></li>
+<li><p>Investigate rate limit issues</p></li>
+<li><p>Audit access patterns</p></li>
+<li><p>Debug client issues</p></li>
+</ul>
+</section>
+<section id="metrics">
+<h2>Metrics<a class="headerlink" href="#metrics" title="Link to this heading"></a></h2>
+<p>Access <code class="docutils literal notranslate"><span class="pre">/metrics</span></code> endpoint (no auth required) to see per-key statistics:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;gateway&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;requests_total&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1523</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;requests_authenticated&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1520</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;requests_unauthorized&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;authentication&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;production&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;requests_last_minute&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">45</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;rate_limit&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;alice-laptop&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;requests_last_minute&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;rate_limit&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="deployment-scenarios">
+<h2>Deployment Scenarios<a class="headerlink" href="#deployment-scenarios" title="Link to this heading"></a></h2>
+<section id="local-development-auth-disabled">
+<h3>Local Development (Auth Disabled)<a class="headerlink" href="#local-development-auth-disabled" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># .env</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">false</span>
+<span class="nv">MODEL_NAME</span><span class="o">=</span>test-model.gguf
+<span class="nv">NGL</span><span class="o">=</span><span class="m">0</span><span class="w">  </span><span class="c1"># CPU only</span>
+</pre></div>
+</div>
+<p>No authentication required - useful for testing.</p>
+</section>
+<section id="local-development-auth-enabled">
+<h3>Local Development (Auth Enabled)<a class="headerlink" href="#local-development-auth-enabled" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># .env</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/data/api_keys.txt
+
+<span class="c1"># /data/api_keys.txt</span>
+testing:sk-test-12345
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test request</span>
+curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer sk-test-12345&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>http://localhost:8000/v1/models
+</pre></div>
+</div>
+</section>
+<section id="production-secure">
+<h3>Production (Secure)<a class="headerlink" href="#production-secure" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># .env</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/secrets/api_keys.txt
+<span class="nv">MAX_REQUESTS_PER_MINUTE</span><span class="o">=</span><span class="m">200</span>
+
+<span class="c1"># /secrets/api_keys.txt (chmod 600)</span>
+production:sk-prod-&lt;<span class="m">64</span>-char-secure-key&gt;
+production-backup:sk-prod-backup-&lt;<span class="m">64</span>-char-secure-key&gt;
+monitoring:sk-monitor-&lt;<span class="m">64</span>-char-secure-key&gt;
+</pre></div>
+</div>
+<p>Mount secrets securely:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>/secure/path/api_keys.txt:/secrets/api_keys.txt:ro<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/secrets/api_keys.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>...
+</pre></div>
+</div>
+</section>
+<section id="runpod-serverless">
+<h3>RunPod Serverless<a class="headerlink" href="#runpod-serverless" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Environment variables in RunPod</span>
+<span class="nv">AUTH_ENABLED</span><span class="o">=</span><span class="nb">true</span>
+<span class="nv">AUTH_KEYS_FILE</span><span class="o">=</span>/runpod-volume/api_keys.txt
+<span class="nv">PORT_HEALTH</span><span class="o">=</span><span class="m">8001</span><span class="w">  </span><span class="c1"># For scale-to-zero</span>
+
+<span class="c1"># Upload api_keys.txt to your network volume</span>
+</pre></div>
+</div>
+<p>Health checks on PORT_HEALTH don’t require auth, enabling proper scale-to-zero.</p>
+</section>
+</section>
+<section id="security-best-practices">
+<h2>Security Best Practices<a class="headerlink" href="#security-best-practices" title="Link to this heading"></a></h2>
+<section id="file-security">
+<h3>File Security<a class="headerlink" href="#file-security" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Restrict file permissions</span>
+chmod<span class="w"> </span><span class="m">600</span><span class="w"> </span>/data/api_keys.txt
+chown<span class="w"> </span>root:root<span class="w"> </span>/data/api_keys.txt
+
+<span class="c1"># Never commit to version control</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;api_keys.txt&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>.gitignore
+</pre></div>
+</div>
+</section>
+<section id="key-generation">
+<h3>Key Generation<a class="headerlink" href="#key-generation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>✅ Use cryptographically secure random generators</p></li>
+<li><p>✅ Generate minimum 32 bytes (64 hex chars) of entropy</p></li>
+<li><p>✅ Use different keys per environment</p></li>
+<li><p>❌ Don’t use predictable patterns</p></li>
+<li><p>❌ Don’t reuse keys across deployments</p></li>
+</ul>
+</section>
+<section id="key-storage">
+<h3>Key Storage<a class="headerlink" href="#key-storage" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>✅ Store in separate file with restricted permissions</p></li>
+<li><p>✅ Mount as read-only in containers</p></li>
+<li><p>✅ Use secrets management (Vault, AWS Secrets Manager, etc.)</p></li>
+<li><p>❌ Don’t store in environment variables</p></li>
+<li><p>❌ Don’t commit to version control</p></li>
+<li><p>❌ Don’t log full keys</p></li>
+</ul>
+</section>
+<section id="key-rotation">
+<h3>Key Rotation<a class="headerlink" href="#key-rotation" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>✅ Rotate keys regularly (monthly/quarterly)</p></li>
+<li><p>✅ Have grace period when rotating (both keys work temporarily)</p></li>
+<li><p>✅ Track key age/creation date</p></li>
+<li><p>❌ Don’t rotate all keys simultaneously</p></li>
+<li><p>❌ Don’t reuse old keys</p></li>
+</ul>
+</section>
+<section id="access-control">
+<h3>Access Control<a class="headerlink" href="#access-control" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>✅ Use descriptive key IDs (production, alice-laptop, monitoring)</p></li>
+<li><p>✅ Issue separate keys per user/system/purpose</p></li>
+<li><p>✅ Revoke keys when no longer needed</p></li>
+<li><p>✅ Monitor access logs for suspicious activity</p></li>
+<li><p>❌ Don’t share keys</p></li>
+<li><p>❌ Don’t use generic IDs (key1, key2)</p></li>
+</ul>
+</section>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<section id="auth-not-working-all-requests-accepted">
+<h3>Auth Not Working (All Requests Accepted)<a class="headerlink" href="#auth-not-working-all-requests-accepted" title="Link to this heading"></a></h3>
+<p><strong>Check 1: Is AUTH_ENABLED set?</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In container</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$AUTH_ENABLED</span>
+<span class="c1"># Should be: true</span>
+</pre></div>
+</div>
+<p><strong>Check 2: Does keys file exist?</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls<span class="w"> </span>-la<span class="w"> </span><span class="nv">$AUTH_KEYS_FILE</span>
+<span class="c1"># Should show: -rw------- 1 root root ... api_keys.txt</span>
+</pre></div>
+</div>
+<p><strong>Check 3: Are there valid keys in file?</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;^#&quot;</span><span class="w"> </span><span class="nv">$AUTH_KEYS_FILE</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;^</span>$<span class="s2">&quot;</span>
+<span class="c1"># Should show your keys</span>
+</pre></div>
+</div>
+<p><strong>Check 4: Check gateway logs</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Look for startup message</span>
+<span class="c1"># ✅ Authentication enabled with X keys</span>
+<span class="c1"># vs</span>
+<span class="c1"># ⚠️  Authentication enabled but no keys configured</span>
+</pre></div>
+</div>
+</section>
+<section id="valid-key-rejected-401">
+<h3>Valid Key Rejected (401)<a class="headerlink" href="#valid-key-rejected-401" title="Link to this heading"></a></h3>
+<p><strong>Check 1: Key format</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Key should be 16-128 characters</span>
+<span class="c1"># Only: alphanumeric, hyphens, underscores</span>
+</pre></div>
+</div>
+<p><strong>Check 2: Authorization header format</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Both formats work:</span>
+Authorization:<span class="w"> </span>Bearer<span class="w"> </span>sk-your-key
+Authorization:<span class="w"> </span>sk-your-key
+</pre></div>
+</div>
+<p><strong>Check 3: Whitespace</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># No extra spaces</span>
+Authorization:<span class="w"> </span>Bearer<span class="w"> </span>sk-your-key
+<span class="c1"># Not:</span>
+Authorization:<span class="w"> </span>Bearer<span class="w">  </span>sk-your-key<span class="w">  </span><span class="o">(</span>extra<span class="w"> </span>spaces<span class="o">)</span>
+</pre></div>
+</div>
+<p><strong>Check 4: Key exists in file</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>grep<span class="w"> </span><span class="s2">&quot;sk-your-key&quot;</span><span class="w"> </span><span class="nv">$AUTH_KEYS_FILE</span>
+</pre></div>
+</div>
+</section>
+<section id="rate-limit-issues">
+<h3>Rate Limit Issues<a class="headerlink" href="#rate-limit-issues" title="Link to this heading"></a></h3>
+<p><strong>Check current limit:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>http://localhost:8000/metrics<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.authentication&#39;</span>
+</pre></div>
+</div>
+<p><strong>Increase limit:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In .env or environment</span>
+<span class="nv">MAX_REQUESTS_PER_MINUTE</span><span class="o">=</span><span class="m">200</span><span class="w">  </span><span class="c1"># Default is 100</span>
+</pre></div>
+</div>
+<p><strong>Different limits per key:</strong> Supported via per-key rate limits in the keys file. See the
+<a class="reference internal" href="#per-key-rate-limits"><span class="xref myst">Per-Key Rate Limits</span></a> section above.</p>
+</section>
+<section id="access-logs-not-written">
+<h3>Access Logs Not Written<a class="headerlink" href="#access-logs-not-written" title="Link to this heading"></a></h3>
+<p><strong>Check 1: Directory exists</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls<span class="w"> </span>-la<span class="w"> </span>/data/logs/
+<span class="c1"># Should have api_access.log</span>
+</pre></div>
+</div>
+<p><strong>Check 2: Permissions</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls<span class="w"> </span>-la<span class="w"> </span>/data/logs/api_access.log
+<span class="c1"># Should be writable</span>
+</pre></div>
+</div>
+<p><strong>Check 3: Disk space</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>df<span class="w"> </span>-h<span class="w"> </span>/data
+</pre></div>
+</div>
+</section>
+</section>
+<section id="future-enhancements">
+<h2>Future Enhancements<a class="headerlink" href="#future-enhancements" title="Link to this heading"></a></h2>
+<p>See <a class="reference internal" href="#FUTURE_KEY_MANAGEMENT.md"><span class="xref myst">docs/FUTURE_KEY_MANAGEMENT.md</span></a> for planned features:</p>
+<ul class="simple">
+<li><p>Client ID/Client Secret OAuth-style authentication</p></li>
+<li><p>Database-backed key storage</p></li>
+<li><p>Scopes and permissions</p></li>
+<li><p>Usage quotas</p></li>
+<li><p>Key management API/dashboard</p></li>
+</ul>
+<p>The current file-based system is designed to be extended, not replaced.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="API_REFERENCE.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="CONFIGURATION.html" class="btn btn-neutral float-right" title="Configuration Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
