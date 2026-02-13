@@ -1,27 +1,38 @@
 # ==============================================================================
-# llama-gguf-inference — CUDA (amd64)
+# llama-gguf-inference — CPU (multi-arch: amd64, arm64)
 #
-# GGUF model inference server using llama.cpp with NVIDIA GPU acceleration.
-# Platform-agnostic: works on RunPod, Vast.ai, Lambda, or any Docker host.
+# GGUF model inference server using llama.cpp with CPU-only inference.
+# Supports linux/amd64 and linux/arm64 for broad platform compatibility.
 #
-# Base image: ghcr.io/ggml-org/llama.cpp:server-cuda (linux/amd64 only)
-# For CPU/multi-arch builds, see Dockerfile.cpu
+# Base image: ghcr.io/ggml-org/llama.cpp:server (multi-arch CPU)
+# For NVIDIA GPU acceleration, see Dockerfile (CUDA, amd64 only)
 # ==============================================================================
 
-FROM ghcr.io/ggml-org/llama.cpp:server-cuda
+FROM ghcr.io/ggml-org/llama.cpp:server
 
 ARG GIT_SHA=unknown
 ARG BUILD_TIME=unknown
+ARG TARGETPLATFORM
 
 LABEL org.opencontainers.image.title="llama-gguf-inference" \
-      org.opencontainers.image.description="GGUF model inference server using llama.cpp (CUDA)" \
+      org.opencontainers.image.description="GGUF model inference server using llama.cpp (CPU)" \
       org.opencontainers.image.revision="$GIT_SHA" \
       org.opencontainers.image.created="$BUILD_TIME" \
       org.opencontainers.image.source="https://github.com/zepfu/llama-gguf-inference" \
-      org.opencontainers.image.variant="cuda"
+      org.opencontainers.image.variant="cpu"
 
-# Ensure llama-server can find shared libraries
-ENV LD_LIBRARY_PATH=/app:/usr/local/lib:/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}
+# Set architecture-aware library path
+# TARGETPLATFORM is provided by Docker buildx (e.g., linux/amd64, linux/arm64)
+RUN if [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+        echo "Building for ARM64"; \
+        LIB_ARCH="aarch64-linux-gnu"; \
+    else \
+        echo "Building for AMD64"; \
+        LIB_ARCH="x86_64-linux-gnu"; \
+    fi && \
+    echo "LD_LIBRARY_PATH=/app:/usr/local/lib:/usr/lib/${LIB_ARCH}" > /etc/environment
+
+ENV LD_LIBRARY_PATH=/app:/usr/local/lib
 
 # Minimal Python for gateway (uses stdlib only, no pip packages)
 # hadolint ignore=DL3008
@@ -41,20 +52,21 @@ COPY Makefile /opt/app/
 
 # Write version file and set permissions in a single layer
 # hadolint ignore=SC2015
-RUN printf "GIT_SHA=%s\nBUILD_TIME=%s\n" "$GIT_SHA" "$BUILD_TIME" > /opt/app/VERSION \
+RUN printf "GIT_SHA=%s\nBUILD_TIME=%s\nPLATFORM=%s\n" "$GIT_SHA" "$BUILD_TIME" "$TARGETPLATFORM" > /opt/app/VERSION \
     && find /opt/app/scripts -name '*.sh' -exec chmod +x {} + 2>/dev/null; \
        find /opt/app/scripts -name '*.py' -exec chmod +x {} + 2>/dev/null; \
        if ! test -x /app/llama-server; then echo "ERROR: /app/llama-server not found"; exit 1; fi
 
 # Default environment
+# NGL=0 for CPU-only inference (no GPU layer offloading)
 # DATA_DIR: Base path for models and logs
 #   - Auto-detects /runpod-volume or /workspace if /data doesn't exist
 #   - Override for custom setups: DATA_DIR=/mnt/storage
 ENV DATA_DIR=/data \
     PORT=8000 \
     BACKEND_PORT=8080 \
-    NGL=99 \
-    CTX=16384 \
+    NGL=0 \
+    CTX=4096 \
     LOG_NAME=llama
 
 EXPOSE 8000

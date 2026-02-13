@@ -1,0 +1,100 @@
+# ==============================================================================
+# .dockerignore — llama-gguf-inference
+#
+# Exclude files not needed in the container image to reduce image size
+# and avoid leaking development/coordination files into production.
+# ==============================================================================
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github
+
+# Claude coordination files
+.claude
+CLAUDE.md
+CLAUDE_SUGGESTIONS.md
+PROJECT_LOG.md
+TASKS.md
+agent-logs/
+
+# Documentation (not needed at runtime)
+docs/
+*.md
+!scripts/README.md
+
+# Testing
+scripts/tests/
+scripts/dev/
+scripts/diagnostics/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.tox/
+.hypothesis/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+
+# Pre-commit
+.pre-commit-config.yaml
+.pre-commit-cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Logs and archives
+*.log
+logs/
+archive/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*.tmp
+
+# Build tooling config (not needed in container)
+.checkmake
+.checkmake-mk
+repo.mk
+repo.mk.example
+pyproject.toml
+
+# Docker-related (avoid recursive inclusion)
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# WSL artifacts
+*:Zone.Identifier
+
+# Sphinx build output
+docs/_build/
