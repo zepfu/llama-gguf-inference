@@ -119,13 +119,13 @@ class TestValidate:
         assert is_valid is True
         assert result == "auth-disabled"
 
-    def test_no_keys_configured(self, monkeypatch):
+    def test_no_keys_configured_rejects(self, monkeypatch):
         v = _make_validator(
             monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE="/nonexistent/keys.txt"
         )
         is_valid, result = v.validate({"authorization": "Bearer anything"})
-        assert is_valid is True
-        assert result == "no-keys-configured"
+        assert is_valid is False
+        assert "misconfigured" in result.lower()
 
     def test_missing_auth_header(self, keys_file, monkeypatch):
         v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=keys_file)
@@ -200,7 +200,7 @@ class TestRateLimiting:
             v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
         is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
         assert is_valid is False
-        assert "Rate limit" in result
+        assert result == "rate_limit_exceeded"
 
     def test_different_keys_separate_limits(self, keys_file, monkeypatch):
         v = _make_validator(

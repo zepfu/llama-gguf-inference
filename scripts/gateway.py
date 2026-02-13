@@ -193,13 +193,9 @@ async def handle_health(writer: asyncio.StreamWriter):
         "metrics": metrics.to_dict(),
     }
 
-    # Add auth metrics if available
-    if AUTH_AVAILABLE and api_validator.enabled:
-        health["authentication"] = {
-            "enabled": True,
-            "keys_configured": len(api_validator.keys),
-            "rate_limits": api_validator.get_metrics(),
-        }
+    # Auth status (no sensitive details on unauthenticated endpoint)
+    if AUTH_AVAILABLE:
+        health["authentication"] = {"enabled": api_validator.enabled}
 
     body = json.dumps(health, indent=2)
     response = (
