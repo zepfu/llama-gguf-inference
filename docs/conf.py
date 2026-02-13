@@ -96,6 +96,8 @@ napoleon_type_aliases = None
 napoleon_attr_annotations = True
 
 # Suppress warnings for auto-generated docs with missing cross-references
+# and toctree references that may not exist until CI generates them
 suppress_warnings = [
     "myst.xref_missing",  # Missing cross-references in auto-generated docs
+    "toc.not_readable",  # Auto-generated docs that may not exist locally
 ]

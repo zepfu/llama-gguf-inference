@@ -232,7 +232,7 @@ ______________________________________________________________________
 1. **Verify stream parameter:**
 
    ```json
-   {"stream": true, ...}
+   {"stream": true}
    ```
 
 1. **Check client timeout:**
