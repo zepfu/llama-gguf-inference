@@ -148,12 +148,9 @@ HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 PORT_HEALTH="${PORT_HEALTH:-8001}"
 
-# Support both PORT_BACKEND (new) and BACKEND_PORT (old, deprecated)
+PORT_BACKEND="${PORT_BACKEND:-8080}"
 if [[ -n "${BACKEND_PORT:-}" ]]; then
-    log "WARNING: BACKEND_PORT is deprecated, use PORT_BACKEND instead"
-    PORT_BACKEND="${BACKEND_PORT}"
-else
-    PORT_BACKEND="${PORT_BACKEND:-8080}"
+    log "WARNING: BACKEND_PORT is deprecated and no longer supported. Use PORT_BACKEND instead."
 fi
 
 NGL="${NGL:-99}"
@@ -253,8 +250,8 @@ SHUTDOWN_IN_PROGRESS=0
 if is_truthy "${DEBUG_SHELL:-}"; then
     log "DEBUG_SHELL enabled - holding for inspection"
     log "id=$(id) hostname=$(hostname)"
-    log "Environment:"
-    env | sort
+    log "Environment (sensitive vars filtered):"
+    env | sort | grep -viE '(key|secret|token|password|credential)'
     log "Sleeping 300s..."
     sleep 300
     exit 0
@@ -303,7 +300,7 @@ log "LOG_NAME=$LOG_NAME"
 log "AUTH_ENABLED=$AUTH_ENABLED"
 log "AUTH_KEYS_FILE=$AUTH_KEYS_FILE"
 log "MAX_REQUESTS_PER_MINUTE=$MAX_REQUESTS_PER_MINUTE"
-log "BACKEND_AUTH=enabled (key: ${BACKEND_API_KEY:0:8}...${BACKEND_API_KEY: -8}) file: $BACKEND_KEY_FILE"
+log "BACKEND_AUTH=enabled (key: ${BACKEND_API_KEY:0:8}...) file: $BACKEND_KEY_FILE"
 
 # ==============================================================================
 # MODEL RESOLUTION
@@ -491,6 +488,8 @@ fi
 # Append extra args (space-split)
 # shellcheck disable=SC2206
 if [[ -n "$EXTRA_ARGS" ]]; then
+    log "WARNING: EXTRA_ARGS is set. Ensure it does not override security defaults (e.g., --host)."
+    log "EXTRA_ARGS=$EXTRA_ARGS"
     LLAMA_ARGS+=($EXTRA_ARGS)
 fi
 

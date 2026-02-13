@@ -31,6 +31,9 @@ Environment Variables:
     MAX_REQUEST_BODY_SIZE - Max request body in bytes (default: 10485760 = 10MB)
     MAX_HEADERS     - Max number of request headers (default: 64)
     MAX_HEADER_LINE_SIZE - Max size of a single header line in bytes (default: 8192)
+    MAX_REQUEST_LINE_SIZE - Max size of HTTP request line in bytes (default: 8192)
+    METRICS_AUTH_ENABLED  - Require auth for /metrics endpoint (default: false)
+    LOG_FORMAT      - Log output format: "text" (default) or "json" (JSONL to stderr)
 """
 
 import asyncio
@@ -42,6 +45,7 @@ import socket
 import sys
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Optional
 
 # Import authentication module
@@ -54,21 +58,47 @@ except ImportError:
     AUTH_AVAILABLE = False
 
 
-def log(msg: str):
-    """Simple logging to stderr."""
-    print(f"[gateway] {msg}", file=sys.stderr, flush=True)
+# Log format: "text" (default, plain text to stderr) or "json" (JSONL to stderr)
+LOG_FORMAT = os.environ.get("LOG_FORMAT", "text").lower()
+
+
+def _log_json(level: str, msg: str, **kwargs) -> None:
+    """Emit a single JSON log line to stderr.
+
+    Always includes: ts (ISO 8601 UTC), level, msg.
+    Additional structured fields are passed via kwargs.
+    """
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "level": level,
+        "msg": msg,
+    }
+    entry.update(kwargs)
+    print(json.dumps(entry, separators=(",", ":")), file=sys.stderr, flush=True)
+
+
+def log(msg: str, level: str = "info", **kwargs) -> None:
+    """Log a message to stderr.
+
+    When LOG_FORMAT=json, outputs a JSON object per line (JSONL) with
+    structured fields.  Otherwise, prints plain text with a [gateway] prefix.
+    """
+    if LOG_FORMAT == "json":
+        _log_json(level, msg, **kwargs)
+    else:
+        print(f"[gateway] {msg}", file=sys.stderr, flush=True)
 
 
 # Configuration
 GATEWAY_HOST = "0.0.0.0"  # nosec B104 - intentional bind-all for container networking
 GATEWAY_PORT = int(os.environ.get("GATEWAY_PORT", os.environ.get("PORT", "8000")))
 BACKEND_HOST = os.environ.get("BACKEND_HOST", "127.0.0.1")
-# Support both PORT_BACKEND (new) and BACKEND_PORT (old, deprecated)
+BACKEND_PORT = int(os.environ.get("PORT_BACKEND", "8080"))
 if "BACKEND_PORT" in os.environ:
-    print("[gateway] WARNING: BACKEND_PORT is deprecated, use PORT_BACKEND instead")
-    BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "8080"))
-else:
-    BACKEND_PORT = int(os.environ.get("PORT_BACKEND", "8080"))
+    log(
+        "BACKEND_PORT is deprecated and no longer supported. Use PORT_BACKEND instead.",
+        level="warn",
+    )
 REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT", "300"))
 HEALTH_TIMEOUT = float(os.environ.get("HEALTH_TIMEOUT", "2"))
 
@@ -76,10 +106,14 @@ HEALTH_TIMEOUT = float(os.environ.get("HEALTH_TIMEOUT", "2"))
 MAX_CONCURRENT_REQUESTS = int(os.environ.get("MAX_CONCURRENT_REQUESTS", "1"))
 MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", "0"))
 
-# Request size and header limits (SEC-03, SEC-05)
+# Request size and header limits (SEC-03, SEC-05, SEC-07)
 MAX_REQUEST_BODY_SIZE = int(os.environ.get("MAX_REQUEST_BODY_SIZE", str(10 * 1024 * 1024)))
 MAX_HEADERS = int(os.environ.get("MAX_HEADERS", "64"))
 MAX_HEADER_LINE_SIZE = int(os.environ.get("MAX_HEADER_LINE_SIZE", "8192"))
+MAX_REQUEST_LINE_SIZE = int(os.environ.get("MAX_REQUEST_LINE_SIZE", "8192"))
+
+# Metrics authentication (SEC-12)
+METRICS_AUTH_ENABLED = os.environ.get("METRICS_AUTH_ENABLED", "false").lower() == "true"
 
 # CORS origin validation (SEC-04)
 MAX_ORIGIN_LENGTH = 2048
@@ -96,15 +130,27 @@ if BACKEND_API_KEY:
     # Validate key format: "gateway-" + 43 base64url characters
     # Total length should be 51 characters (8 + 43)
     if not re.match(r"^gateway-[A-Za-z0-9_-]{43}$", BACKEND_API_KEY):
-        log("ERROR: BACKEND_API_KEY has invalid format (expected: gateway-{43 base64url chars})")
-        log(f"ERROR: Received length: {len(BACKEND_API_KEY)}, expected: 51")
+        log(
+            "BACKEND_API_KEY has invalid format (expected: gateway-{43 base64url chars})",
+            level="error",
+            received_length=len(BACKEND_API_KEY),
+            expected_length=51,
+        )
         sys.exit(1)
     if len(BACKEND_API_KEY) != 51:
-        log(f"ERROR: BACKEND_API_KEY has invalid length: {len(BACKEND_API_KEY)} (expected: 51)")
+        log(
+            "BACKEND_API_KEY has invalid length",
+            level="error",
+            received_length=len(BACKEND_API_KEY),
+            expected_length=51,
+        )
         sys.exit(1)
     log("Backend key format validated successfully")
 else:
-    log("WARNING: BACKEND_API_KEY not set - backend will not require authentication")
+    log(
+        "BACKEND_API_KEY not set - backend will not require authentication",
+        level="warn",
+    )
 
 # CORS configuration (SEC-04: origin validation)
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "")
@@ -513,6 +559,69 @@ async def send_header_too_large(
     await writer.drain()
 
 
+async def send_uri_too_long(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+) -> None:
+    """Send a 414 URI Too Long response when the request line exceeds the limit.
+
+    Uses OpenAI-compatible error format with CORS headers (SEC-07).
+    """
+    body = json.dumps(
+        {
+            "error": {
+                "message": f"Request line too long (max {MAX_REQUEST_LINE_SIZE} bytes)",
+                "type": "invalid_request_error",
+                "code": "uri_too_long",
+            }
+        }
+    )
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 414 URI Too Long\r\n"
+        f"Content-Type: application/json\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+        f"{body}"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
+async def send_bad_request(
+    writer: asyncio.StreamWriter,
+    message: str,
+    request_origin: str = "",
+) -> None:
+    """Send a 400 Bad Request response for malformed requests.
+
+    Uses OpenAI-compatible error format with CORS headers (SEC-10).
+    """
+    body = json.dumps(
+        {
+            "error": {
+                "message": message,
+                "type": "invalid_request_error",
+                "code": "bad_request",
+            }
+        }
+    )
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 400 Bad Request\r\n"
+        f"Content-Type: application/json\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+        f"{body}"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
 def _inject_cors_into_headers(response_headers: bytes, request_origin: str) -> bytes:
     r"""Inject CORS headers into raw HTTP response headers.
 
@@ -547,6 +656,7 @@ async def proxy_request(
     """
     metrics.requests_total += 1
     metrics.requests_active += 1
+    _req_start = time.monotonic()
 
     try:
         # Connect to backend
@@ -556,6 +666,16 @@ async def proxy_request(
             )
         except (asyncio.TimeoutError, OSError):
             metrics.requests_error += 1
+            _dur = round((time.monotonic() - _req_start) * 1000, 1)
+            log(
+                "Backend connection failed",
+                level="error",
+                method=method,
+                path=path,
+                status=502,
+                duration_ms=_dur,
+                key_id=key_id,
+            )
             error_response = (
                 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
             )
@@ -631,13 +751,33 @@ async def proxy_request(
         backend_writer.close()
         await backend_writer.wait_closed()
 
+        _dur = round((time.monotonic() - _req_start) * 1000, 1)
+        log(
+            "Request completed",
+            method=method,
+            path=path,
+            status=200,
+            duration_ms=_dur,
+            key_id=key_id,
+            bytes_sent=bytes_sent,
+        )
+
         # Log successful request
         if AUTH_AVAILABLE:
             await log_access(method, path, key_id, 200)
 
     except Exception as e:
         metrics.requests_error += 1
-        log(f"Proxy error: {e}")
+        _dur = round((time.monotonic() - _req_start) * 1000, 1)
+        log(
+            f"Proxy error: {e}",
+            level="error",
+            method=method,
+            path=path,
+            status=502,
+            duration_ms=_dur,
+            key_id=key_id,
+        )
         try:
             error_response = (
                 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
@@ -645,7 +785,7 @@ async def proxy_request(
             writer.write(error_response.encode())
             await writer.drain()
         except Exception:
-            log("Cleanup: failed to send error response to client")
+            log("Failed to send error response to client", level="error")
         # Log error
         if AUTH_AVAILABLE:
             await log_access(method, path, key_id, 502)
@@ -713,8 +853,11 @@ async def _read_headers(
         # SEC-05: Check individual header line size
         if len(header_line_raw) > MAX_HEADER_LINE_SIZE:
             log(
-                f"Header line too large: {len(header_line_raw)} bytes "
-                f"(max {MAX_HEADER_LINE_SIZE})"
+                "Header line too large",
+                level="warn",
+                status=431,
+                header_bytes=len(header_line_raw),
+                max_bytes=MAX_HEADER_LINE_SIZE,
             )
             await send_header_too_large(writer)
             return None
@@ -722,7 +865,13 @@ async def _read_headers(
         # SEC-05: Check header count
         header_count += 1
         if header_count > MAX_HEADERS:
-            log(f"Too many headers: {header_count} (max {MAX_HEADERS})")
+            log(
+                "Too many headers",
+                level="warn",
+                status=431,
+                header_count=header_count,
+                max_headers=MAX_HEADERS,
+            )
             await send_header_too_large(writer)
             return None
 
@@ -730,8 +879,13 @@ async def _read_headers(
         if ":" in header_line:
             key, value = header_line.split(":", 1)
             headers[key.strip().lower()] = value.strip()
-            if key.lower() == "content-length":
-                content_length = int(value.strip())
+            if key.strip().lower() == "content-length":
+                try:
+                    content_length = int(value.strip())
+                except ValueError:
+                    log("Malformed Content-Length header", level="warn", status=400)
+                    await send_bad_request(writer, "Malformed Content-Length header")
+                    return None
 
     return headers, content_length
 
@@ -759,6 +913,18 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         if not request_line_raw:
             return
 
+        # SEC-07: Check request line size
+        if len(request_line_raw) > MAX_REQUEST_LINE_SIZE:
+            log(
+                "Request line too large",
+                level="warn",
+                status=414,
+                request_line_bytes=len(request_line_raw),
+                max_bytes=MAX_REQUEST_LINE_SIZE,
+            )
+            await send_uri_too_long(writer)
+            return
+
         request_line = request_line_raw.decode("utf-8", errors="replace").strip()
         parts = request_line.split()
         if len(parts) < 2:
@@ -775,7 +941,13 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
         # SEC-03: Check body size before reading
         if content_length > MAX_REQUEST_BODY_SIZE:
-            log(f"Request body too large: {content_length} bytes (max {MAX_REQUEST_BODY_SIZE})")
+            log(
+                "Request body too large",
+                level="warn",
+                status=413,
+                content_length=content_length,
+                max_bytes=MAX_REQUEST_BODY_SIZE,
+            )
             request_origin = headers.get("origin", "")
             await send_payload_too_large(writer, request_origin)
             return
@@ -795,7 +967,17 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             return
 
         # Route request - health endpoints bypass auth
-        if path in ("/ping", "/health", "/metrics"):
+        if path in ("/ping", "/health"):
+            await _route_health(path, writer, request_origin, accept_header)
+            return
+
+        # SEC-12: /metrics optionally requires authentication
+        if path == "/metrics":
+            if METRICS_AUTH_ENABLED and AUTH_AVAILABLE:
+                key_id = await authenticate_request(writer, headers)
+                if key_id is None:
+                    metrics.requests_unauthorized += 1
+                    return
             await _route_health(path, writer, request_origin, accept_header)
             return
 
@@ -818,33 +1000,40 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
     except asyncio.TimeoutError:
         pass
     except Exception as e:
-        log(f"Client handler error: {e}")
+        log(f"Client handler error: {e}", level="error")
 
     finally:
         try:
             writer.close()
             await writer.wait_closed()
         except Exception:
-            log("Cleanup: failed to close client writer")
+            log("Failed to close client writer", level="error")
 
 
 async def main():
     """Start the gateway server."""
-    log(f"Starting gateway on {GATEWAY_HOST}:{GATEWAY_PORT}")
-    log(f"Backend: {BACKEND_HOST}:{BACKEND_PORT}")
-    log(f"Request timeout: {REQUEST_TIMEOUT}s")
     log(
-        f"Concurrency: max_concurrent={MAX_CONCURRENT_REQUESTS}, "
-        f"max_queue={'unlimited' if MAX_QUEUE_SIZE == 0 else MAX_QUEUE_SIZE}"
+        "Gateway starting",
+        host=GATEWAY_HOST,
+        port=GATEWAY_PORT,
+        backend_host=BACKEND_HOST,
+        backend_port=BACKEND_PORT,
+        request_timeout=REQUEST_TIMEOUT,
+        max_concurrent=MAX_CONCURRENT_REQUESTS,
+        max_queue=MAX_QUEUE_SIZE if MAX_QUEUE_SIZE > 0 else "unlimited",
+        log_format=LOG_FORMAT,
     )
 
     if AUTH_AVAILABLE:
         if api_validator.enabled:
-            log(f"Authentication: ENABLED ({len(api_validator.keys)} keys configured)")
+            log(
+                "Authentication enabled",
+                keys_configured=len(api_validator.keys),
+            )
         else:
-            log("Authentication: DISABLED")
+            log("Authentication disabled")
     else:
-        log("Authentication: NOT AVAILABLE (auth.py not found)")
+        log("Authentication not available (auth.py not found)", level="warn")
 
     server = await asyncio.start_server(
         handle_client,
@@ -863,9 +1052,16 @@ async def main():
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, signal_handler)
 
-    log(f"Gateway listening on http://{GATEWAY_HOST}:{GATEWAY_PORT}")
-    log("Public endpoints (no auth): /ping, /health, /metrics")
-    log("Protected endpoints (auth required): /v1/*")
+    log(
+        f"Gateway listening on http://{GATEWAY_HOST}:{GATEWAY_PORT}",
+        port=GATEWAY_PORT,
+    )
+    if METRICS_AUTH_ENABLED:
+        log("Public endpoints (no auth): /ping, /health")
+        log("Protected endpoints (auth required): /metrics, /v1/*")
+    else:
+        log("Public endpoints (no auth): /ping, /health, /metrics")
+        log("Protected endpoints (auth required): /v1/*")
     log(
         "Proxied endpoints: /v1/chat/completions, /v1/completions, "
         "/v1/embeddings, /v1/models, ..."
@@ -881,7 +1077,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        log("Interrupted")
+        log("Interrupted", level="info")
     except Exception as e:
-        log(f"Fatal error: {e}")
+        log(f"Fatal error: {e}", level="error")
         sys.exit(1)

@@ -618,3 +618,419 @@ class TestValidateEdgeCases:
         assert result is True
         # Old entries should have been cleaned
         assert len(v.rate_limiter["testing"]) == 0
+
+
+# ---------------------------------------------------------------------------
+# SEC-11: Log sanitization tests
+# ---------------------------------------------------------------------------
+
+
+class TestSanitizeLogField:
+    """Tests for _sanitize_log_field() function (SEC-11)."""
+
+    def test_clean_value_unchanged(self, monkeypatch):
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        assert auth._sanitize_log_field("GET") == "GET"
+        assert auth._sanitize_log_field("/v1/chat/completions") == "/v1/chat/completions"
+
+    def test_newline_replaced(self, monkeypatch):
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        result = auth._sanitize_log_field("GET\nPOST")
+        assert "\n" not in result
+        assert result == "GET_POST"
+
+    def test_carriage_return_replaced(self, monkeypatch):
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        result = auth._sanitize_log_field("GET\rPOST")
+        assert "\r" not in result
+        assert result == "GET_POST"
+
+    def test_tab_replaced(self, monkeypatch):
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        result = auth._sanitize_log_field("GET\tPOST")
+        assert "\t" not in result
+        assert result == "GET_POST"
+
+    def test_pipe_replaced(self, monkeypatch):
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        result = auth._sanitize_log_field("/path|injected")
+        assert "|" not in result
+        assert result == "/path_injected"
+
+    def test_multiple_control_chars(self, monkeypatch):
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        result = auth._sanitize_log_field("GET\r\n/fake | injected\t200")
+        assert "\r" not in result
+        assert "\n" not in result
+        assert "\t" not in result
+        assert "|" not in result
+
+    def test_log_injection_attempt(self, monkeypatch):
+        """Verify a full log injection attempt is neutralized."""
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="false", DATA_DIR="/tmp/test-data")
+        malicious = "POST /v1/chat\n2024-01-01T00:00:00 | admin | GET /secret | 200"
+        result = auth._sanitize_log_field(malicious)
+        assert "\n" not in result
+        assert "|" not in result
+
+
+# ---------------------------------------------------------------------------
+# Per-key rate limit tests
+# ---------------------------------------------------------------------------
+
+
+class TestPerKeyRateLimits:
+    """Tests for per-key rate limit configuration."""
+
+    def test_per_key_rate_limit_loaded(self, tmp_path, monkeypatch):
+        """Per-key rate limit is parsed from the third field."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:5\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert "testing" in v.key_rate_limits
+        assert v.key_rate_limits["testing"] == 5
+
+    def test_per_key_rate_limit_enforced(self, tmp_path, monkeypatch):
+        """Per-key rate limit of 3 is enforced instead of global 100."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:3\n")
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        # 3 requests should succeed
+        for _ in range(3):
+            is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+            assert is_valid is True
+        # 4th should fail
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is False
+        assert result == "rate_limit_exceeded"
+
+    def test_per_key_higher_limit(self, tmp_path, monkeypatch):
+        """Per-key rate limit can be higher than global default."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:200\n")
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            MAX_REQUESTS_PER_MINUTE="5",
+        )
+        # Should allow more than the global limit of 5
+        for _ in range(6):
+            is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+            assert is_valid is True
+
+    def test_default_rate_limit_without_per_key(self, tmp_path, monkeypatch):
+        """Keys without per-key limit use the global default."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            MAX_REQUESTS_PER_MINUTE="3",
+        )
+        assert "testing" not in v.key_rate_limits
+        for _ in range(3):
+            v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is False
+
+    def test_invalid_rate_limit_skips_key(self, tmp_path, monkeypatch):
+        """Invalid (non-integer) rate limit causes key line to be skipped."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:abc\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 0
+
+    def test_zero_rate_limit_skips_key(self, tmp_path, monkeypatch):
+        """Zero rate limit causes key line to be skipped."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:0\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 0
+
+    def test_negative_rate_limit_skips_key(self, tmp_path, monkeypatch):
+        """Negative rate limit causes key line to be skipped."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:-5\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 0
+
+    def test_metrics_shows_per_key_limit(self, tmp_path, monkeypatch):
+        """get_metrics returns the per-key rate limit, not global default."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:42\n")
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        metrics = v.get_metrics()
+        assert metrics["testing"]["rate_limit"] == 42
+
+
+# ---------------------------------------------------------------------------
+# Key expiration tests
+# ---------------------------------------------------------------------------
+
+
+class TestKeyExpiration:
+    """Tests for key expiration / TTL."""
+
+    def test_expired_key_rejected(self, tmp_path, monkeypatch):
+        """A key with a past expiration is rejected."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::2020-01-01T00:00:00\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is False
+        assert result == "API key has expired"
+
+    def test_non_expired_key_accepted(self, tmp_path, monkeypatch):
+        """A key with a future expiration is accepted."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::2099-12-31T23:59:59\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is True
+        assert result == "testing"
+
+    def test_no_expiration_means_never_expires(self, tmp_path, monkeypatch):
+        """A key without an expiration field never expires."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert "testing" not in v.key_expirations
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is True
+
+    def test_empty_expiration_means_never_expires(self, tmp_path, monkeypatch):
+        """An empty expiration field (key:api_key:120:) means no expiry."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:120:\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert "testing" not in v.key_expirations
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is True
+
+    def test_invalid_expiration_skips_key(self, tmp_path, monkeypatch):
+        """An invalid expiration date causes the line to be skipped."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::not-a-date\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 0
+
+    def test_rate_limit_and_expiration_together(self, tmp_path, monkeypatch):
+        """Both rate limit and expiration can be set on the same key."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:5:2099-12-31T23:59:59\n")
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        assert v.key_rate_limits.get("testing") == 5
+        assert v.key_expirations["testing"].year == 2099
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is True
+
+    def test_expired_key_sends_401(self, tmp_path, monkeypatch):
+        """Expired key sends a 401 with 'API key has expired' message."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::2020-01-01T00:00:00\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            result = await auth.authenticate_request(
+                writer, {"authorization": "Bearer sk-test-1234567890abcdef"}
+            )
+            return result
+
+        result = asyncio.run(run())
+        assert result is None
+
+        response = written_data.decode()
+        assert "401 Unauthorized" in response
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert "expired" in data["error"]["message"].lower()
+
+    def test_metrics_includes_expiration(self, tmp_path, monkeypatch):
+        """get_metrics includes expiration when set."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::2099-12-31T23:59:59\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        metrics = v.get_metrics()
+        assert "expires" in metrics["testing"]
+        assert "2099" in metrics["testing"]["expires"]
+
+
+# ---------------------------------------------------------------------------
+# Rate limiter cleanup tests
+# ---------------------------------------------------------------------------
+
+
+class TestRateLimiterCleanup:
+    """Tests for periodic rate limiter cleanup of stale entries."""
+
+    def test_cleanup_removes_stale_entries(self, keys_file, monkeypatch):
+        """Stale entries are removed after cleanup interval."""
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=keys_file,
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        # Add stale entries for a key that hasn't been used recently
+        v.rate_limiter["stale-key"] = [time.time() - 120, time.time() - 90]
+        # Force cleanup by setting _last_cleanup far in the past
+        v._last_cleanup = time.time() - 600
+        v._cleanup_rate_limiter()
+        assert "stale-key" not in v.rate_limiter
+
+    def test_cleanup_keeps_active_entries(self, keys_file, monkeypatch):
+        """Active entries with recent timestamps are NOT removed."""
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=keys_file,
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        now = time.time()
+        v.rate_limiter["active-key"] = [now - 10, now - 5]
+        v._last_cleanup = now - 600
+        v._cleanup_rate_limiter(now)
+        assert "active-key" in v.rate_limiter
+        assert len(v.rate_limiter["active-key"]) == 2
+
+    def test_cleanup_skipped_within_interval(self, keys_file, monkeypatch):
+        """Cleanup is skipped if called within the CLEANUP_INTERVAL."""
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=keys_file,
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        # Add stale entries
+        v.rate_limiter["stale-key"] = [time.time() - 120]
+        # Set last cleanup to recent time (within interval)
+        v._last_cleanup = time.time() - 10
+        v._cleanup_rate_limiter()
+        # Stale entries should still be there (cleanup was skipped)
+        assert "stale-key" in v.rate_limiter
+
+    def test_cleanup_triggered_by_check_rate_limit(self, keys_file, monkeypatch):
+        """_check_rate_limit triggers cleanup when interval has elapsed."""
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=keys_file,
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        # Add stale entry
+        v.rate_limiter["stale-key"] = [time.time() - 120]
+        # Force cleanup interval to have elapsed
+        v._last_cleanup = time.time() - 600
+        # This check should trigger cleanup
+        v._check_rate_limit("testing")
+        assert "stale-key" not in v.rate_limiter
+
+    def test_cleanup_mixed_stale_and_active(self, keys_file, monkeypatch):
+        """Cleanup removes stale entries but keeps active ones."""
+        v = _make_validator(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=keys_file,
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+        now = time.time()
+        v.rate_limiter["stale-key"] = [now - 120]
+        v.rate_limiter["active-key"] = [now - 10]
+        v._last_cleanup = now - 600
+        v._cleanup_rate_limiter(now)
+        assert "stale-key" not in v.rate_limiter
+        assert "active-key" in v.rate_limiter
+
+
+# ---------------------------------------------------------------------------
+# Backward compatibility tests
+# ---------------------------------------------------------------------------
+
+
+class TestBackwardCompatibility:
+    """Tests that all existing key file formats continue to work."""
+
+    def test_simple_key_format(self, tmp_path, monkeypatch):
+        """Original key_id:api_key format works."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 1
+        is_valid, result = v.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert is_valid is True
+        assert result == "testing"
+
+    def test_key_with_rate_limit_only(self, tmp_path, monkeypatch):
+        """key_id:api_key:rate_limit format works."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:50\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 1
+        assert v.key_rate_limits["testing"] == 50
+
+    def test_key_with_expiration_only(self, tmp_path, monkeypatch):
+        """key_id:api_key::expiration format (empty rate limit) works."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::2099-12-31T23:59:59\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 1
+        assert "testing" not in v.key_rate_limits
+        assert v.key_expirations["testing"].year == 2099
+
+    def test_key_with_all_fields(self, tmp_path, monkeypatch):
+        """key_id:api_key:rate_limit:expiration format works."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:200:2099-06-15T12:00:00\n")
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 1
+        assert v.key_rate_limits["testing"] == 200
+        assert v.key_expirations["testing"].month == 6
+
+    def test_mixed_formats_in_same_file(self, tmp_path, monkeypatch):
+        """A file can contain keys in all different formats simultaneously."""
+        f = tmp_path / "keys.txt"
+        f.write_text(
+            "# Mixed format keys\n"
+            "simple:sk-simp-1234567890abcdef\n"
+            "rated:sk-rate-abcdef1234567890:120\n"
+            "expiring:sk-expr-1234567890fedcba::2099-01-01T00:00:00\n"
+            "full:sk-full-abcdefabcdef1234:300:2099-12-31T23:59:59\n"
+        )
+        v = _make_validator(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(v.keys) == 4
+        assert "simple" not in v.key_rate_limits
+        assert v.key_rate_limits["rated"] == 120
+        assert "rated" not in v.key_expirations
+        assert "simple" not in v.key_expirations
+        assert v.key_expirations["expiring"].year == 2099
+        assert v.key_rate_limits["full"] == 300
+        assert v.key_expirations["full"].year == 2099
