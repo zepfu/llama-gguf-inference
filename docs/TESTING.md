@@ -4,7 +4,40 @@ Comprehensive testing strategy for llama-gguf-inference.
 
 ## Current Test Coverage
 
-### Minimal Tests (Pre-commit)
+**141 tests total** across 3 test modules. Coverage of tested modules: `auth.py` 78%, `gateway.py` 55%, `key_mgmt.py`
+79%.
+
+### pytest Test Suite
+
+Located in `tests/`, run with `python3 -m pytest tests/ -v`:
+
+#### `test_auth.py` — 33 tests
+
+- API key validation and format checking
+- Rate limiter logic and sliding window behavior
+- Key file parsing (comments, blanks, duplicates)
+- Authorization header extraction (Bearer and raw)
+- Error response format (401, 429)
+
+#### `test_gateway.py` — 36 tests
+
+- Request routing and health endpoint exemptions
+- CORS header injection and preflight handling
+- Prometheus metrics format and content negotiation
+- Concurrency control and queue behavior
+- Streaming proxy and backend connection handling
+- Metrics counters (requests, errors, bytes, queue)
+
+#### `test_key_mgmt.py` — 47 tests
+
+- Key generation (format, uniqueness, CSPRNG)
+- Key listing (display, empty file, quiet mode)
+- Key removal (existing, missing, file integrity)
+- Key rotation (regeneration, atomic write)
+- Validation (key_id format, duplicates, edge cases)
+- Atomic write safety and file permission (0600)
+
+### Shell Tests (Pre-commit)
 
 Located in `scripts/tests/`, these run quickly during development:
 
@@ -12,25 +45,26 @@ Located in `scripts/tests/`, these run quickly during development:
 
 Quick validation of authentication functionality:
 
-- ✅ Syntax validation of auth.py
-- ✅ Basic import tests
-- ✅ Configuration validation
+- Syntax validation of auth.py
+- Basic import tests
+- Configuration validation
 
 #### `test_health.sh`
 
 Health endpoint validation:
 
-- ✅ Health server starts successfully
-- ✅ Gateway health endpoints work
-- ✅ Health checks work when auth enabled
+- Health server starts successfully
+- Gateway health endpoints work
+- Health checks work when auth enabled
 
 ### Full Tests (GitHub Actions)
 
-Located in `.github/workflows/code-quality.yml`:
+Located in `.github/workflows/ci.yml`:
 
-- ✅ All pre-commit checks
-- ✅ Docker build test
-- ✅ Integration tests
+- All pre-commit checks
+- pytest suite (`tests/`)
+- Docker build test
+- Integration tests
 
 ## Running Tests
 
