@@ -9,17 +9,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- Per-key rate limits: individual keys can override `MAX_REQUESTS_PER_MINUTE` via extended key format
+  `key_id:api_key:rate_limit` ([567c25e])
+- Key expiration/TTL: optional ISO 8601 timestamp in key format `key_id:api_key::expiration`, with relative format
+  support (`30d`, `24h`, `60m`) in `key_mgmt.py --expires` ([567c25e])
+- Hot-reload API keys via SIGHUP signal or `POST /reload` endpoint without gateway restart ([8d4072d])
+- Configurable request timeout via `REQUEST_TIMEOUT` env var (default 300s), returns 504 on timeout ([635913b])
+- Structured JSON logging via `LOG_FORMAT=json` environment variable ([86355ed])
+- API reference documentation with full endpoint, error, and configuration coverage ([a66a2e7])
+- CI coverage threshold gate at 70% minimum ([9ee3959])
 - Migration guide and platform-specific deployment guides for RunPod, Vast.ai, and Lambda Labs ([75ec1bb])
 - Live testing guide for end-to-end validation on GPU environments ([402dcab])
 
 ### Changed
 
 - Optimized container image size by reducing Docker layers and cleaning up build artifacts ([3f8547f])
+- Updated configuration, testing, and README documentation for current state ([1f1c759])
+- Test suite expanded from 224 to 480 tests with overall coverage increased from 59% to 93% ([76240ec], [f0e28d3])
 
 ### Security
 
 - Added request body size limits, header count limits, and CORS origin validation to prevent resource exhaustion and
   abuse ([a44d9da])
+- Added backend response header size limit to prevent oversized responses (SEC-13) ([b25ffe2])
+- Fixed SEC-07/10/11/12/14/15/16: request line size limit (414), malformed Content-Length (400), client header timeout,
+  backend connect timeout, and removed `BACKEND_PORT` deprecation ([3a5206d])
+- Run containers as non-root user (SEC-08) ([1e6d23b])
+- Completed final v1 security audit with all findings addressed ([6a6401f])
 
 ## [1.0.0-rc.1] - 2026-02-13
 
@@ -108,21 +124,33 @@ ______________________________________________________________________
 [1.0.0-rc.1]: https://github.com/zepfu/llama-gguf-inference/releases/tag/v1.0.0-rc.1
 [14a8925]: https://github.com/zepfu/llama-gguf-inference/commit/14a8925c1dde5844e3a770428d43d458a8bec766
 [166e39c]: https://github.com/zepfu/llama-gguf-inference/commit/166e39cf1e76b1c56eac6306d04c2e6087c0a360
+[1e6d23b]: https://github.com/zepfu/llama-gguf-inference/commit/1e6d23b
+[1f1c759]: https://github.com/zepfu/llama-gguf-inference/commit/1f1c759
 [20a10bb]: https://github.com/zepfu/llama-gguf-inference/commit/20a10bb30263d11ade3fab67b89115ddb2dc8333
 [315a6c0]: https://github.com/zepfu/llama-gguf-inference/commit/315a6c02b3c6cf48fad996f94a68143bdd762108
+[3a5206d]: https://github.com/zepfu/llama-gguf-inference/commit/3a5206d
 [3f8547f]: https://github.com/zepfu/llama-gguf-inference/commit/3f8547fdf084d0efa66db791db737842ea6274c6
 [402dcab]: https://github.com/zepfu/llama-gguf-inference/commit/402dcabf65dd1a8c69f3266a0c3bce0bca636e43
 [4600a81]: https://github.com/zepfu/llama-gguf-inference/commit/4600a81d39ef96b2abc378846566f6b1c0b10769
 [4c4f83d]: https://github.com/zepfu/llama-gguf-inference/commit/4c4f83d4a20858e77040ceca069bd152c40b5512
 [50707c0]: https://github.com/zepfu/llama-gguf-inference/commit/50707c0390ae8c6cd24c32d2f326f6724ee2ed1b
+[567c25e]: https://github.com/zepfu/llama-gguf-inference/commit/567c25e
 [5c65407]: https://github.com/zepfu/llama-gguf-inference/commit/5c6540729d3aaa66e175789dc64734ef7742f260
 [634fa8c]: https://github.com/zepfu/llama-gguf-inference/commit/634fa8c6aa207a87125583a3462ad23b9d923d9b
+[635913b]: https://github.com/zepfu/llama-gguf-inference/commit/635913b
 [63a3c5e]: https://github.com/zepfu/llama-gguf-inference/commit/63a3c5e7e771ee4e392b4358b15c12eeaf69187e
+[6a6401f]: https://github.com/zepfu/llama-gguf-inference/commit/6a6401f
 [707b819]: https://github.com/zepfu/llama-gguf-inference/commit/707b819de3076d8db03cce8e1f2078ba3734b9d8
 [75ec1bb]: https://github.com/zepfu/llama-gguf-inference/commit/75ec1bb745481db09f27d7ef25b35a5c740e0950
+[76240ec]: https://github.com/zepfu/llama-gguf-inference/commit/76240ec
 [7f449b9]: https://github.com/zepfu/llama-gguf-inference/commit/7f449b90f2035a5a5280dfe03075373138be3f47
+[86355ed]: https://github.com/zepfu/llama-gguf-inference/commit/86355ed
+[8d4072d]: https://github.com/zepfu/llama-gguf-inference/commit/8d4072d
+[9ee3959]: https://github.com/zepfu/llama-gguf-inference/commit/9ee3959
 [a44d9da]: https://github.com/zepfu/llama-gguf-inference/commit/a44d9dad66bfd1e7ef9537bc056a9892f44e3f32
+[a66a2e7]: https://github.com/zepfu/llama-gguf-inference/commit/a66a2e7
 [a8944c9]: https://github.com/zepfu/llama-gguf-inference/commit/a8944c923fb71773a2f42264d5645c9cff466f2e
+[b25ffe2]: https://github.com/zepfu/llama-gguf-inference/commit/b25ffe2
 [bbd2152]: https://github.com/zepfu/llama-gguf-inference/commit/bbd2152db23b7552eb6145246e78fa4832cf69fb
 [c6ef1ed]: https://github.com/zepfu/llama-gguf-inference/commit/c6ef1edd6221cb500a9d0cbadbc103632874eb5e
 [c8c1972]: https://github.com/zepfu/llama-gguf-inference/commit/c8c197249e511258da3c2ab031aacd06135328bc
@@ -130,6 +158,7 @@ ______________________________________________________________________
 [cd42b99]: https://github.com/zepfu/llama-gguf-inference/commit/cd42b994089b24884e839a77e8070ff73b90fad0
 [d8b45ee]: https://github.com/zepfu/llama-gguf-inference/commit/d8b45eebd62d5e5592228d5fa2baad53113f991a
 [ee44290]: https://github.com/zepfu/llama-gguf-inference/commit/ee44290a1c071da303a9201db9c581a1c728c1bf
+[f0e28d3]: https://github.com/zepfu/llama-gguf-inference/commit/f0e28d3
 [f3ea83b]: https://github.com/zepfu/llama-gguf-inference/commit/f3ea83bdc97d85456419a3e08f46d8695f5cf64a
 [f588262]: https://github.com/zepfu/llama-gguf-inference/commit/f5882623369b3fc0073b53e0b2788759dab582a4
 [fb3989b]: https://github.com/zepfu/llama-gguf-inference/commit/fb3989b91e73e4c56f165cdd35695203fbd26239

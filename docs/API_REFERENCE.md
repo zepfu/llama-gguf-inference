@@ -262,6 +262,61 @@ curl -i -X OPTIONS \
 
 ______________________________________________________________________
 
+### POST /reload
+
+Hot-reload API keys from the keys file without restarting the gateway. The reload is atomic: either all keys are
+replaced successfully, or the previous key set is preserved unchanged. Rate limiter state (request timestamps) is
+preserved across reloads so existing rate limits for known keys survive.
+
+**Auth required:** Yes
+
+**Response (200 OK):**
+
+```json
+{
+  "status": "ok",
+  "keys_loaded": 3
+}
+```
+
+| Field         | Type    | Description                             |
+| ------------- | ------- | --------------------------------------- |
+| `status`      | string  | Always `"ok"` on success                |
+| `keys_loaded` | integer | Number of API keys loaded from the file |
+
+**Error responses:**
+
+- **500 Internal Server Error** — Auth module not available or reload failed
+
+```json
+{
+  "error": {
+    "message": "Reload failed: <details>",
+    "type": "server_error",
+    "code": "reload_failed"
+  }
+}
+```
+
+**Example:**
+
+```bash
+curl -X POST -H "Authorization: Bearer YOUR_API_KEY" \
+  http://localhost:8000/reload
+```
+
+You can also trigger a reload via the SIGHUP signal:
+
+```bash
+# Via Docker
+docker kill -s HUP my-inference-container
+
+# Via process signal (inside the container)
+kill -HUP $(pgrep -f gateway.py)
+```
+
+______________________________________________________________________
+
 ## Protected Endpoints
 
 All endpoints not listed above require authentication when `AUTH_ENABLED=true` (the default). The gateway proxies these
@@ -736,6 +791,42 @@ Returned when the request exceeds header limits:
 
 ______________________________________________________________________
 
+### 400 Bad Request
+
+Returned when the request is malformed. Common causes include a non-numeric or negative `Content-Length` header.
+
+**Response:**
+
+```json
+{
+  "error": {
+    "message": "Invalid Content-Length",
+    "type": "invalid_request_error",
+    "code": "bad_request"
+  }
+}
+```
+
+______________________________________________________________________
+
+### 414 URI Too Long
+
+Returned when the HTTP request line (method + path + protocol) exceeds `MAX_REQUEST_LINE_SIZE` (default: 8192 bytes).
+
+**Response:**
+
+```json
+{
+  "error": {
+    "message": "Request line too long (max 8192 bytes)",
+    "type": "invalid_request_error",
+    "code": "uri_too_long"
+  }
+}
+```
+
+______________________________________________________________________
+
 ### 502 Bad Gateway
 
 Returned when the gateway cannot connect to the llama-server backend or when a proxy error occurs during request
@@ -786,6 +877,25 @@ Retry-After: 5
 
 ______________________________________________________________________
 
+### 504 Gateway Timeout
+
+Returned when a proxied request to the llama-server backend exceeds `REQUEST_TIMEOUT` (default: 300 seconds). This
+typically occurs with large generation requests or when the backend is under heavy load.
+
+**Response:**
+
+```json
+{
+  "error": {
+    "message": "Request timed out",
+    "type": "timeout_error",
+    "code": 504
+  }
+}
+```
+
+______________________________________________________________________
+
 ## Configuration Summary
 
 Key environment variables that affect API behavior. For the complete configuration reference, see
@@ -801,21 +911,25 @@ Key environment variables that affect API behavior. For the complete configurati
 
 ### Authentication
 
-| Variable                  | Default                  | Description                   |
-| ------------------------- | ------------------------ | ----------------------------- |
-| `AUTH_ENABLED`            | `true`                   | Enable API key authentication |
-| `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file         |
-| `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per key_id         |
+| Variable                  | Default                  | Description                           |
+| ------------------------- | ------------------------ | ------------------------------------- |
+| `AUTH_ENABLED`            | `true`                   | Enable API key authentication         |
+| `AUTH_KEYS_FILE`          | `$DATA_DIR/api_keys.txt` | Path to API keys file                 |
+| `MAX_REQUESTS_PER_MINUTE` | `100`                    | Rate limit per key_id                 |
+| `METRICS_AUTH_ENABLED`    | `false`                  | Require authentication for `/metrics` |
 
 ### Request Limits
 
-| Variable                | Default            | Description                          |
-| ----------------------- | ------------------ | ------------------------------------ |
-| `MAX_REQUEST_BODY_SIZE` | `10485760` (10 MB) | Maximum request body size            |
-| `MAX_HEADERS`           | `64`               | Maximum number of request headers    |
-| `MAX_HEADER_LINE_SIZE`  | `8192` (8 KB)      | Maximum size of a single header line |
-| `REQUEST_TIMEOUT`       | `300` (5 min)      | Maximum time for a proxied request   |
-| `HEALTH_TIMEOUT`        | `2`                | Timeout for backend health checks    |
+| Variable                  | Default            | Description                            |
+| ------------------------- | ------------------ | -------------------------------------- |
+| `MAX_REQUEST_BODY_SIZE`   | `10485760` (10 MB) | Maximum request body size              |
+| `MAX_HEADERS`             | `64`               | Maximum number of request headers      |
+| `MAX_HEADER_LINE_SIZE`    | `8192` (8 KB)      | Maximum size of a single header line   |
+| `MAX_REQUEST_LINE_SIZE`   | `8192` (8 KB)      | Maximum size of HTTP request line      |
+| `REQUEST_TIMEOUT`         | `300` (5 min)      | Maximum time for a proxied request     |
+| `BACKEND_CONNECT_TIMEOUT` | `10`               | Backend TCP connect timeout in seconds |
+| `CLIENT_HEADER_TIMEOUT`   | `30`               | Client header read timeout in seconds  |
+| `HEALTH_TIMEOUT`          | `2`                | Timeout for backend health checks      |
 
 ### Concurrency
 

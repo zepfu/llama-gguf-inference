@@ -31,17 +31,20 @@ Set environment variable:
 DEBUG_SHELL=true
 ```
 
-Container will print full environment and pause for 5 minutes.
+Container will print the environment and pause for 5 minutes. Sensitive variables (keys, secrets, tokens, passwords,
+credentials) are filtered out of the environment dump.
 
 ______________________________________________________________________
 
 ## Environment Variables for Debugging
 
-| Variable      | Value  | Purpose                            |
-| ------------- | ------ | ---------------------------------- |
-| `DEBUG_SHELL` | `true` | Hold container, dump env           |
-| `NGL`         | `0`    | CPU-only mode (isolate GPU issues) |
-| `CTX`         | `2048` | Minimal context (reduce memory)    |
+| Variable          | Value  | Purpose                                            |
+| ----------------- | ------ | -------------------------------------------------- |
+| `DEBUG_SHELL`     | `true` | Hold container, dump env (sensitive vars filtered) |
+| `NGL`             | `0`    | CPU-only mode (isolate GPU issues)                 |
+| `CTX`             | `2048` | Minimal context (reduce memory)                    |
+| `LOG_FORMAT`      | `json` | Structured JSONL output for log aggregation        |
+| `REQUEST_TIMEOUT` | `300`  | Inference timeout in seconds (debug timeouts)      |
 
 ______________________________________________________________________
 
