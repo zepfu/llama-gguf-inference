@@ -9,6 +9,7 @@ Welcome to the documentation for llama-gguf-inference, a production-ready infere
    :maxdepth: 2
    :caption: User Guides:
 
+   API_REFERENCE
    AUTHENTICATION
    CONFIGURATION
    DEPLOYMENT
