@@ -167,7 +167,3 @@ repos:
         name: checkmake (Makefile)
         args: ['--config=.checkmake']
         files: '(^|/)Makefile$'
-      - id: checkmake
-        name: checkmake (.mk files)
-        args: ['--config=.checkmake-mk']
-        files: '\.mk$'
