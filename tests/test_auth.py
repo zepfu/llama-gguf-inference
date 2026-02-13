@@ -1034,3 +1034,163 @@ class TestBackwardCompatibility:
         assert v.key_expirations["expiring"].year == 2099
         assert v.key_rate_limits["full"] == 300
         assert v.key_expirations["full"].year == 2099
+
+
+# ---------------------------------------------------------------------------
+# reload_keys() tests
+# ---------------------------------------------------------------------------
+
+
+class TestReloadKeys:
+    """Tests for the reload_keys() function (hot-reload without restart)."""
+
+    def test_reload_replaces_keys(self, tmp_path, monkeypatch):
+        """reload_keys() replaces the key set with the new file contents."""
+        f = tmp_path / "keys.txt"
+        f.write_text("old-key:sk-old0-1234567890abcdef\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+
+        # Verify initial state
+        assert len(auth.api_validator.keys) == 1
+        assert "sk-old0-1234567890abcdef" in auth.api_validator.keys
+
+        # Modify keys file
+        f.write_text("new-key:sk-new0-1234567890abcdef\n")
+
+        # Reload
+        count = auth.reload_keys()
+        assert count == 1
+        assert "sk-new0-1234567890abcdef" in auth.api_validator.keys
+        assert "sk-old0-1234567890abcdef" not in auth.api_validator.keys
+
+    def test_reload_returns_count(self, tmp_path, monkeypatch):
+        """reload_keys() returns the number of keys loaded."""
+        f = tmp_path / "keys.txt"
+        f.write_text("a:sk-aaaa-1234567890abcdef\nb:sk-bbbb-1234567890abcdef\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        count = auth.reload_keys()
+        assert count == 2
+
+    def test_reload_handles_empty_file(self, tmp_path, monkeypatch):
+        """reload_keys() handles an empty file (0 keys) without crashing."""
+        f = tmp_path / "keys.txt"
+        f.write_text("initial:sk-init-1234567890abcdef\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(auth.api_validator.keys) == 1
+
+        # Empty the file
+        f.write_text("")
+        count = auth.reload_keys()
+        assert count == 0
+        assert len(auth.api_validator.keys) == 0
+
+    def test_reload_preserves_rate_limiter_state(self, tmp_path, monkeypatch):
+        """reload_keys() does NOT clear rate limiter timestamps."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef\n")
+        auth = _reload_auth(
+            monkeypatch,
+            AUTH_ENABLED="true",
+            AUTH_KEYS_FILE=str(f),
+            MAX_REQUESTS_PER_MINUTE="100",
+        )
+
+        # Make some requests to populate rate limiter
+        for _ in range(5):
+            auth.api_validator.validate({"authorization": "Bearer sk-test-1234567890abcdef"})
+        assert len(auth.api_validator.rate_limiter["testing"]) == 5
+
+        # Reload keys (same file)
+        auth.reload_keys()
+
+        # Rate limiter state should be preserved
+        assert len(auth.api_validator.rate_limiter["testing"]) == 5
+
+    def test_reload_updates_per_key_rate_limits(self, tmp_path, monkeypatch):
+        """reload_keys() picks up changed per-key rate limits."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef:50\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert auth.api_validator.key_rate_limits.get("testing") == 50
+
+        # Change rate limit
+        f.write_text("testing:sk-test-1234567890abcdef:200\n")
+        auth.reload_keys()
+        assert auth.api_validator.key_rate_limits.get("testing") == 200
+
+    def test_reload_updates_expirations(self, tmp_path, monkeypatch):
+        """reload_keys() picks up changed key expirations."""
+        f = tmp_path / "keys.txt"
+        f.write_text("testing:sk-test-1234567890abcdef::2099-01-01T00:00:00\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert auth.api_validator.key_expirations["testing"].year == 2099
+
+        # Change expiration
+        f.write_text("testing:sk-test-1234567890abcdef::2098-06-15T12:00:00\n")
+        auth.reload_keys()
+        assert auth.api_validator.key_expirations["testing"].year == 2098
+        assert auth.api_validator.key_expirations["testing"].month == 6
+
+    def test_reload_clears_stale_metadata(self, tmp_path, monkeypatch):
+        """reload_keys() removes metadata for keys no longer in the file."""
+        f = tmp_path / "keys.txt"
+        f.write_text(
+            "keya:sk-aaaa-1234567890abcdef:50:2099-01-01T00:00:00\n"
+            "keyb:sk-bbbb-1234567890abcdef:100\n"
+        )
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert "keya" in auth.api_validator.key_rate_limits
+        assert "keyb" in auth.api_validator.key_rate_limits
+        assert "keya" in auth.api_validator.key_expirations
+
+        # Remove keya from file
+        f.write_text("keyb:sk-bbbb-1234567890abcdef:100\n")
+        auth.reload_keys()
+
+        assert "keya" not in auth.api_validator.key_rate_limits
+        assert "keya" not in auth.api_validator.key_expirations
+        assert "keyb" in auth.api_validator.key_rate_limits
+
+    def test_reload_adds_new_keys(self, tmp_path, monkeypatch):
+        """reload_keys() adds keys that were not in the original file."""
+        f = tmp_path / "keys.txt"
+        f.write_text("old:sk-old0-1234567890abcdef\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(auth.api_validator.keys) == 1
+
+        # Add a new key
+        f.write_text("old:sk-old0-1234567890abcdef\nnew:sk-new0-1234567890abcdef\n")
+        count = auth.reload_keys()
+        assert count == 2
+        assert "sk-new0-1234567890abcdef" in auth.api_validator.keys
+
+    def test_reload_file_error_goes_fail_closed(self, tmp_path, monkeypatch):
+        """On file read error, keys become empty (fail-closed, matching startup)."""
+        f = tmp_path / "keys.txt"
+        f.write_text("working:sk-work-1234567890abcdef\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(auth.api_validator.keys) == 1
+
+        # Make keys file unreadable to trigger an error inside _load_keys
+        f.chmod(0o000)
+        try:
+            # _load_keys catches the error internally and returns {},
+            # so reload_keys will set keys to {} (fail-closed behavior).
+            count = auth.reload_keys()
+            assert count == 0
+            assert len(auth.api_validator.keys) == 0
+        finally:
+            f.chmod(0o644)
+
+    def test_reload_with_deleted_file_goes_fail_closed(self, tmp_path, monkeypatch):
+        """If keys file is deleted, reload results in 0 keys (fail-closed)."""
+        f = tmp_path / "keys.txt"
+        f.write_text("working:sk-work-1234567890abcdef\n")
+        auth = _reload_auth(monkeypatch, AUTH_ENABLED="true", AUTH_KEYS_FILE=str(f))
+        assert len(auth.api_validator.keys) == 1
+
+        # Delete the file
+        f.unlink()
+        count = auth.reload_keys()
+        assert count == 0
+        assert len(auth.api_validator.keys) == 0

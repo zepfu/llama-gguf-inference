@@ -12,6 +12,7 @@ Features:
 - Per-key access logging
 - Configurable CORS headers
 - Prometheus text exposition format for /metrics
+- Hot-reload API keys via SIGHUP or POST /reload
 
 Note: /ping and /health return 200 immediately without backend checks
 or authentication to enable scale-to-zero in serverless environments.
@@ -21,7 +22,9 @@ Environment Variables:
     BACKEND_HOST    - llama-server host (default: 127.0.0.1)
     PORT_BACKEND    - llama-server port (default: 8080)
     BACKEND_API_KEY - API key for backend authentication (optional)
-    REQUEST_TIMEOUT - Max request time in seconds (default: 300)
+    REQUEST_TIMEOUT - Total request timeout in seconds (default: 300)
+    BACKEND_CONNECT_TIMEOUT - Backend TCP connect timeout in seconds (default: 10)
+    CLIENT_HEADER_TIMEOUT - Client header read timeout in seconds (default: 30)
     HEALTH_TIMEOUT  - Health check timeout in seconds (default: 2)
     AUTH_ENABLED    - Enable API key authentication (default: true)
     AUTH_KEYS_FILE  - Path to API keys file (default: $DATA_DIR/api_keys.txt)
@@ -51,11 +54,13 @@ from typing import Optional
 # Import authentication module
 try:
     from auth import api_validator, authenticate_request, log_access
+    from auth import reload_keys as _auth_reload_keys  # used by _handle_sighup / handle_reload
 
     AUTH_AVAILABLE = True
 except ImportError:
     print("[gateway] Warning: auth.py not found, authentication disabled")
     AUTH_AVAILABLE = False
+    _auth_reload_keys = None  # type: ignore[assignment]
 
 
 # Log format: "text" (default, plain text to stderr) or "json" (JSONL to stderr)
@@ -100,6 +105,8 @@ if "BACKEND_PORT" in os.environ:
         level="warn",
     )
 REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT", "300"))
+BACKEND_CONNECT_TIMEOUT = float(os.environ.get("BACKEND_CONNECT_TIMEOUT", "10"))
+CLIENT_HEADER_TIMEOUT = float(os.environ.get("CLIENT_HEADER_TIMEOUT", "30"))
 HEALTH_TIMEOUT = float(os.environ.get("HEALTH_TIMEOUT", "2"))
 
 # Concurrency and queue configuration
@@ -625,6 +632,37 @@ async def send_bad_request(
     await writer.drain()
 
 
+async def send_gateway_timeout(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+) -> None:
+    """Send a 504 Gateway Timeout response when a proxied request times out.
+
+    Uses OpenAI-compatible error format with CORS headers.
+    """
+    body = json.dumps(
+        {
+            "error": {
+                "message": "Request timed out",
+                "type": "timeout_error",
+                "code": 504,
+            }
+        }
+    )
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 504 Gateway Timeout\r\n"
+        f"Content-Type: application/json\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+        f"{body}"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
 def _inject_cors_into_headers(response_headers: bytes, request_origin: str) -> bytes:
     r"""Inject CORS headers into raw HTTP response headers.
 
@@ -658,6 +696,114 @@ async def _read_backend_response_headers(
     return response_headers
 
 
+async def _do_proxy(
+    backend_reader: asyncio.StreamReader,
+    backend_writer: asyncio.StreamWriter,
+    method: str,
+    path: str,
+    headers: dict,
+    body: Optional[bytes],
+    writer: asyncio.StreamWriter,
+    key_id: str,
+    request_origin: str,
+    _req_start: float,
+) -> None:
+    """Forward a request to the backend and stream the response back.
+
+    This coroutine is wrapped by proxy_request with REQUEST_TIMEOUT so
+    that the entire backend interaction (send request + read response +
+    stream body) is bounded by a single timeout.
+    """
+    # Build request to backend
+    request_line = f"{method} {path} HTTP/1.1\r\n"
+
+    # Forward headers, adjusting Host
+    header_lines = [f"Host: {BACKEND_HOST}:{BACKEND_PORT}"]
+    for key, value in headers.items():
+        key_lower = key.lower()
+        if key_lower in (
+            "host",
+            "connection",
+            "keep-alive",
+            "transfer-encoding",
+            "authorization",
+        ):
+            continue  # Skip user's authorization header
+        header_lines.append(f"{key}: {value}")
+
+    # Add backend authentication if configured
+    if BACKEND_API_KEY:
+        header_lines.append(f"Authorization: Bearer {BACKEND_API_KEY}")
+
+    header_lines.append("Connection: close")
+
+    request = request_line + "\r\n".join(header_lines) + "\r\n\r\n"
+    backend_writer.write(request.encode())
+
+    if body:
+        backend_writer.write(body)
+
+    await backend_writer.drain()
+
+    # Read and forward response headers (SEC-13: cumulative size limit)
+    response_headers = await _read_backend_response_headers(backend_reader)
+    if response_headers is None:
+        log(
+            "Backend response headers too large",
+            level="error",
+            max_bytes=MAX_RESPONSE_HEADER_SIZE,
+        )
+        backend_writer.close()
+        await backend_writer.wait_closed()
+        error_response = (
+            "HTTP/1.1 502 Bad Gateway\r\n" "Content-Length: 0\r\n" "Connection: close\r\n\r\n"
+        )
+        writer.write(error_response.encode())
+        await writer.drain()
+        metrics.requests_error += 1
+        if AUTH_AVAILABLE:
+            await log_access(method, path, key_id, 502)
+        return
+
+    # Inject CORS headers into the response before sending to client
+    response_headers = _inject_cors_into_headers(response_headers, request_origin)
+
+    # Send headers to client
+    writer.write(response_headers)
+    await writer.drain()
+
+    # Stream response body
+    bytes_sent = 0
+    while True:
+        chunk = await backend_reader.read(8192)
+        if not chunk:
+            break
+        writer.write(chunk)
+        await writer.drain()
+        bytes_sent += len(chunk)
+
+    metrics.bytes_sent += bytes_sent
+    metrics.requests_success += 1
+
+    backend_writer.close()
+    await backend_writer.wait_closed()
+
+    _dur = round((time.monotonic() - _req_start) * 1000, 1)
+    log(
+        "Request completed",
+        method=method,
+        path=path,
+        status=200,
+        duration_ms=_dur,
+        key_id=key_id,
+        bytes_sent=bytes_sent,
+    )
+
+    # Log successful request
+    if AUTH_AVAILABLE:
+        await log_access(method, path, key_id, 200)
+
+
 async def proxy_request(
     method: str,
     path: str,
@@ -668,6 +814,10 @@ async def proxy_request(
     request_origin: str = "",
 ):
     """Proxy a request to the backend with streaming support.
+
+    Applies BACKEND_CONNECT_TIMEOUT for the initial TCP connection and
+    REQUEST_TIMEOUT for the entire backend interaction (send + receive +
+    stream).  Returns 502 on connect failure and 504 on request timeout.
 
     Args:
         method: HTTP method (GET, POST, etc.)
@@ -683,10 +833,11 @@ async def proxy_request(
     _req_start = time.monotonic()
 
     try:
-        # Connect to backend
+        # Connect to backend (separate timeout - returns 502 on failure)
         try:
             backend_reader, backend_writer = await asyncio.wait_for(
-                asyncio.open_connection(BACKEND_HOST, BACKEND_PORT), timeout=5.0
+                asyncio.open_connection(BACKEND_HOST, BACKEND_PORT),
+                timeout=BACKEND_CONNECT_TIMEOUT,
             )
         except (asyncio.TimeoutError, OSError):
             metrics.requests_error += 1
@@ -710,97 +861,47 @@ async def proxy_request(
                 await log_access(method, path, key_id, 502)
             return
 
-        # Build request to backend
-        request_line = f"{method} {path} HTTP/1.1\r\n"
-
-        # Forward headers, adjusting Host
-        header_lines = [f"Host: {BACKEND_HOST}:{BACKEND_PORT}"]
-        for key, value in headers.items():
-            key_lower = key.lower()
-            if key_lower in (
-                "host",
-                "connection",
-                "keep-alive",
-                "transfer-encoding",
-                "authorization",
-            ):
-                continue  # Skip user's authorization header
-            header_lines.append(f"{key}: {value}")
-
-        # Add backend authentication if configured
-        if BACKEND_API_KEY:
-            header_lines.append(f"Authorization: Bearer {BACKEND_API_KEY}")
-
-        header_lines.append("Connection: close")
-
-        request = request_line + "\r\n".join(header_lines) + "\r\n\r\n"
-        backend_writer.write(request.encode())
-
-        if body:
-            backend_writer.write(body)
-
-        await backend_writer.drain()
-
-        # Read and forward response headers (SEC-13: cumulative size limit)
-        response_headers = await _read_backend_response_headers(backend_reader)
-        if response_headers is None:
-            log(
-                "Backend response headers too large",
-                level="error",
-                max_bytes=MAX_RESPONSE_HEADER_SIZE,
-            )
-            backend_writer.close()
-            await backend_writer.wait_closed()
-            error_response = (
-                "HTTP/1.1 502 Bad Gateway\r\n" "Content-Length: 0\r\n" "Connection: close\r\n\r\n"
-            )
-            writer.write(error_response.encode())
-            await writer.drain()
-            metrics.requests_error += 1
-            if AUTH_AVAILABLE:
-                await log_access(method, path, key_id, 502)
-            return
-
-        # Inject CORS headers into the response before sending to client
-        response_headers = _inject_cors_into_headers(response_headers, request_origin)
-
-        # Send headers to client
-        writer.write(response_headers)
-        await writer.drain()
-
-        # Stream response body
-        bytes_sent = 0
+        # Forward request and stream response under REQUEST_TIMEOUT
         try:
-            while True:
-                chunk = await asyncio.wait_for(backend_reader.read(8192), timeout=REQUEST_TIMEOUT)
-                if not chunk:
-                    break
-                writer.write(chunk)
-                await writer.drain()
-                bytes_sent += len(chunk)
+            await asyncio.wait_for(
+                _do_proxy(
+                    backend_reader,
+                    backend_writer,
+                    method,
+                    path,
+                    headers,
+                    body,
+                    writer,
+                    key_id,
+                    request_origin,
+                    _req_start,
+                ),
+                timeout=REQUEST_TIMEOUT,
+            )
         except asyncio.TimeoutError:
-            pass  # Connection closed or timeout
-
-        metrics.bytes_sent += bytes_sent
-        metrics.requests_success += 1
-
-        backend_writer.close()
-        await backend_writer.wait_closed()
-
-        _dur = round((time.monotonic() - _req_start) * 1000, 1)
-        log(
-            "Request completed",
-            method=method,
-            path=path,
-            status=200,
-            duration_ms=_dur,
-            key_id=key_id,
-            bytes_sent=bytes_sent,
-        )
-
-        # Log successful request
-        if AUTH_AVAILABLE:
-            await log_access(method, path, key_id, 200)
+            metrics.requests_error += 1
+            _dur = round((time.monotonic() - _req_start) * 1000, 1)
+            log(
+                "Request timed out",
+                level="warn",
+                method=method,
+                path=path,
+                status=504,
+                duration_ms=_dur,
+                key_id=key_id,
+                timeout_seconds=REQUEST_TIMEOUT,
+            )
+            try:
+                backend_writer.close()
+                await backend_writer.wait_closed()
+            except Exception:  # nosec B110 - best-effort cleanup of backend connection
+                pass
+            try:
+                await send_gateway_timeout(writer, request_origin)
+            except Exception:
+                log("Failed to send 504 response to client", level="error")
+            if AUTH_AVAILABLE:
+                await log_access(method, path, key_id, 504)
 
     except Exception as e:
         metrics.requests_error += 1
@@ -882,7 +983,7 @@ async def _read_headers(
     content_length = 0
     header_count = 0
     while True:
-        header_line_raw = await asyncio.wait_for(reader.readline(), timeout=30)
+        header_line_raw = await asyncio.wait_for(reader.readline(), timeout=CLIENT_HEADER_TIMEOUT)
         if header_line_raw == b"\r\n" or header_line_raw == b"":
             break
 
@@ -941,11 +1042,92 @@ async def _route_health(
         await handle_metrics(writer, request_origin, accept_header)
 
 
+def _handle_sighup(signum, frame):
+    """Reload API keys on SIGHUP without restarting the gateway.
+
+    Safe to call from a signal handler context. Never raises to avoid
+    crashing the running gateway.
+    """
+    if not AUTH_AVAILABLE or _auth_reload_keys is None:
+        log("SIGHUP received but auth module not available, ignoring", level="warn")
+        return
+
+    try:
+        count = _auth_reload_keys()
+        log(f"API keys reloaded via SIGHUP: {count} key(s) loaded", level="info")
+    except Exception as e:
+        log(f"Failed to reload API keys via SIGHUP: {e}", level="error")
+
+
+async def handle_reload(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+) -> None:
+    """Handle POST /reload endpoint to hot-reload API keys.
+
+    Requires authentication (enforced by the caller in handle_client).
+    Returns the count of keys loaded or an error message if the reload
+    failed.
+    """
+    cors = build_cors_header_str(request_origin)
+
+    if not AUTH_AVAILABLE or _auth_reload_keys is None:
+        body = json.dumps(
+            {
+                "error": {
+                    "message": "Auth module not available",
+                    "type": "server_error",
+                    "code": "auth_unavailable",
+                }
+            }
+        )
+        response = (
+            "HTTP/1.1 500 Internal Server Error\r\n"
+            "Content-Type: application/json\r\n"
+            f"{cors}"
+            f"Content-Length: {len(body)}\r\n"
+            "Connection: close\r\n"
+            "\r\n" + body
+        )
+        writer.write(response.encode())
+        await writer.drain()
+        return
+
+    try:
+        count = _auth_reload_keys()
+        log(f"API keys reloaded via POST /reload: {count} key(s) loaded", level="info")
+        body = json.dumps({"status": "ok", "keys_loaded": count})
+        status_line = "HTTP/1.1 200 OK"
+    except Exception as e:
+        log(f"Failed to reload API keys via POST /reload: {e}", level="error")
+        body = json.dumps(
+            {
+                "error": {
+                    "message": f"Reload failed: {e}",
+                    "type": "server_error",
+                    "code": "reload_failed",
+                }
+            }
+        )
+        status_line = "HTTP/1.1 500 Internal Server Error"
+
+    response = (
+        f"{status_line}\r\n"
+        "Content-Type: application/json\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        "Connection: close\r\n"
+        "\r\n" + body
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     """Handle an incoming client connection."""
     try:
         # Read request line
-        request_line_raw = await asyncio.wait_for(reader.readline(), timeout=30)
+        request_line_raw = await asyncio.wait_for(reader.readline(), timeout=CLIENT_HEADER_TIMEOUT)
         if not request_line_raw:
             return
 
@@ -991,7 +1173,9 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         # Read body if present
         body = None
         if content_length > 0:
-            body = await asyncio.wait_for(reader.readexactly(content_length), timeout=30)
+            body = await asyncio.wait_for(
+                reader.readexactly(content_length), timeout=CLIENT_HEADER_TIMEOUT
+            )
 
         # Extract origin for CORS
         request_origin = headers.get("origin", "")
@@ -1015,6 +1199,17 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                     metrics.requests_unauthorized += 1
                     return
             await _route_health(path, writer, request_origin, accept_header)
+            return
+
+        # POST /reload — hot-reload API keys (requires authentication)
+        if path == "/reload" and method == "POST":
+            if AUTH_AVAILABLE:
+                key_id = await authenticate_request(writer, headers)
+                if key_id is None:
+                    metrics.requests_unauthorized += 1
+                    return
+                metrics.requests_authenticated += 1
+            await handle_reload(writer, request_origin)
             return
 
         # All other endpoints require authentication
@@ -1055,6 +1250,8 @@ async def main():
         backend_host=BACKEND_HOST,
         backend_port=BACKEND_PORT,
         request_timeout=REQUEST_TIMEOUT,
+        backend_connect_timeout=BACKEND_CONNECT_TIMEOUT,
+        client_header_timeout=CLIENT_HEADER_TIMEOUT,
         max_concurrent=MAX_CONCURRENT_REQUESTS,
         max_queue=MAX_QUEUE_SIZE if MAX_QUEUE_SIZE > 0 else "unlimited",
         log_format=LOG_FORMAT,
@@ -1088,16 +1285,21 @@ async def main():
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, signal_handler)
 
+    # Register SIGHUP handler for API key hot-reload
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, _handle_sighup)
+        log("SIGHUP handler registered for API key hot-reload")
+
     log(
         f"Gateway listening on http://{GATEWAY_HOST}:{GATEWAY_PORT}",
         port=GATEWAY_PORT,
     )
     if METRICS_AUTH_ENABLED:
         log("Public endpoints (no auth): /ping, /health")
-        log("Protected endpoints (auth required): /metrics, /v1/*")
+        log("Protected endpoints (auth required): /metrics, /reload, /v1/*")
     else:
         log("Public endpoints (no auth): /ping, /health, /metrics")
-        log("Protected endpoints (auth required): /v1/*")
+        log("Protected endpoints (auth required): /reload, /v1/*")
     log(
         "Proxied endpoints: /v1/chat/completions, /v1/completions, "
         "/v1/embeddings, /v1/models, ..."

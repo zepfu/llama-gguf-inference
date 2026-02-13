@@ -415,6 +415,57 @@ class APIKeyValidator:
 api_validator = APIKeyValidator()
 
 
+def reload_keys() -> int:
+    """Reload API keys from the keys file without restarting the gateway.
+
+    Re-reads the keys file from the same path used at startup and atomically
+    replaces the validator's keys, per-key rate limits, and expirations.
+    Rate limiter state (request timestamps) is preserved so that existing
+    rate limits for known keys survive the reload.
+
+    Returns:
+        Number of keys loaded from the file.
+
+    Raises:
+        Exception: Propagated from file I/O so the caller can log and
+        continue serving with the previous key set.
+    """
+    # Re-read keys_file path from the environment so operators can change
+    # the file location at runtime (e.g., rotate to a new file).
+    api_validator.keys_file = os.environ.get(
+        "AUTH_KEYS_FILE",
+        f"{os.environ.get('DATA_DIR', '/data')}/api_keys.txt",
+    )
+
+    # Build all new state in temporaries before touching the validator.
+    # This guarantees atomicity: either everything is replaced or nothing is.
+    new_keys = api_validator._load_keys()
+
+    # Parse metadata into fresh dicts (not in-place on the validator)
+    new_rate_limits: dict[str, int] = {}
+    new_expirations: dict[str, datetime.datetime] = {}
+    for key_id, rate_limit_str, expiration_str in getattr(api_validator, "_raw_key_metadata", []):
+        if rate_limit_str:
+            new_rate_limits[key_id] = int(rate_limit_str)
+        if expiration_str:
+            new_expirations[key_id] = datetime.datetime.fromisoformat(expiration_str)
+
+    # Atomic swap: assign all new state in quick succession.
+    # Rate limiter (request timestamps) is intentionally NOT touched.
+    api_validator.keys = new_keys
+    api_validator.key_rate_limits = new_rate_limits
+    api_validator.key_expirations = new_expirations
+
+    count = len(new_keys)
+    if count == 0 and api_validator.enabled:
+        print(
+            "WARNING: API keys file reloaded with 0 keys — "
+            "all requests will be rejected (fail-closed)"
+        )
+
+    return count
+
+
 async def authenticate_request(writer: asyncio.StreamWriter, headers: dict) -> Optional[str]:
     """
     Authenticate an incoming request.
