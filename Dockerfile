@@ -52,6 +52,23 @@ RUN printf "GIT_SHA=%s\nBUILD_TIME=%s\n" "$GIT_SHA" "$BUILD_TIME" > /opt/app/VER
        find /opt/app/scripts -name '*.py' -exec chmod +x {} + 2>/dev/null; \
        if ! test -x /app/llama-server; then echo "ERROR: /app/llama-server not found"; exit 1; fi
 
+# --- Non-root user (SEC-08) ---
+# Security: Run as non-root to reduce container attack surface.
+# GPU access: The NVIDIA container runtime (nvidia-container-toolkit) handles GPU
+# device access via --gpus flag and NVIDIA_VISIBLE_DEVICES, independent of the
+# container user. The 'video' group membership is added as a secondary safeguard
+# for environments that expose GPU devices via traditional device nodes.
+# /dev/shm is a tmpfs mount (world-writable by default in Docker) used for the
+# ephemeral backend authentication key. /data is typically a volume mount whose
+# permissions are controlled by the host/orchestrator.
+RUN groupadd --system inference \
+    && groupadd --force --system video \
+    && useradd --system --gid inference --groups video \
+       --no-create-home --home-dir /opt/app --shell /usr/sbin/nologin \
+       inference \
+    && mkdir -p /data/logs /data/models \
+    && chown -R inference:inference /opt/app /data
+
 # Default environment
 # DATA_DIR: Base path for models and logs
 #   - Auto-detects /runpod-volume or /workspace if /data doesn't exist
@@ -68,5 +85,8 @@ EXPOSE 8000
 # Health check using Python stdlib (no curl dependency)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
     CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/ping')" || exit 1
+
+# Run as non-root user (GPU access provided by NVIDIA container runtime)
+USER inference
 
 ENTRYPOINT ["/opt/app/scripts/start.sh"]
