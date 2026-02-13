@@ -1,7 +1,7 @@
 [project]
-name = "repo-standards"
-version = "1.0.0"
-description = "Organization-wide code quality standards and configuration templates"
+name = "llama-gguf-inference"
+version = "0.1.0"
+description = "Container-based GGUF inference server using llama.cpp with OpenAI-compatible API"
 
 [tool.black]
 line-length = 100
@@ -28,7 +28,20 @@ extend_skip_glob = ["templates/*"]
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
-addopts = "-v --tb=short"
+addopts = "-v --tb=short --cov=scripts --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["scripts"]
+omit = ["scripts/tests/*", "scripts/diagnostics/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 0
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+]
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv", "build", "dist"]

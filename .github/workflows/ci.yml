@@ -57,6 +57,45 @@ jobs:
     uses: zepfu/repo-standards/.github/workflows/reusable-makefile-ci.yml@main
 
   # ===========================================================================
+  # Unit tests & coverage
+  # ===========================================================================
+
+  unit-tests:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    needs: [python-standards]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/ \
+            -v --tb=short \
+            --cov=scripts \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
+
+      - name: Coverage summary
+        run: |
+          {
+            echo "## Test Coverage"
+            echo ""
+            echo '```'
+            python -m pytest tests/ --cov=scripts --cov-report=term --no-header -q 2>&1 | tail -10
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ===========================================================================
   # Project validation
   # ===========================================================================
 
