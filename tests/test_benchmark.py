@@ -1091,3 +1091,48 @@ class TestMainEntryPoint:
                 coro = mock_run.call_args[0][0]
                 assert coro is not None
                 coro.close()
+
+
+# ---------------------------------------------------------------------------
+# Coverage gap tests: lines 365-366 (malformed SSE JSON in streaming)
+# ---------------------------------------------------------------------------
+
+
+class TestInferenceRequestMalformedSSE:
+    """Test _inference_request with malformed SSE data lines (lines 365-366).
+
+    When a data line in the SSE stream contains invalid JSON, the
+    except (json.JSONDecodeError, IndexError, KeyError) block triggers
+    and the line is silently skipped via continue.
+    """
+
+    @pytest.mark.asyncio
+    async def test_malformed_json_in_sse_stream_skipped(self):
+        """Malformed JSON SSE data lines are skipped; valid tokens still extracted."""
+        # Build an SSE body that includes an invalid JSON line
+        sse_body = (
+            "data: {this is not valid json}\n\n"
+            'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'
+            "data: [DONE]\n\n"
+        )
+        header_lines = [
+            b"HTTP/1.1 200 OK\r\n",
+            b"Content-Type: text/event-stream\r\n",
+            b"\r\n",
+        ]
+        mock_reader = AsyncMock()
+        mock_reader.readline = AsyncMock(side_effect=header_lines)
+        mock_reader.read = AsyncMock(side_effect=[sse_body.encode(), b""])
+        mock_writer = MagicMock()
+        mock_writer.drain = AsyncMock()
+        mock_writer.close = MagicMock()
+        mock_writer.wait_closed = AsyncMock()
+        with patch("benchmark._open_connection", new_callable=AsyncMock) as mock_conn:
+            mock_conn.return_value = (mock_reader, mock_writer)
+            result = await benchmark._inference_request(
+                "http://localhost:8000", "Hello", max_tokens=64
+            )
+            # The malformed line should be skipped, the valid one processed
+            assert result["error"] is None
+            assert "ok" in result["tokens"]
+            assert result["token_count"] >= 1
