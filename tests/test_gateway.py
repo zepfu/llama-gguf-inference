@@ -43,8 +43,9 @@ class TestGetCorsHeaders:
     def test_cors_specific_origin_allowed(self, monkeypatch):
         gw = _reload_gateway(monkeypatch, CORS_ORIGINS="https://app.example.com")
         headers = gw.get_cors_headers("https://app.example.com")
-        assert len(headers) == 4
+        assert len(headers) == 5
         assert "Access-Control-Allow-Origin: https://app.example.com" in headers
+        assert "Vary: Origin" in headers
 
     def test_cors_specific_origin_denied(self, monkeypatch):
         gw = _reload_gateway(monkeypatch, CORS_ORIGINS="https://app.example.com")
@@ -58,8 +59,9 @@ class TestGetCorsHeaders:
         )
         # First origin allowed
         headers_a = gw.get_cors_headers("https://a.com")
-        assert len(headers_a) == 4
+        assert len(headers_a) == 5
         assert "Access-Control-Allow-Origin: https://a.com" in headers_a
+        assert "Vary: Origin" in headers_a
 
         # Second origin allowed
         headers_b = gw.get_cors_headers("https://b.com")
@@ -90,7 +92,8 @@ class TestGetCorsHeaders:
             CORS_ORIGINS="  https://a.com , https://b.com  ",
         )
         headers = gw.get_cors_headers("https://a.com")
-        assert len(headers) == 4
+        assert len(headers) == 5
+        assert "Vary: Origin" in headers
 
     def test_cors_no_env_var_set(self, monkeypatch):
         monkeypatch.delenv("CORS_ORIGINS", raising=False)
