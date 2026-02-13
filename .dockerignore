@@ -24,12 +24,13 @@ agent-logs/
 # Documentation (not needed at runtime)
 docs/
 *.md
-!scripts/README.md
 
-# Testing
+# Non-runtime scripts (tests, diagnostics, benchmarks, dev tools)
 scripts/tests/
 scripts/dev/
 scripts/diagnostics/
+scripts/benchmark.py
+scripts/README.md
 .pytest_cache/
 .coverage
 htmlcov/
@@ -81,6 +82,7 @@ archive/
 *.tmp
 
 # Build tooling config (not needed in container)
+Makefile
 .checkmake
 .checkmake-mk
 repo.mk
