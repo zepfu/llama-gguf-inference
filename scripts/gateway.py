@@ -26,6 +26,8 @@ Environment Variables:
     AUTH_ENABLED    - Enable API key authentication (default: true)
     AUTH_KEYS_FILE  - Path to API keys file (default: $DATA_DIR/api_keys.txt)
     CORS_ORIGINS    - Comma-separated allowed CORS origins (default: empty = disabled)
+    MAX_CONCURRENT_REQUESTS - Max requests proxied simultaneously (default: 1)
+    MAX_QUEUE_SIZE  - Max requests waiting in queue; 0 = unlimited (default: 0)
 """
 
 import asyncio
@@ -66,6 +68,16 @@ else:
     BACKEND_PORT = int(os.environ.get("PORT_BACKEND", "8080"))
 REQUEST_TIMEOUT = float(os.environ.get("REQUEST_TIMEOUT", "300"))
 HEALTH_TIMEOUT = float(os.environ.get("HEALTH_TIMEOUT", "2"))
+
+# Concurrency and queue configuration
+MAX_CONCURRENT_REQUESTS = int(os.environ.get("MAX_CONCURRENT_REQUESTS", "1"))
+MAX_QUEUE_SIZE = int(os.environ.get("MAX_QUEUE_SIZE", "0"))
+
+# Concurrency semaphore — limits parallel proxy calls to llama-server
+_proxy_semaphore: asyncio.Semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+
+# Queue depth tracking (manual counter — not in Metrics because it's managed inline)
+_queue_depth: int = 0
 
 # Backend authentication
 BACKEND_API_KEY = os.environ.get("BACKEND_API_KEY")
@@ -158,6 +170,8 @@ class Metrics:
     requests_authenticated: int = 0
     requests_unauthorized: int = 0
     bytes_sent: int = 0
+    queue_rejections: int = 0
+    queue_wait_seconds_total: float = 0.0
     start_time: float = field(default_factory=time.time)
 
     def to_dict(self):
@@ -169,6 +183,9 @@ class Metrics:
             "requests_authenticated": self.requests_authenticated,
             "requests_unauthorized": self.requests_unauthorized,
             "bytes_sent": self.bytes_sent,
+            "queue_depth": _queue_depth,
+            "queue_rejections": self.queue_rejections,
+            "queue_wait_seconds_total": round(self.queue_wait_seconds_total, 3),
             "uptime_seconds": int(time.time() - self.start_time),
         }
 
@@ -197,6 +214,15 @@ class Metrics:
             "# HELP gateway_bytes_sent Total bytes sent to clients",
             "# TYPE gateway_bytes_sent counter",
             f"gateway_bytes_sent {self.bytes_sent}",
+            "# HELP gateway_queue_depth Current requests waiting for semaphore",
+            "# TYPE gateway_queue_depth gauge",
+            f"gateway_queue_depth {_queue_depth}",
+            "# HELP gateway_queue_rejections Total requests rejected due to full queue",
+            "# TYPE gateway_queue_rejections counter",
+            f"gateway_queue_rejections {self.queue_rejections}",
+            "# HELP gateway_queue_wait_seconds_total Cumulative queue wait time in seconds",
+            "# TYPE gateway_queue_wait_seconds_total counter",
+            f"gateway_queue_wait_seconds_total {round(self.queue_wait_seconds_total, 3)}",
             "# HELP gateway_uptime_seconds Gateway uptime in seconds",
             "# TYPE gateway_uptime_seconds gauge",
             f"gateway_uptime_seconds {uptime}",
@@ -294,6 +320,14 @@ async def handle_health(writer: asyncio.StreamWriter, request_origin: str = ""):
         "metrics": metrics.to_dict(),
     }
 
+    # Queue status
+    health["queue"] = {
+        "max_concurrent": MAX_CONCURRENT_REQUESTS,
+        "max_queue_size": MAX_QUEUE_SIZE,
+        "active": MAX_CONCURRENT_REQUESTS - _proxy_semaphore._value,
+        "waiting": _queue_depth,
+    }
+
     # Auth status (no sensitive details on unauthenticated endpoint)
     if AUTH_AVAILABLE:
         health["authentication"] = {"enabled": api_validator.enabled}
@@ -350,6 +384,39 @@ async def handle_metrics(
     response = (
         f"HTTP/1.1 200 OK\r\n"
         f"Content-Type: {content_type}\r\n"
+        f"{cors}"
+        f"Content-Length: {len(body)}\r\n"
+        f"Connection: close\r\n"
+        f"\r\n"
+        f"{body}"
+    )
+    writer.write(response.encode())
+    await writer.drain()
+
+
+async def send_queue_full_response(
+    writer: asyncio.StreamWriter,
+    request_origin: str = "",
+) -> None:
+    """Send a 503 Service Unavailable response when the request queue is full.
+
+    Includes a Retry-After header and a JSON error body matching the OpenAI
+    error format used elsewhere in the gateway.
+    """
+    body = json.dumps(
+        {
+            "error": {
+                "message": "Server busy, try again later",
+                "type": "server_error",
+                "code": "queue_full",
+            }
+        }
+    )
+    cors = build_cors_header_str(request_origin)
+    response = (
+        f"HTTP/1.1 503 Service Unavailable\r\n"
+        f"Content-Type: application/json\r\n"
+        f"Retry-After: 5\r\n"
         f"{cors}"
         f"Content-Length: {len(body)}\r\n"
         f"Connection: close\r\n"
@@ -501,6 +568,45 @@ async def proxy_request(
         metrics.requests_active -= 1
 
 
+async def _queued_proxy(
+    method: str,
+    path: str,
+    headers: dict,
+    body: Optional[bytes],
+    writer: asyncio.StreamWriter,
+    key_id: str,
+    request_origin: str,
+) -> None:
+    """Proxy a request through the concurrency-limited queue.
+
+    Checks the bounded queue, waits on the semaphore, then forwards to
+    ``proxy_request``.  Returns immediately with 503 when the queue is full.
+    """
+    global _queue_depth
+
+    # Check bounded queue before waiting on the semaphore
+    if MAX_QUEUE_SIZE > 0 and _queue_depth >= MAX_QUEUE_SIZE:
+        metrics.queue_rejections += 1
+        await send_queue_full_response(writer, request_origin)
+        return
+
+    _queue_depth += 1
+    wait_start = time.monotonic()
+    try:
+        await _proxy_semaphore.acquire()
+    except BaseException:
+        _queue_depth -= 1
+        raise
+
+    wait_elapsed = time.monotonic() - wait_start
+    metrics.queue_wait_seconds_total += wait_elapsed
+    _queue_depth -= 1
+    try:
+        await proxy_request(method, path, headers, body, writer, key_id, request_origin)
+    finally:
+        _proxy_semaphore.release()
+
+
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     """Handle an incoming client connection."""
     try:
@@ -568,8 +674,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             # Auth not available, allow request
             key_id = "auth-disabled"
 
-        # Proxy to backend
-        await proxy_request(method, path, headers, body, writer, key_id, request_origin)
+        # Proxy to backend with concurrency control
+        await _queued_proxy(method, path, headers, body, writer, key_id, request_origin)
 
     except asyncio.TimeoutError:
         pass
@@ -589,6 +695,10 @@ async def main():
     log(f"Starting gateway on {GATEWAY_HOST}:{GATEWAY_PORT}")
     log(f"Backend: {BACKEND_HOST}:{BACKEND_PORT}")
     log(f"Request timeout: {REQUEST_TIMEOUT}s")
+    log(
+        f"Concurrency: max_concurrent={MAX_CONCURRENT_REQUESTS}, "
+        f"max_queue={'unlimited' if MAX_QUEUE_SIZE == 0 else MAX_QUEUE_SIZE}"
+    )
 
     if AUTH_AVAILABLE:
         if api_validator.enabled:

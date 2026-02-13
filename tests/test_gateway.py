@@ -1,6 +1,8 @@
-"""Unit tests for scripts/gateway.py - Gateway module (CORS, Prometheus metrics)."""
+"""Unit tests for scripts/gateway.py - Gateway module (CORS, Prometheus metrics, queue)."""
 
+import asyncio
 import importlib
+import json
 import time
 
 
@@ -220,8 +222,8 @@ class TestMetricsToPrometheus:
         lines = output.strip().split("\n")
 
         # Should have triplets: HELP, TYPE, value for each metric
-        # 8 metrics * 3 lines = 24 lines
-        assert len(lines) == 24
+        # 11 metrics * 3 lines = 33 lines
+        assert len(lines) == 33
 
         # Verify pattern: HELP, TYPE, value
         for i in range(0, len(lines), 3):
@@ -231,7 +233,11 @@ class TestMetricsToPrometheus:
             parts = lines[i + 2].split(" ")
             assert len(parts) == 2
             assert parts[0].startswith("gateway_")
-            assert parts[1].isdigit()
+            # Value is a number (int or float)
+            try:
+                float(parts[1])
+            except ValueError:
+                raise AssertionError(f"Expected numeric value, got: {parts[1]}")
 
     def test_uptime_reflects_start_time(self, monkeypatch):
         gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
@@ -529,3 +535,604 @@ class TestHandleMetricsFormats:
         response = written_data.decode()
         assert "Access-Control-Allow-Origin: *" in response
         assert "Content-Type: application/json" in response
+
+
+# ---------------------------------------------------------------------------
+# Queue / concurrency control tests
+# ---------------------------------------------------------------------------
+
+
+class TestQueueConfig:
+    """Tests for MAX_CONCURRENT_REQUESTS and MAX_QUEUE_SIZE env var parsing."""
+
+    def test_default_max_concurrent(self, monkeypatch):
+        monkeypatch.delenv("MAX_CONCURRENT_REQUESTS", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.MAX_CONCURRENT_REQUESTS == 1
+
+    def test_custom_max_concurrent(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_CONCURRENT_REQUESTS="4")
+        assert gw.MAX_CONCURRENT_REQUESTS == 4
+
+    def test_default_max_queue_size(self, monkeypatch):
+        monkeypatch.delenv("MAX_QUEUE_SIZE", raising=False)
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw.MAX_QUEUE_SIZE == 0
+
+    def test_custom_max_queue_size(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_QUEUE_SIZE="32")
+        assert gw.MAX_QUEUE_SIZE == 32
+
+    def test_semaphore_created_with_correct_value(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="", MAX_CONCURRENT_REQUESTS="3")
+        assert gw._proxy_semaphore._value == 3
+
+    def test_queue_depth_starts_at_zero(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        assert gw._queue_depth == 0
+
+
+class TestQueueFullResponse:
+    """Tests for send_queue_full_response() helper."""
+
+    def test_503_status_line(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_queue_full_response(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert response.startswith("HTTP/1.1 503 Service Unavailable\r\n")
+
+    def test_retry_after_header(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_queue_full_response(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Retry-After: 5\r\n" in response
+
+    def test_json_body_format(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_queue_full_response(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["error"]["message"] == "Server busy, try again later"
+        assert data["error"]["type"] == "server_error"
+        assert data["error"]["code"] == "queue_full"
+
+    def test_content_type_json(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_queue_full_response(writer)
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Content-Type: application/json\r\n" in response
+
+    def test_cors_headers_included(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="*")
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.send_queue_full_response(writer, "https://example.com")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        assert "Access-Control-Allow-Origin: *" in response
+
+
+class TestQueueMetrics:
+    """Tests for queue-related metrics fields in both dict and prometheus format."""
+
+    def test_queue_fields_in_to_dict(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        m = gw.Metrics()
+        d = m.to_dict()
+        assert "queue_depth" in d
+        assert "queue_rejections" in d
+        assert "queue_wait_seconds_total" in d
+        assert d["queue_depth"] == 0
+        assert d["queue_rejections"] == 0
+        assert d["queue_wait_seconds_total"] == 0.0
+
+    def test_queue_rejections_in_to_dict(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        m = gw.Metrics()
+        m.queue_rejections = 7
+        d = m.to_dict()
+        assert d["queue_rejections"] == 7
+
+    def test_queue_wait_time_in_to_dict(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        m = gw.Metrics()
+        m.queue_wait_seconds_total = 1.5678
+        d = m.to_dict()
+        assert d["queue_wait_seconds_total"] == 1.568  # rounded to 3 decimals
+
+    def test_queue_depth_in_prometheus(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        m = gw.Metrics()
+        output = m.to_prometheus()
+        assert "# HELP gateway_queue_depth" in output
+        assert "# TYPE gateway_queue_depth gauge" in output
+        assert "gateway_queue_depth 0" in output
+
+    def test_queue_rejections_in_prometheus(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        m = gw.Metrics()
+        m.queue_rejections = 12
+        output = m.to_prometheus()
+        assert "# HELP gateway_queue_rejections" in output
+        assert "# TYPE gateway_queue_rejections counter" in output
+        assert "gateway_queue_rejections 12" in output
+
+    def test_queue_wait_seconds_in_prometheus(self, monkeypatch):
+        gw = _reload_gateway(monkeypatch, CORS_ORIGINS="")
+        m = gw.Metrics()
+        m.queue_wait_seconds_total = 3.456
+        output = m.to_prometheus()
+        assert "# HELP gateway_queue_wait_seconds_total" in output
+        assert "# TYPE gateway_queue_wait_seconds_total counter" in output
+        assert "gateway_queue_wait_seconds_total 3.456" in output
+
+
+class TestHealthQueueInfo:
+    """Tests for queue section in /health endpoint response."""
+
+    def test_health_contains_queue_section(self, monkeypatch):
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="2",
+            MAX_QUEUE_SIZE="32",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.handle_health(writer, "")
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+
+        assert "queue" in data
+        q = data["queue"]
+        assert q["max_concurrent"] == 2
+        assert q["max_queue_size"] == 32
+        assert "active" in q
+        assert "waiting" in q
+
+    def test_health_queue_active_reflects_semaphore(self, monkeypatch):
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="3",
+            MAX_QUEUE_SIZE="0",
+        )
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            # Simulate 1 active request by acquiring semaphore inside event loop
+            await gw._proxy_semaphore.acquire()
+            writer = MockWriter()
+            await gw.handle_health(writer, "")
+            gw._proxy_semaphore.release()
+
+        asyncio.run(run())
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["queue"]["active"] == 1
+
+    def test_health_queue_waiting_reflects_depth(self, monkeypatch):
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="0",
+        )
+        gw._queue_depth = 5
+
+        written_data = bytearray()
+
+        class MockWriter:
+            def write(self, data):
+                written_data.extend(data)
+
+            async def drain(self):
+                pass
+
+        async def run():
+            writer = MockWriter()
+            await gw.handle_health(writer, "")
+
+        asyncio.run(run())
+
+        gw._queue_depth = 0  # clean up
+
+        response = written_data.decode()
+        body = response.split("\r\n\r\n", 1)[1]
+        data = json.loads(body)
+        assert data["queue"]["waiting"] == 5
+
+
+class TestConcurrencyLimiting:
+    """Tests for semaphore-based concurrency limiting in handle_client."""
+
+    def test_semaphore_limits_concurrent_proxy_calls(self, monkeypatch):
+        """Verify that only MAX_CONCURRENT_REQUESTS proxy calls run simultaneously."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="0",
+        )
+        # Disable auth so requests reach the proxy path
+        gw.AUTH_AVAILABLE = False
+
+        concurrency_log = []
+        max_concurrent = 0
+
+        original_proxy = gw.proxy_request
+
+        async def mock_proxy(*args, **kwargs):
+            nonlocal max_concurrent
+            concurrency_log.append("enter")
+            current = sum(1 for x in concurrency_log if x == "enter") - sum(
+                1 for x in concurrency_log if x == "exit"
+            )
+            if current > max_concurrent:
+                max_concurrent = current
+            await asyncio.sleep(0.05)
+            concurrency_log.append("exit")
+
+        gw.proxy_request = mock_proxy
+
+        async def make_request():
+            """Simulate a minimal HTTP request through handle_client."""
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 0\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+
+            written = bytearray()
+
+            class MockWriter:
+                def write(self, data):
+                    written.extend(data)
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            await gw.handle_client(reader, MockWriter())
+
+        async def run():
+            await asyncio.gather(make_request(), make_request(), make_request())
+
+        asyncio.run(run())
+
+        # With MAX_CONCURRENT_REQUESTS=1, max concurrency should be 1
+        assert max_concurrent == 1
+        gw.proxy_request = original_proxy
+
+    def test_queue_rejection_when_full(self, monkeypatch):
+        """Verify 503 is returned when queue is full."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="1",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        responses = []
+
+        async def mock_proxy(*args, **kwargs):
+            await asyncio.sleep(0.1)
+
+        gw.proxy_request = mock_proxy
+
+        async def make_request():
+            """Simulate a minimal HTTP request through handle_client."""
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 0\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+
+            written = bytearray()
+
+            class MockWriter:
+                def write(self, data):
+                    written.extend(data)
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            await gw.handle_client(reader, MockWriter())
+            responses.append(written.decode())
+
+        async def run():
+            # Send 3 requests: 1 active + 1 queued = capacity, 3rd should be rejected
+            await asyncio.gather(
+                make_request(),
+                make_request(),
+                make_request(),
+            )
+
+        asyncio.run(run())
+
+        # At least one should get 503 (the third request when queue is full)
+        num_503 = sum(1 for r in responses if "503 Service Unavailable" in r)
+        assert num_503 >= 1, f"Expected at least one 503, got responses: {responses}"
+
+    def test_queue_rejection_increments_metric(self, monkeypatch):
+        """Verify that queue rejections are counted in metrics."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="1",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        initial_rejections = gw.metrics.queue_rejections
+
+        async def mock_proxy(*args, **kwargs):
+            await asyncio.sleep(0.1)
+
+        gw.proxy_request = mock_proxy
+
+        async def make_request():
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 0\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+
+            class MockWriter:
+                def write(self, data):
+                    pass
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            await gw.handle_client(reader, MockWriter())
+
+        async def run():
+            await asyncio.gather(
+                make_request(),
+                make_request(),
+                make_request(),
+            )
+
+        asyncio.run(run())
+
+        assert gw.metrics.queue_rejections > initial_rejections
+
+    def test_health_endpoints_bypass_queue(self, monkeypatch):
+        """Verify /ping, /health, /metrics bypass the concurrency semaphore."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="1",
+        )
+
+        responses = {}
+
+        async def make_health_request(path):
+            request_data = (f"GET {path} HTTP/1.1\r\n" f"Host: localhost\r\n" f"\r\n").encode()
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+
+            written = bytearray()
+
+            class MockWriter:
+                def write(self, data):
+                    written.extend(data)
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            await gw.handle_client(reader, MockWriter())
+            responses[path] = written.decode()
+
+        async def run():
+            # Exhaust the semaphore and fill the queue inside the event loop
+            await gw._proxy_semaphore.acquire()
+            gw._queue_depth = gw.MAX_QUEUE_SIZE  # queue is "full"
+
+            await make_health_request("/ping")
+            await make_health_request("/metrics")
+
+            # Release semaphore and clean up
+            gw._proxy_semaphore.release()
+            gw._queue_depth = 0
+
+        asyncio.run(run())
+
+        # Both should get 200 OK, not 503
+        assert "HTTP/1.1 200 OK" in responses["/ping"]
+        assert "HTTP/1.1 200 OK" in responses["/metrics"]
+
+    def test_unlimited_queue_never_rejects(self, monkeypatch):
+        """When MAX_QUEUE_SIZE=0 (unlimited), no 503 rejections happen."""
+        gw = _reload_gateway(
+            monkeypatch,
+            CORS_ORIGINS="",
+            MAX_CONCURRENT_REQUESTS="1",
+            MAX_QUEUE_SIZE="0",
+        )
+        gw.AUTH_AVAILABLE = False
+
+        responses = []
+
+        async def mock_proxy(*args, **kwargs):
+            await asyncio.sleep(0.02)
+
+        gw.proxy_request = mock_proxy
+
+        async def make_request():
+            request_data = (
+                b"POST /v1/chat/completions HTTP/1.1\r\n"
+                b"Host: localhost\r\n"
+                b"Content-Length: 0\r\n"
+                b"\r\n"
+            )
+            reader = asyncio.StreamReader()
+            reader.feed_data(request_data)
+            reader.feed_eof()
+
+            written = bytearray()
+
+            class MockWriter:
+                def write(self, data):
+                    written.extend(data)
+
+                async def drain(self):
+                    pass
+
+                def close(self):
+                    pass
+
+                async def wait_closed(self):
+                    pass
+
+            await gw.handle_client(reader, MockWriter())
+            responses.append(written.decode())
+
+        async def run():
+            await asyncio.gather(
+                make_request(),
+                make_request(),
+                make_request(),
+            )
+
+        asyncio.run(run())
+
+        # No 503 responses when queue is unlimited
+        num_503 = sum(1 for r in responses if "503" in r)
+        assert num_503 == 0, f"Expected zero 503s with unlimited queue, got: {num_503}"
