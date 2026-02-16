@@ -1,13 +1,13 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-02-13 11:17:10 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-02-16 09:59:15 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
-Analyzed **10** Python modules containing:
+Analyzed **13** Python modules containing:
 
-- **32** classes
-- **211** functions
+- **138** classes
+- **713** functions
 - **0** async functions
 
 ### Detected Patterns
@@ -19,7 +19,7 @@ Analyzed **10** Python modules containing:
 - ❌ **Dataclass**
 - ❌ **Orm**
 - ✅ **Server**
-- ❌ **State Machine**
+- ✅ **State Machine**
 - ✅ **Workflows**
 
 ## Flowchart Diagram
@@ -27,14 +27,23 @@ Analyzed **10** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> testuptimereflectsstarttime[test_uptime_reflects_start_time]
-    Init --> testqueuedepthstartsatzero[test_queue_depth_starts_at_zero]
-    testqueuedepthstartsatzero --> End([End])
+    Init --> testmainstartsserver[test_main_starts_server]
+    Init --> testmainprintsstartupmessage[test_main_prints_startup_message]
+    Init --> testmainhandleskeyboardinterrupt[test_main_handles_keyboard_interrupt]
+    testmainhandleskeyboardinterrupt --> End([End])
 ```
 
 ## State Diagram
 
-*State diagram not applicable for this codebase.*
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> TestLogAccessHandlesPermissionError
+    TestLogAccessHandlesPermissionError --> [*]
+    Idle --> TestReloadHandlesEmptyFile
+    TestReloadHandlesEmptyFile --> TestReloadPreservesRateLimiterState
+    TestReloadPreservesRateLimiterState --> [*]
+```
 
 ## Sequence Diagram
 
@@ -47,7 +56,7 @@ architecture-beta
     group tests(cloud)[Tests]
         service tests_test_auth(server)[test_auth] in tests
         service tests_test_key_mgmt(server)[test_key_mgmt] in tests
-        service tests_conftest(server)[conftest] in tests
+        service tests_test_health_server(server)[test_health_server] in tests
     end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
@@ -98,70 +107,66 @@ classDiagram
         +test_empty_metrics(noauth_env, monkeypatch)
         +test_metrics_after_requests(keys_file, monkeypatch)
     }
-    class tests_test_key_mgmt_TestValidateKeyId {
-        +test_valid_alphanumeric()
-        +test_valid_with_hyphens()
-        +test_valid_with_underscores()
-        +test_valid_mixed()
-        +test_valid_single_char()
+    class tests_test_auth_TestAuthenticateRequest {
+        +test_authenticate_success_returns_key_id(keys_file, monkeypatch)
+        +test_authenticate_failure_sends_401(keys_file, monkeypatch)
+        +test_authenticate_missing_header_sends_401(keys_file, monkeypatch)
+        +test_authenticate_rate_limited_sends_429(keys_file, monkeypatch)
+        +test_authenticate_disabled_returns_auth_disabled(monkeypatch)
     }
-    class tests_test_key_mgmt_TestGenerateApiKey {
-        +test_starts_with_prefix()
-        +test_correct_length()
-        +test_unique_keys()
-        +test_valid_characters()
+    class tests_test_auth_TestSendRateLimitError {
+        +test_429_response_format(monkeypatch)
     }
-    class tests_test_key_mgmt_TestGenerate {
-        +test_generate_creates_key(tmp_path)
-        +test_generate_duplicate_name_fails(keys_file)
-        +test_generate_invalid_name_fails(tmp_path)
-        +test_generate_quiet_mode(tmp_path, capsys)
-        +test_generate_preserves_comments(keys_file)
+    class tests_test_auth_TestLogAccess {
+        +test_log_access_writes_to_file(monkeypatch, tmp_path)
+        +test_log_access_creates_directory(monkeypatch, tmp_path)
+        +test_log_access_handles_permission_error(monkeypatch, capsys)
     }
-    class tests_test_key_mgmt_TestList {
-        +test_list_empty_file(empty_keys_file, capsys)
-        +test_list_with_keys(keys_file, capsys)
-        +test_list_never_shows_key_values(keys_file, capsys)
-        +test_list_missing_file(tmp_path, capsys)
+    class tests_test_auth_TestLoadKeysEdgeCases {
+        +test_load_keys_file_read_exception(monkeypatch, tmp_path)
+        +test_load_keys_empty_key_id(tmp_path, monkeypatch)
+        +test_load_keys_invalid_api_key_format(tmp_path, monkeypatch)
     }
-    class tests_test_key_mgmt_TestRemove {
-        +test_remove_existing_key(keys_file)
-        +test_remove_nonexistent_fails(keys_file)
-        +test_remove_preserves_comments(keys_file)
-        +test_remove_missing_file_fails(tmp_path)
+    class tests_test_auth_TestValidateEdgeCases {
+        +test_empty_api_key_after_bearer_strip(keys_file, monkeypatch)
+        +test_constant_time_comparison(keys_file, monkeypatch)
+        +test_record_request_appends_timestamp(keys_file, monkeypatch)
+        +test_check_rate_limit_cleans_old_entries(keys_file, monkeypatch)
     }
-    class tests_test_key_mgmt_TestRotate {
-        +test_rotate_existing_key(keys_file)
-        +test_rotate_nonexistent_fails(keys_file)
-        +test_rotate_quiet_mode(keys_file, capsys)
-        +test_rotate_preserves_other_keys(keys_file)
-        +test_rotate_missing_file_fails(tmp_path)
+    class tests_test_auth_TestSanitizeLogField {
+        +test_clean_value_unchanged(monkeypatch)
+        +test_newline_replaced(monkeypatch)
+        +test_carriage_return_replaced(monkeypatch)
+        +test_tab_replaced(monkeypatch)
+        +test_pipe_replaced(monkeypatch)
     }
-    class tests_test_key_mgmt_TestFilePermissions {
-        +test_file_permissions_after_generate(tmp_path)
-        +test_file_permissions_after_remove(keys_file)
-        +test_file_permissions_after_rotate(keys_file)
+    class tests_test_auth_TestPerKeyRateLimits {
+        +test_per_key_rate_limit_loaded(tmp_path, monkeypatch)
+        +test_per_key_rate_limit_enforced(tmp_path, monkeypatch)
+        +test_per_key_higher_limit(tmp_path, monkeypatch)
+        +test_default_rate_limit_without_per_key(tmp_path, monkeypatch)
+        +test_invalid_rate_limit_skips_key(tmp_path, monkeypatch)
     }
-    class tests_test_key_mgmt_TestAtomicWrite {
-        +test_atomic_write_creates_file(tmp_path)
-        +test_atomic_write_replaces_file(tmp_path)
-        +test_atomic_write_no_temp_files_left(tmp_path)
-        +test_atomic_write_permissions(tmp_path)
-        +test_atomic_write_creates_parent_dirs(tmp_path)
+    class tests_test_auth_TestKeyExpiration {
+        +test_expired_key_rejected(tmp_path, monkeypatch)
+        +test_non_expired_key_accepted(tmp_path, monkeypatch)
+        +test_no_expiration_means_never_expires(tmp_path, monkeypatch)
+        +test_empty_expiration_means_never_expires(tmp_path, monkeypatch)
+        +test_invalid_expiration_skips_key(tmp_path, monkeypatch)
     }
-    class tests_test_key_mgmt_TestCLIIntegration {
-        +test_cli_generate_and_list(tmp_path)
-        +test_cli_quiet_generate(tmp_path)
-        +test_cli_no_command_shows_help()
-        +test_cli_remove_and_verify(tmp_path)
-        +test_cli_rotate_and_verify(tmp_path)
+    class tests_test_auth_TestRateLimiterCleanup {
+        +test_cleanup_removes_stale_entries(keys_file, monkeypatch)
+        +test_cleanup_keeps_active_entries(keys_file, monkeypatch)
+        +test_cleanup_skipped_within_interval(keys_file, monkeypatch)
+        +test_cleanup_triggered_by_check_rate_limit(keys_file, monkeypatch)
+        +test_cleanup_mixed_stale_and_active(keys_file, monkeypatch)
     }
-    class tests_test_gateway_TestGetCorsHeaders {
-        +test_cors_disabled_returns_empty(monkeypatch)
-        +test_cors_wildcard_returns_star(monkeypatch)
-        +test_cors_specific_origin_allowed(monkeypatch)
-        +test_cors_specific_origin_denied(monkeypatch)
-        +test_cors_multiple_origins(monkeypatch)
+    class tests_test_auth_TestBackwardCompatibility {
+        +test_simple_key_format(tmp_path, monkeypatch)
+        +test_key_with_rate_limit_only(tmp_path, monkeypatch)
+        +test_key_with_expiration_only(tmp_path, monkeypatch)
+        +test_key_with_all_fields(tmp_path, monkeypatch)
+        +test_mixed_formats_in_same_file(tmp_path, monkeypatch)
     }
 ```
 
@@ -181,12 +186,13 @@ mindmap
       key_mgmt
       auth
       gateway
+      benchmark
     tests
       test_auth
       test_key_mgmt
+      test_health_server
       conftest
       test_gateway
-      __init__
 ```
 
 ## Workflow Pipeline Diagram
@@ -263,7 +269,20 @@ File-based authentication system that enforces API keys while maintaining OpenAI
 format for easy management and ...
 
 - **Classes:** 1
-- **Functions:** 8
+- **Functions:** 13
+- **Async Functions:** 0
+
+### `scripts.benchmark`
+
+benchmark.py -- Performance benchmarking for llama-gguf-inference gateway.
+
+Measures two categories of performance:
+
+1. Gateway overhead (proxy latency)
+   - /ping latency (gateway-only, no backend in...
+
+- **Classes:** 0
+- **Functions:** 11
 - **Async Functions:** 0
 
 ### `scripts.gateway`
@@ -280,7 +299,7 @@ Features:
 
 - **Classes:** 1
 
-- **Functions:** 9
+- **Functions:** 11
 
 - **Async Functions:** 0
 
@@ -300,10 +319,10 @@ doesn't interact...
 key_mgmt.py - API Key Management CLI for llama-gguf-inference
 
 Standalone CLI tool for managing API keys used by the gateway's authentication system. Keys are stored in a flat file
-with the format: ke...
+with the format: ...
 
 - **Classes:** 0
-- **Functions:** 13
+- **Functions:** 16
 - **Async Functions:** 0
 
 ### `tests.__init__`
@@ -324,24 +343,40 @@ Shared test fixtures for auth module tests.
 
 Unit tests for scripts/auth.py - API Key Authentication Module.
 
-- **Classes:** 5
-- **Functions:** 34
+- **Classes:** 28
+- **Functions:** 117
+- **Async Functions:** 0
+
+### `tests.test_benchmark`
+
+Unit tests for scripts/benchmark.py -- Benchmark module.
+
+- **Classes:** 19
+- **Functions:** 50
 - **Async Functions:** 0
 
 ### `tests.test_gateway`
 
 Unit tests for scripts/gateway.py - Gateway module (CORS, Prometheus metrics, queue).
 
-- **Classes:** 36
-- **Functions:** 91
+- **Classes:** 161
+- **Functions:** 357
+- **Async Functions:** 0
+
+### `tests.test_health_server`
+
+Unit tests for scripts/health_server.py -- Health check server.
+
+- **Classes:** 3
+- **Functions:** 11
 - **Async Functions:** 0
 
 ### `tests.test_key_mgmt`
 
 Unit tests for scripts/key_mgmt.py - API Key Management CLI.
 
-- **Classes:** 9
-- **Functions:** 49
+- **Classes:** 29
+- **Functions:** 120
 - **Async Functions:** 0
 
 ______________________________________________________________________
