@@ -28,8 +28,13 @@ llama-gguf-inference/
 ├── repo.mk
 ├── repo.mk.example
 ├── docs/
+│   ├── API_REFERENCE.md
 │   ├── AUTHENTICATION.md
 │   ├── CONFIGURATION.md
+│   ├── DEPLOYMENT.md
+│   ├── LIVE_TESTING_GUIDE.md
+│   ├── MIGRATION.md
+│   ├── SECURITY_AUDIT.md
 │   ├── TESTING.md
 │   ├── TROUBLESHOOTING.md
 │   ├── conf.py
@@ -38,10 +43,12 @@ llama-gguf-inference/
 │   └── auto/
 │       ├── ARCHITECTURE_AUTO.md
 │       ├── CHANGELOG.md
-│       └── REPO_MAP.md
+│       ├── REPO_MAP.md
+│       └── WORKFLOW_REGISTRY.md
 ├── scripts/
 │   ├── ⭐ README.md
 │   ├── ⭐ auth.py
+│   ├── benchmark.py
 │   ├── ⭐ gateway.py
 │   ├── health_server.py
 │   ├── key_mgmt.py
@@ -64,7 +71,9 @@ llama-gguf-inference/
     ├── __init__.py
     ├── conftest.py
     ├── test_auth.py
+    ├── test_benchmark.py
     ├── test_gateway.py
+    ├── test_health_server.py
     └── test_key_mgmt.py
 ```
 
@@ -120,10 +129,20 @@ llama-gguf-inference/
   - Debugging Guide
 - **`README.md`**
   - llama-gguf-inference
+- **`API_REFERENCE.md`**
+  - API Reference
 - **`AUTHENTICATION.md`**
   - Authentication Guide
 - **`CONFIGURATION.md`**
   - Configuration Guide
+- **`DEPLOYMENT.md`**
+  - Deployment Guide
+- **`LIVE_TESTING_GUIDE.md`**
+  - Live Testing Guide — v1.0.0-rc.1
+- **`MIGRATION.md`**
+  - Migration Guide
+- **`SECURITY_AUDIT.md`**
+  - Security Audit Report — llama-gguf-inference v1
 - **`TESTING.md`**
   - Testing Guide
 - **`TROUBLESHOOTING.md`**
@@ -134,6 +153,8 @@ llama-gguf-inference/
   - Changelog
 - **`REPO_MAP.md`**
   - Repository Structure
+- **`WORKFLOW_REGISTRY.md`**
+  - Workflow Registry & Tool Coverage
 - **`README.md`**
   - Scripts Documentation
 - **`README.md`**
@@ -144,6 +165,7 @@ llama-gguf-inference/
 | Script                       | Description                                                         |
 | ---------------------------- | ------------------------------------------------------------------- |
 | `auth.py`                    | *No description*                                                    |
+| `benchmark.py`               | *No description*                                                    |
 | `gateway.py`                 | *No description*                                                    |
 | `health_server.py`           | health_server.py — Ultra-lightweight health check server for RunPod |
 | `key_mgmt.py`                | *No description*                                                    |
