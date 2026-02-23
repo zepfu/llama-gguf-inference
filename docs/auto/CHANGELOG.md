@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- Auto-update documentation [skip ci]
+  ([e1f8433](https://github.com/zepfu/llama-gguf-inference/commit/e1f84339817c9a51cabd0f9f80bf4d5f40010fec))
 - Push coverage to 98% across all modules
   ([61f70df](https://github.com/zepfu/llama-gguf-inference/commit/61f70dfb52b0a0db9b47e43785aee3a7cc4357fd))
 - Cover remaining uncovered lines for 99% coverage
