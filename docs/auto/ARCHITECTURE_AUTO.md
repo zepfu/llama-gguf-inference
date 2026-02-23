@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-02-16 09:59:15 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-02-23 10:00:00 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -27,10 +27,8 @@ Analyzed **13** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> testmainstartsserver[test_main_starts_server]
-    Init --> testmainprintsstartupmessage[test_main_prints_startup_message]
-    Init --> testmainhandleskeyboardinterrupt[test_main_handles_keyboard_interrupt]
-    testmainhandleskeyboardinterrupt --> End([End])
+    Init --> main[main]
+    main --> End([End])
 ```
 
 ## State Diagram
@@ -53,18 +51,18 @@ stateDiagram-v2
 
 ```mermaid
 architecture-beta
-    group tests(cloud)[Tests]
-        service tests_test_auth(server)[test_auth] in tests
-        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
-        service tests_test_health_server(server)[test_health_server] in tests
+    group scripts(cloud)[Scripts]
+        service scripts_auth(server)[auth] in scripts
+        service scripts_key_mgmt(server)[key_mgmt] in scripts
+        service scripts_health_server(server)[health_server] in scripts
     end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
     end
-    group scripts(cloud)[Scripts]
-        service scripts_health_server(server)[health_server] in scripts
-        service scripts_key_mgmt(server)[key_mgmt] in scripts
-        service scripts_auth(server)[auth] in scripts
+    group tests(cloud)[Tests]
+        service tests_test_auth(server)[test_auth] in tests
+        service tests_test_gateway(server)[test_gateway] in tests
+        service tests_test_benchmark(server)[test_benchmark] in tests
     end
 ```
 
@@ -76,6 +74,26 @@ architecture-beta
 
 ```mermaid
 classDiagram
+    class scripts_auth_APIKeyValidator {
+        +__init__()
+        +_load_keys()
+        +_parse_key_metadata()
+        +validate(headers)
+        +_is_key_expired(key_id)
+    }
+    class scripts_health_server_HealthHandler {
+        +do_GET()
+        +log_message(format)
+    }
+    class scripts_gateway_Metrics {
+        +requests_total
+        +requests_success
+        +requests_error
+        +requests_active
+        +requests_authenticated
+        +to_dict()
+        +to_prometheus()
+    }
     class tests_test_auth_TestKeyFormatValidation {
         +test_valid_key(noauth_env, monkeypatch)
         +test_key_too_short(noauth_env, monkeypatch)
@@ -147,27 +165,6 @@ classDiagram
         +test_default_rate_limit_without_per_key(tmp_path, monkeypatch)
         +test_invalid_rate_limit_skips_key(tmp_path, monkeypatch)
     }
-    class tests_test_auth_TestKeyExpiration {
-        +test_expired_key_rejected(tmp_path, monkeypatch)
-        +test_non_expired_key_accepted(tmp_path, monkeypatch)
-        +test_no_expiration_means_never_expires(tmp_path, monkeypatch)
-        +test_empty_expiration_means_never_expires(tmp_path, monkeypatch)
-        +test_invalid_expiration_skips_key(tmp_path, monkeypatch)
-    }
-    class tests_test_auth_TestRateLimiterCleanup {
-        +test_cleanup_removes_stale_entries(keys_file, monkeypatch)
-        +test_cleanup_keeps_active_entries(keys_file, monkeypatch)
-        +test_cleanup_skipped_within_interval(keys_file, monkeypatch)
-        +test_cleanup_triggered_by_check_rate_limit(keys_file, monkeypatch)
-        +test_cleanup_mixed_stale_and_active(keys_file, monkeypatch)
-    }
-    class tests_test_auth_TestBackwardCompatibility {
-        +test_simple_key_format(tmp_path, monkeypatch)
-        +test_key_with_rate_limit_only(tmp_path, monkeypatch)
-        +test_key_with_expiration_only(tmp_path, monkeypatch)
-        +test_key_with_all_fields(tmp_path, monkeypatch)
-        +test_mixed_formats_in_same_file(tmp_path, monkeypatch)
-    }
 ```
 
 ## Journey Diagram
@@ -182,17 +179,17 @@ mindmap
     docs
       conf
     scripts
-      health_server
-      key_mgmt
       auth
-      gateway
+      key_mgmt
+      health_server
       benchmark
+      gateway
     tests
       test_auth
+      test_gateway
+      test_benchmark
       test_key_mgmt
       test_health_server
-      conftest
-      test_gateway
 ```
 
 ## Workflow Pipeline Diagram
@@ -211,10 +208,10 @@ flowchart TD
 
 ```mermaid
 graph TD
-    docs[Documentation]
     ci[CI]
-    release[Release]
     cd[CD]
+    release[Release]
+    docs[Documentation]
 ```
 
 ## Workflow Jobs Diagram
