@@ -1,0 +1,626 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changelog &mdash; llama-gguf-inference 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8d563738"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Architecture (Auto-Generated)" href="ARCHITECTURE_AUTO.html" />
+    <link rel="prev" title="Troubleshooting Guide" href="../TROUBLESHOOTING.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            llama-gguf-inference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User Guides:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../API_REFERENCE.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../API_REFERENCE.html#public-endpoints">Public Endpoints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-ping">GET /ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-health">GET /health</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../API_REFERENCE.html#get-metrics">GET /metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../API_REFERENCE.html#json-format-default">JSON format (default)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../AUTHENTICATION.html">Authentication Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#quick-start">Quick Start</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#create-api-keys-file">1. Create API Keys File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#enable-authentication">2. Enable Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#make-authenticated-requests">3. Make Authenticated Requests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#configuration">Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#keys-file-format">Keys File Format</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#key-management">Key Management</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-management-cli">Key Management CLI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#manual-key-generation">Manual Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#add-new-key-manual">Add New Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rotate-key-manual">Rotate Key (Manual)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#revoke-key">Revoke Key</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#endpoint-access">Endpoint Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#public-endpoints-no-auth-required">Public Endpoints (No Auth Required)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#protected-endpoints-auth-required">Protected Endpoints (Auth Required)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#authentication-flow">Authentication Flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#error-responses">Error Responses</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#unauthorized">401 Unauthorized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rate-limit-exceeded">429 Rate Limit Exceeded</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#rate-limiting">Rate Limiting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-expiration">Key Expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#access-logging">Access Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#metrics">Metrics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#deployment-scenarios">Deployment Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#local-development-auth-disabled">Local Development (Auth Disabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#local-development-auth-enabled">Local Development (Auth Enabled)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#production-secure">Production (Secure)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#runpod-serverless">RunPod Serverless</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#file-security">File Security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-generation">Key Generation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-storage">Key Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#key-rotation">Key Rotation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#access-control">Access Control</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#auth-not-working-all-requests-accepted">Auth Not Working (All Requests Accepted)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#valid-key-rejected-401">Valid Key Rejected (401)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#rate-limit-issues">Rate Limit Issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../AUTHENTICATION.html#access-logs-not-written">Access Logs Not Written</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../AUTHENTICATION.html#future-enhancements">Future Enhancements</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../CONFIGURATION.html">Configuration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#environment-variables">Environment Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#authentication-configuration">Authentication Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#cors-configuration">CORS Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#request-timeouts">Request Timeouts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#security-limits">Security Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#data-directory">Data Directory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#model-configuration">Model Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#server-configuration">Server Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#inference-configuration">Inference Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#logging-configuration">Logging Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#debug-configuration">Debug Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#recommended-configurations">Recommended Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#rtx-4090-24gb">RTX 4090 (24GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#a100-40gb">A100 (40GB)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#a100-80gb-h100">A100 (80GB) / H100</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#cpu-only">CPU Only</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#multi-worker-deployment">Multi-Worker Deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#environment-variable-precedence">Environment Variable Precedence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#validation">Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#complete-example-configurations">Complete Example Configurations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#local-development">Local Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#production-runpod-serverless">Production (RunPod Serverless)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#multi-model-platform">Multi-Model Platform</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#security-best-practices">Security Best Practices</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#api-keys">API Keys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#network-security">Network Security</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#troubleshooting-configuration">Troubleshooting Configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#check-current-configuration">Check Current Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../CONFIGURATION.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../CONFIGURATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../DEPLOYMENT.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#runpod-serverless">RunPod Serverless</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#scale-to-zero-behavior">Scale-to-Zero Behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#api-key-setup">API Key Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#health-check-verification">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#common-issues">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#runpod-pods">RunPod Pods</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id1">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id2">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id3">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id4">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#vast-ai">Vast.ai</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id5">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id6">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id7">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id8">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#lambda-labs">Lambda Labs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id9">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id10">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id11">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id12">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#local-docker-docker-compose">Local Docker / docker-compose</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id13">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start-gpu">Quick Start (GPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#quick-start-cpu">Quick Start (CPU)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#using-docker-compose">Using docker-compose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#environment-variables">Environment Variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#gpu-passthrough">GPU Passthrough</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#volume-mounts">Volume Mounts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id14">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id15">Health Check Verification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../DEPLOYMENT.html#id16">Common Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#memory-estimation">Memory Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../DEPLOYMENT.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../MIGRATION.html">Migration Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#migrating-from-pre-v1-0-0-to-v1-0-0">Migrating from pre-v1.0.0 to v1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#environment-variable-changes">Environment Variable Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#new-features-requiring-configuration">New Features Requiring Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#cors-support">CORS Support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#concurrency-control">Concurrency Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#api-key-management-cli">API Key Management CLI</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#docker-image-tag-structure">Docker Image Tag Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#authentication-changes">Authentication Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#health-endpoint-changes">Health Endpoint Changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../MIGRATION.html#post-rc-1-features">Post-rc.1 Features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#per-key-rate-limits">Per-Key Rate Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#key-expiration-ttl">Key Expiration / TTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#hot-reload-api-keys">Hot-Reload API Keys</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#structured-json-logging">Structured JSON Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#configurable-timeouts">Configurable Timeouts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#non-root-container">Non-Root Container</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#new-security-limits">New Security Limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../MIGRATION.html#new-http-responses">New HTTP Responses</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#breaking-changes-checklist">Breaking Changes Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#new-environment-variables-reference">New Environment Variables Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../MIGRATION.html#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../TESTING.html">Testing Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#current-test-coverage">Current Test Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#pytest-test-suite">pytest Test Suite</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-auth-py"><code class="docutils literal notranslate"><span class="pre">test_auth.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-gateway-py"><code class="docutils literal notranslate"><span class="pre">test_gateway.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-key-mgmt-py"><code class="docutils literal notranslate"><span class="pre">test_key_mgmt.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-benchmark-py"><code class="docutils literal notranslate"><span class="pre">test_benchmark.py</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#shell-tests-pre-commit">Shell Tests (Pre-commit)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-auth-sh"><code class="docutils literal notranslate"><span class="pre">test_auth.sh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-health-sh"><code class="docutils literal notranslate"><span class="pre">test_health.sh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#full-tests-github-actions">Full Tests (GitHub Actions)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#running-tests">Running Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#manual-testing">Manual Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-authentication">Test Authentication</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-rate-limiting">Test Rate Limiting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-logging">Test Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-worker-type-logging">Test Worker Type Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../TESTING.html#test-port-naming">Test Port Naming</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#planned-improvements">Planned Improvements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#debugging-failed-tests">Debugging Failed Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#view-test-logs">View Test Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#run-individual-test">Run Individual Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TESTING.html#debug-auth-issues">Debug Auth Issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#contributing-tests">Contributing Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#test-checklist">Test Checklist</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TESTING.html#resources">Resources</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../TROUBLESHOOTING.html">Troubleshooting Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#quick-diagnostics">Quick Diagnostics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#check-boot-logs">Check boot logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#check-server-logs">Check server logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#enable-debug-mode">Enable debug mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#common-issues">Common Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#model-not-found">Model Not Found</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#out-of-memory-oom">Out of Memory (OOM)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#server-exits-immediately">Server Exits Immediately</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#gpu-not-detected">GPU Not Detected</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#health-check-failing">Health Check Failing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#streaming-not-working">Streaming Not Working</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#slow-inference">Slow Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#data-dir-not-found">DATA_DIR Not Found</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#log-locations">Log Locations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#platform-specific-issues">Platform-Specific Issues</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#runpod-serverless">RunPod Serverless</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#vast-ai">Vast.ai</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../TROUBLESHOOTING.html#local-docker">Local Docker</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#getting-help">Getting Help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../TROUBLESHOOTING.html#reporting-issues">Reporting Issues</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Auto-Generated:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#unreleased">[Unreleased]</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#added">Added</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#changed">Changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixed">Fixed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#security">Security</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ARCHITECTURE_AUTO.html">Architecture (Auto-Generated)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#overview">Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#detected-patterns">Detected Patterns</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#flowchart-diagram">Flowchart Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#state-diagram">State Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#sequence-diagram">Sequence Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#architecture-diagram">Architecture Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#er-diagram">Er Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#class-diagram">Class Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#journey-diagram">Journey Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#mindmap-diagram">Mindmap Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#workflow-pipeline-diagram">Workflow Pipeline Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#workflow-triggers-diagram">Workflow Triggers Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#workflow-jobs-diagram">Workflow Jobs Diagram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#development-workflows">Development Workflows</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#github-workflows-summary">GitHub Workflows Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ARCHITECTURE_AUTO.html#module-summary">Module Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#docs-conf"><code class="docutils literal notranslate"><span class="pre">docs.conf</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-auth"><code class="docutils literal notranslate"><span class="pre">scripts.auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-benchmark"><code class="docutils literal notranslate"><span class="pre">scripts.benchmark</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-gateway"><code class="docutils literal notranslate"><span class="pre">scripts.gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-health-server"><code class="docutils literal notranslate"><span class="pre">scripts.health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#scripts-key-mgmt"><code class="docutils literal notranslate"><span class="pre">scripts.key_mgmt</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-init"><code class="docutils literal notranslate"><span class="pre">tests.__init__</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-conftest"><code class="docutils literal notranslate"><span class="pre">tests.conftest</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-auth"><code class="docutils literal notranslate"><span class="pre">tests.test_auth</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-benchmark"><code class="docutils literal notranslate"><span class="pre">tests.test_benchmark</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-gateway"><code class="docutils literal notranslate"><span class="pre">tests.test_gateway</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-health-server"><code class="docutils literal notranslate"><span class="pre">tests.test_health_server</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ARCHITECTURE_AUTO.html#tests-test-key-mgmt"><code class="docutils literal notranslate"><span class="pre">tests.test_key_mgmt</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="REPO_MAP.html">Repository Structure</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#table-of-contents">Table of Contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#directory-tree">Directory Tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#key-files">Key Files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="REPO_MAP.html#entry-points">Entry Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="REPO_MAP.html#important-files">Important Files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#configuration-files">Configuration Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="REPO_MAP.html#scripts">Scripts</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="WORKFLOW_REGISTRY.html">Workflow Registry &amp; Tool Coverage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#how-to-use-this-document">How to Use This Document</a></li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#pre-commit-vs-ci-how-they-work-together">Pre-commit vs. CI: How They Work Together</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#why-the-overlap-matters">Why the overlap matters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#tools-unique-to-each-context">Tools unique to each context</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#workflow-registry">Workflow Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#tool-coverage-matrix">Tool Coverage Matrix</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#version-comparison-tools-in-both-ci-and-pre-commit">Version Comparison (tools in both CI and pre-commit)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#scope-differences-between-ci-and-pre-commit">Scope Differences Between CI and Pre-commit</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#blocking-vs-advisory-behavior">Blocking vs. Advisory Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#blocking-will-fail-your-pr">Blocking (will fail your PR)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#advisory-warnings-only-will-not-fail">Advisory (warnings only, will not fail)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#recommended-adoption-profiles">Recommended Adoption Profiles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#python-project-minimal">Python Project (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#python-project-comprehensive">Python Project (Comprehensive)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#shell-project">Shell Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#python-docker-project">Python + Docker Project</a></li>
+<li class="toctree-l3"><a class="reference internal" href="WORKFLOW_REGISTRY.html#full-stack-all-workflows">Full Stack (All Workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="WORKFLOW_REGISTRY.html#workflow-version-defaults">Workflow Version Defaults</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">llama-gguf-inference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Changelog</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/auto/CHANGELOG.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h1>
+<p>All notable changes to this project will be documented in this file.</p>
+<p>The format is based on <a class="reference external" href="https://keepachangelog.com/en/1.0.0/">Keep a Changelog</a>, and this project adheres to
+<a class="reference external" href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
+<section id="unreleased">
+<h2>[Unreleased]<a class="headerlink" href="#unreleased" title="Link to this heading"></a></h2>
+<section id="added">
+<h3>Added<a class="headerlink" href="#added" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Add configurable request timeout (REQUEST_TIMEOUT env var)
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/635913beb1012b2e3000a999dc5feaad3efbcb07">635913b</a>)</p></li>
+<li><p>Add per-key rate limits, key expiration, and rate limiter cleanup
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/567c25e2766fee53067ad15360a55b2a2894cefe">567c25e</a>)</p></li>
+<li><p>Add benchmarking script for performance baseline
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/50707c0390ae8c6cd24c32d2f326f6724ee2ed1b">50707c0</a>)</p></li>
+<li><p>Add request queuing and concurrency control
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/4600a81d39ef96b2abc378846566f6b1c0b10769">4600a81</a>)</p></li>
+<li><p>Add API key management CLI tool
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/cd42b994089b24884e839a77e8070ff73b90fad0">cd42b99</a>)</p></li>
+<li><p>Add CORS headers and Prometheus metrics format
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/c8ca8d9f4bda27bf352ef304f53a020a2c548d87">c8ca8d9</a>)</p></li>
+<li><p>Add multi-arch support, .dockerignore, and docker-compose
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/707b819de3076d8db03cce8e1f2078ba3734b9d8">707b819</a>)</p></li>
+<li><p>Add unit tests and coverage for auth module
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/fea0e436d8d62925d1a24914169e65b1502d4fb2">fea0e43</a>)</p></li>
+<li><p>Add tag-triggered release workflow
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/fe7e76863363cd156dcdabd6e7b33e9c74ef2e7f">fe7e768</a>)</p></li>
+<li><p>additional doc updates
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/31eb3ca2a9c527e0281eda8b03c4d1b1257c17f6">31eb3ca</a>)</p></li>
+<li><p>Pages fix (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/aa1c71aa11bf89804bc40fd23a8b965ec47fd0f1">aa1c71a</a>)</p></li>
+<li><p>ReadTheDocs fix
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/73fe5fe7c5c66de4d5055e6dc6d2615c5afe0e47">73fe5fe</a>)</p></li>
+<li><p>ReadTheDocs and documentation automation
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/634fa8c6aa207a87125583a3462ad23b9d923d9b">634fa8c</a>)</p></li>
+<li><p>ReadTheDocs and documentation automation
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/7f449b90f2035a5a5280dfe03075373138be3f47">7f449b9</a>)</p></li>
+<li><p>Add ai-dev-tools as submodule
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/146bf8e8778cd266d3b151ceb0d818fc83cb787c">146bf8e</a>)</p></li>
+</ul>
+</section>
+<section id="changed">
+<h3>Changed<a class="headerlink" href="#changed" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Auto-update documentation [skip ci]
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/e1f84339817c9a51cabd0f9f80bf4d5f40010fec">e1f8433</a>)</p></li>
+<li><p>Push coverage to 98% across all modules
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/61f70dfb52b0a0db9b47e43785aee3a7cc4357fd">61f70df</a>)</p></li>
+<li><p>Cover remaining uncovered lines for 99% coverage
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/c829f8d89031067b5ee54134a9df1a285e5f3a5b">c829f8d</a>)</p></li>
+<li><p>Cover remaining lines for 100% coverage
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/58483de02434a3646d4d431c6c54473d2002ce3a">58483de</a>)</p></li>
+<li><p>Update documentation for post-v1 features
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/89e7920c332b561f672d1824d5bbe8cfbf528957">89e7920</a>)</p></li>
+<li><p>Update security audit — all findings resolved
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/5e49bec0b7e043086277ef8f0cb9785fad682967">5e49bec</a>)</p></li>
+<li><p>Document hot-reload API keys via SIGHUP and POST /reload
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/8d4072d59b9dc9581a0ff3410bcd4e412db48e4d">8d4072d</a>)</p></li>
+<li><p>Add backend response header size limit (SEC-13)
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/b25ffe2a4f092a101987f53728ffad3972a266d7">b25ffe2</a>)</p></li>
+<li><p>Document LOG_FORMAT env var for structured JSON logging
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/86355ed6b10e10cdc16429a0151f0ea83d55e645">86355ed</a>)</p></li>
+<li><p>Fix SEC-07/10/11/12/14/15/16 and remove BACKEND_PORT deprecation
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/3a5206dac778a65d6061e0186a2175373967dee7">3a5206d</a>)</p></li>
+<li><p>Run containers as non-root user (SEC-08)
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/1e6d23b9476a6d5d710781cc7e0fdba7c1e4a08e">1e6d23b</a>)</p></li>
+<li><p>Improve coverage for benchmark, key_mgmt, and health_server modules
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/f0e28d33d2c4fad6c397954be8c3a71e283d77ab">f0e28d3</a>)</p></li>
+<li><p>Final v1 security audit report
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/6a6401f10726745bef5452a6222b91a1f5668321">6a6401f</a>)</p></li>
+<li><p>Add API reference documentation
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/a66a2e7956350b0d474aaa186aa20d23bbf0df88">a66a2e7</a>)</p></li>
+<li><p>Add coverage threshold gate at 70%
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/9ee39599fcde22e004c9cec40ae758866b60dad0">9ee3959</a>)</p></li>
+<li><p>Improve coverage for gateway and auth modules
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/76240ece499ad886c477eed8f729a7cb4a17af50">76240ec</a>)</p></li>
+<li><p>Generate changelog for v1.0.0-rc.1
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/8632cf1be3db723353127b65df6e8b81e7992f6e">8632cf1</a>)</p></li>
+<li><p>Update configuration, testing, and README for current state
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/1f1c759f6150a91200b5c36478e5d8ed3708601f">1f1c759</a>)</p></li>
+<li><p>Update phase status and add live testing guide
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/402dcabf65dd1a8c69f3266a0c3bce0bca636e43">402dcab</a>)</p></li>
+<li><p>Add body size, header count, and CORS validation limits
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/a44d9dad66bfd1e7ef9537bc056a9892f44e3f32">a44d9da</a>)</p></li>
+<li><p>Optimize container image size
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/3f8547fdf084d0efa66db791db737842ea6274c6">3f8547f</a>)</p></li>
+<li><p>Add migration guide and platform deployment guides
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/75ec1bb745481db09f27d7ef25b35a5c740e0950">75ec1bb</a>)</p></li>
+<li><p>Fix key_id disclosure and CORS cache poisoning
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/5c6540729d3aaa66e175789dc64734ef7742f260">5c65407</a>)</p></li>
+<li><p>Update documentation for Phase 3 features
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/607c024f8ecb7ea5245ed46584a2da827df8d63f">607c024</a>)</p></li>
+<li><p>Auto-update documentation [skip ci]
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/63053ad00191291d0216ce210dd1fd1c0caeb8c4">63053ad</a>)</p></li>
+<li><p>Fix critical and high severity findings
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/128307144db378aa3395769090bcf3f126883b47">1283071</a>)</p></li>
+<li><p>Add project coordination files
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/c8c197249e511258da3c2ab031aacd06135328bc">c8c1972</a>)</p></li>
+<li><p>Complete branch migration master → main
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/bbd2152db23b7552eb6145246e78fa4832cf69fb">bbd2152</a>)</p></li>
+<li><p>Add repo.mk with Docker build/run targets
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/c6ef1edd6221cb500a9d0cbadbc103632874eb5e">c6ef1ed</a>)</p></li>
+<li><p>Stabilization pass — CI/CD, pre-commit, docs, code quality
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/14a8925c1dde5844e3a770428d43d458a8bec766">14a8925</a>)</p></li>
+<li><p>cleanup (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/fc6209d31e63976c683c6ac1e35f80ceed133417">fc6209d</a>)</p></li>
+<li><p>workflow updates
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/5f4a0fd1d99a96a696a12e512f0d40605c4208ad">5f4a0fd</a>)</p></li>
+<li><p>more standards/documentation
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/2ef5477adcd11a7b6dde1c04181da89238643644">2ef5477</a>)</p></li>
+<li><p>more changes
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/ea860a54f2791756bfd6feed40cd364fb92a9c99">ea860a5</a>)</p></li>
+<li><p>standards support
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/ba0aeeff19a0916f469c4d9e5045e478c6e09534">ba0aeef</a>)</p></li>
+<li><p>cleaning (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/e6467c9cdb1fa98ea751f364b55d32a03b58ef74">e6467c9</a>)</p></li>
+<li><p>perms (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/4a76bcef96d97bf05a00644b57ba50965de75081">4a76bce</a>)</p></li>
+<li><p>updates for auth, gateway, code quality, qol.
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/0850d5653ed9e50c9ac385e89d83ebc8688c9f04">0850d56</a>)</p></li>
+<li><p>KAN-4: scale to zero resolution.
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/20a10bb30263d11ade3fab67b89115ddb2dc8333">20a10bb</a>)</p></li>
+<li><p>real initial commit…
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/ee44290a1c071da303a9201db9c581a1c728c1bf">ee44290</a>)</p></li>
+<li><p>Initial commit
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/f0755afee8c2f6601ccc0340f4182a6519d18061">f0755af</a>)</p></li>
+</ul>
+</section>
+<section id="fixed">
+<h3>Fixed<a class="headerlink" href="#fixed" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Add pytest-asyncio dependency for async benchmark tests
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/ed1a5e2ab84f1efe0971dbe0b9d43e018f12e7d9">ed1a5e2</a>)</p></li>
+<li><p>Resolve Sphinx build warnings treated as errors
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/166e39cf1e76b1c56eac6306d04c2e6087c0a360">166e39c</a>)</p></li>
+<li><p>Fix docs workflow startup_failure
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/d8b45eebd62d5e5592228d5fa2baad53113f991a">d8b45ee</a>)</p></li>
+<li><p>Generate valid backend key format in mock mode
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/a8944c923fb71773a2f42264d5645c9cff466f2e">a8944c9</a>)</p></li>
+<li><p>Fix pre-commit actionlint and integration test timing
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/4c4f83d4a20858e77040ceca069bd152c40b5512">4c4f83d</a>)</p></li>
+<li><p>Restore checkmake linting for .mk files
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/f3ea83bdc97d85456419a3e08f46d8695f5cf64a">f3ea83b</a>)</p></li>
+<li><p>ci fix (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/f5882623369b3fc0073b53e0b2788759dab582a4">f588262</a>)</p></li>
+<li><p>ci fix (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/63a3c5e7e771ee4e392b4358b15c12eeaf69187e">63a3c5e</a>)</p></li>
+<li><p>ci fix (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/315a6c02b3c6cf48fad996f94a68143bdd762108">315a6c0</a>)</p></li>
+<li><p>ci fix (<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/3480412db0d3e071c371bd85777783ce967ec939">3480412</a>)</p></li>
+</ul>
+</section>
+<section id="security">
+<h3>Security<a class="headerlink" href="#security" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>security updates
+(<a class="reference external" href="https://github.com/zepfu/llama-gguf-inference/commit/fb3989b91e73e4c56f165cdd35695203fbd26239">fb3989b</a>)</p></li>
+</ul>
+<hr class="docutils" />
+<p><em>This file is auto-generated from git history.</em> <em>Manual edits may be overwritten.</em></p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../TROUBLESHOOTING.html" class="btn btn-neutral float-left" title="Troubleshooting Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ARCHITECTURE_AUTO.html" class="btn btn-neutral float-right" title="Architecture (Auto-Generated)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, llama-gguf-inference contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
