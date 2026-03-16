@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Auto-update documentation [skip ci]
+  ([7354bf1](https://github.com/zepfu/llama-gguf-inference/commit/7354bf12b8b1a880e084386aef3544e971ce106a))
+- Auto-update documentation [skip ci]
   ([70ca31c](https://github.com/zepfu/llama-gguf-inference/commit/70ca31ccff8cb5775752c317a2182736bb11072c))
 - Auto-update documentation [skip ci]
   ([2e47169](https://github.com/zepfu/llama-gguf-inference/commit/2e47169aa5eb2e23f763e38f5e94d95c3f8b30ad))
