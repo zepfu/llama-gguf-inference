@@ -1,6 +1,6 @@
 # Workflow Registry & Tool Coverage
 
-**Auto-generated:** 2026-03-16 10:08:30
+**Auto-generated:** 2026-03-23 10:05:55
 
 > Complete reference for all reusable workflows: what tools they run, their inputs, blocking vs. advisory behavior, and
 > overlap with pre-commit.
