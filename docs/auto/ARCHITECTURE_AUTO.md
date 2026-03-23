@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-03-16 10:08:30 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-03-23 10:05:55 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
