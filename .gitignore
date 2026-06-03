@@ -122,3 +122,10 @@ TASKS.md
 CLAUDE_SUGGESTIONS.md
 agent-logs/
 .claude/settings.local.json
+.analysis/
+.claude/
+.codex/
+.grok/
+.gemini/
+.env.*
+!.env.example
