@@ -41,6 +41,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- Stop tracking local agent state
+  ([86585a3](https://github.com/zepfu/llama-gguf-inference/commit/86585a3093dcddc8f5fb8c1077622a1ad3b30476))
+- Auto-update documentation [skip ci]
+  ([0bc90ee](https://github.com/zepfu/llama-gguf-inference/commit/0bc90eeea7482a208a93cd0cbee1a3b5602fd517))
 - Auto-update documentation [skip ci]
   ([b08ae71](https://github.com/zepfu/llama-gguf-inference/commit/b08ae71d74ae1e252181c96fd985c2c0e61699b5))
 - Auto-update documentation [skip ci]
