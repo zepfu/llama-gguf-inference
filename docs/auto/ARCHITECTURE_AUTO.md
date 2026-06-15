@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-06-08 10:41:29 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-06-15 11:12:08 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -27,9 +27,7 @@ Analyzed **13** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> testuptimereflectsstarttime[test_uptime_reflects_start_time]
-    Init --> testqueuedepthstartsatzero[test_queue_depth_starts_at_zero]
-    testqueuedepthstartsatzero --> End([End])
+    Init --> End([End])
 ```
 
 ## State Diagram
@@ -37,15 +35,11 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> TestExceptionDuringRequestHandledGracefully
-    TestExceptionDuringRequestHandledGracefully --> TestOptionsRequestHandled
-    TestOptionsRequestHandled --> TestTimeoutDuringRequestHandledGracefully
-    TestTimeoutDuringRequestHandledGracefully --> TestWriterCloseFailureHandled
-    TestWriterCloseFailureHandled --> [*]
-    Idle --> TestSighupHandlerCallsReload
-    TestSighupHandlerCallsReload --> TestSighupHandlerLogsErrorOnFailure
-    TestSighupHandlerLogsErrorOnFailure --> TestSighupHandlerNoAuthModule
-    TestSighupHandlerNoAuthModule --> [*]
+    Idle --> TestLogAccessHandlesPermissionError
+    TestLogAccessHandlesPermissionError --> [*]
+    Idle --> TestReloadHandlesEmptyFile
+    TestReloadHandlesEmptyFile --> TestReloadPreservesRateLimiterState
+    TestReloadPreservesRateLimiterState --> [*]
 ```
 
 ## Sequence Diagram
@@ -56,18 +50,18 @@ stateDiagram-v2
 
 ```mermaid
 architecture-beta
+    group scripts(cloud)[Scripts]
+        service scripts_gateway(server)[gateway] in scripts
+        service scripts_key_mgmt(server)[key_mgmt] in scripts
+        service scripts_benchmark(server)[benchmark] in scripts
+    end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
     end
     group tests(cloud)[Tests]
-        service tests_test_gateway(server)[test_gateway] in tests
-        service tests_conftest(server)[conftest] in tests
+        service tests___init__(server)[__init__] in tests
         service tests_test_key_mgmt(server)[test_key_mgmt] in tests
-    end
-    group scripts(cloud)[Scripts]
-        service scripts_auth(server)[auth] in scripts
-        service scripts_health_server(server)[health_server] in scripts
-        service scripts_gateway(server)[gateway] in scripts
+        service tests_test_auth(server)[test_auth] in tests
     end
 ```
 
@@ -79,91 +73,97 @@ architecture-beta
 
 ```mermaid
 classDiagram
-    class tests_test_gateway_TestGetCorsHeaders {
-        +test_cors_disabled_returns_empty(monkeypatch)
-        +test_cors_wildcard_returns_star(monkeypatch)
-        +test_cors_specific_origin_allowed(monkeypatch)
-        +test_cors_specific_origin_denied(monkeypatch)
-        +test_cors_multiple_origins(monkeypatch)
+    class scripts_gateway_Metrics {
+        +requests_total
+        +requests_success
+        +requests_error
+        +requests_active
+        +requests_authenticated
+        +to_dict()
+        +to_prometheus()
     }
-    class tests_test_gateway_TestBuildCorsHeaderStr {
-        +test_disabled_returns_empty_string(monkeypatch)
-        +test_enabled_returns_crlf_joined(monkeypatch)
-        +test_denied_origin_returns_empty(monkeypatch)
+    class scripts_auth_APIKeyValidator {
+        +__init__()
+        +_load_keys()
+        +_parse_key_metadata()
+        +validate(headers)
+        +_is_key_expired(key_id)
     }
-    class tests_test_gateway_TestCorsEnabled {
-        +test_disabled_when_empty(monkeypatch)
-        +test_enabled_with_origin(monkeypatch)
-        +test_wildcard_detected(monkeypatch)
+    class scripts_health_server_HealthHandler {
+        +do_GET()
+        +log_message(format)
     }
-    class tests_test_gateway_TestWantsPrometheus {
-        +test_empty_accept(monkeypatch)
-        +test_json_accept(monkeypatch)
-        +test_text_plain_accept(monkeypatch)
-        +test_openmetrics_accept(monkeypatch)
-        +test_mixed_accept_with_text_plain(monkeypatch)
+    class tests_test_key_mgmt_TestValidateKeyId {
+        +test_valid_alphanumeric()
+        +test_valid_with_hyphens()
+        +test_valid_with_underscores()
+        +test_valid_mixed()
+        +test_valid_single_char()
     }
-    class tests_test_gateway_TestMetricsToPrometheus {
-        +test_default_metrics(monkeypatch)
-        +test_metrics_with_values(monkeypatch)
-        +test_prometheus_format_lines(monkeypatch)
-        +test_uptime_reflects_start_time(monkeypatch)
+    class tests_test_key_mgmt_TestGenerateApiKey {
+        +test_starts_with_prefix()
+        +test_correct_length()
+        +test_unique_keys()
+        +test_valid_characters()
     }
-    class tests_test_gateway_TestMetricsToDict {
-        +test_default_values(monkeypatch)
-        +test_values_preserved(monkeypatch)
+    class tests_test_key_mgmt_TestGenerate {
+        +test_generate_creates_key(tmp_path)
+        +test_generate_duplicate_name_fails(keys_file)
+        +test_generate_invalid_name_fails(tmp_path)
+        +test_generate_quiet_mode(tmp_path, capsys)
+        +test_generate_preserves_comments(keys_file)
     }
-    class tests_test_gateway_TestOptionsHandling {
-        +test_options_response_format_with_cors(monkeypatch)
-        +test_options_response_without_cors(monkeypatch)
+    class tests_test_key_mgmt_TestList {
+        +test_list_empty_file(empty_keys_file, capsys)
+        +test_list_with_keys(keys_file, capsys)
+        +test_list_never_shows_key_values(keys_file, capsys)
+        +test_list_missing_file(tmp_path, capsys)
     }
-    class tests_test_gateway_TestHandlePingCors {
-        +test_ping_with_cors(monkeypatch)
-        +test_ping_without_cors(monkeypatch)
+    class tests_test_key_mgmt_TestRemove {
+        +test_remove_existing_key(keys_file)
+        +test_remove_nonexistent_fails(keys_file)
+        +test_remove_preserves_comments(keys_file)
+        +test_remove_missing_file_fails(tmp_path)
     }
-    class tests_test_gateway_TestHandleMetricsFormats {
-        +test_metrics_json_default(monkeypatch)
-        +test_metrics_prometheus_text_plain(monkeypatch)
-        +test_metrics_prometheus_openmetrics(monkeypatch)
-        +test_metrics_json_with_application_json(monkeypatch)
-        +test_metrics_with_cors(monkeypatch)
+    class tests_test_key_mgmt_TestRotate {
+        +test_rotate_existing_key(keys_file)
+        +test_rotate_nonexistent_fails(keys_file)
+        +test_rotate_quiet_mode(keys_file, capsys)
+        +test_rotate_preserves_other_keys(keys_file)
+        +test_rotate_missing_file_fails(tmp_path)
     }
-    class tests_test_gateway_TestQueueConfig {
-        +test_default_max_concurrent(monkeypatch)
-        +test_custom_max_concurrent(monkeypatch)
-        +test_default_max_queue_size(monkeypatch)
-        +test_custom_max_queue_size(monkeypatch)
-        +test_semaphore_created_with_correct_value(monkeypatch)
+    class tests_test_key_mgmt_TestFilePermissions {
+        +test_file_permissions_after_generate(tmp_path)
+        +test_file_permissions_after_remove(keys_file)
+        +test_file_permissions_after_rotate(keys_file)
     }
-    class tests_test_gateway_TestQueueFullResponse {
-        +test_503_status_line(monkeypatch)
-        +test_retry_after_header(monkeypatch)
-        +test_json_body_format(monkeypatch)
-        +test_content_type_json(monkeypatch)
-        +test_cors_headers_included(monkeypatch)
+    class tests_test_key_mgmt_TestAtomicWrite {
+        +test_atomic_write_creates_file(tmp_path)
+        +test_atomic_write_replaces_file(tmp_path)
+        +test_atomic_write_no_temp_files_left(tmp_path)
+        +test_atomic_write_permissions(tmp_path)
+        +test_atomic_write_creates_parent_dirs(tmp_path)
     }
-    class tests_test_gateway_TestQueueMetrics {
-        +test_queue_fields_in_to_dict(monkeypatch)
-        +test_queue_rejections_in_to_dict(monkeypatch)
-        +test_queue_wait_time_in_to_dict(monkeypatch)
-        +test_queue_depth_in_prometheus(monkeypatch)
-        +test_queue_rejections_in_prometheus(monkeypatch)
+    class tests_test_key_mgmt_TestCLIIntegration {
+        +test_cli_generate_and_list(tmp_path)
+        +test_cli_quiet_generate(tmp_path)
+        +test_cli_no_command_shows_help()
+        +test_cli_remove_and_verify(tmp_path)
+        +test_cli_rotate_and_verify(tmp_path)
     }
-    class tests_test_gateway_TestHealthQueueInfo {
-        +test_health_contains_queue_section(monkeypatch)
-        +test_health_queue_active_reflects_semaphore(monkeypatch)
-        +test_health_queue_waiting_reflects_depth(monkeypatch)
+    class tests_test_key_mgmt_TestGetDefaultKeysFile {
+        +test_auth_keys_file_env(monkeypatch)
+        +test_data_dir_env(monkeypatch)
+        +test_default_path(monkeypatch)
     }
-    class tests_test_gateway_TestConcurrencyLimiting {
-        +test_semaphore_limits_concurrent_proxy_calls(monkeypatch)
-        +test_queue_rejection_when_full(monkeypatch)
-        +test_queue_rejection_increments_metric(monkeypatch)
-        +test_health_endpoints_bypass_queue(monkeypatch)
-        +test_unlimited_queue_never_rejects(monkeypatch)
+    class tests_test_key_mgmt_TestLoadKeysFileEdgeCases {
+        +test_nonexistent_file(tmp_path)
+        +test_lines_without_colon(tmp_path)
+        +test_comment_lines(tmp_path)
+        +test_blank_lines(tmp_path)
     }
-    class tests_test_gateway_TestRequestBodySizeConfig {
-        +test_default_max_request_body_size(monkeypatch)
-        +test_custom_max_request_body_size(monkeypatch)
+    class tests_test_key_mgmt_TestAtomicWriteFailure {
+        +test_atomic_write_cleanup_on_failure(tmp_path)
     }
 ```
 
@@ -179,17 +179,17 @@ mindmap
     docs
       conf
     scripts
-      auth
-      health_server
       gateway
       key_mgmt
       benchmark
+      auth
+      health_server
     tests
-      test_gateway
-      conftest
+      __init__
       test_key_mgmt
       test_auth
-      __init__
+      test_health_server
+      test_gateway
 ```
 
 ## Workflow Pipeline Diagram
@@ -208,10 +208,10 @@ flowchart TD
 
 ```mermaid
 graph TD
-    docs[Documentation]
-    release[Release]
-    ci[CI]
     cd[CD]
+    release[Release]
+    docs[Documentation]
+    ci[CI]
 ```
 
 ## Workflow Jobs Diagram
