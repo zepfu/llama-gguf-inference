@@ -10,180 +10,182 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Add configurable request timeout (REQUEST_TIMEOUT env var)
-  ([635913b](https://github.com/zepfu/llama-gguf-inference/commit/635913beb1012b2e3000a999dc5feaad3efbcb07))
+  ([287917a](https://github.com/zepfu/llama-gguf-inference/commit/287917a02ae891e5438d03cfcbbd51fa172b375c))
 - Add per-key rate limits, key expiration, and rate limiter cleanup
-  ([567c25e](https://github.com/zepfu/llama-gguf-inference/commit/567c25e2766fee53067ad15360a55b2a2894cefe))
+  ([2c51ee2](https://github.com/zepfu/llama-gguf-inference/commit/2c51ee219a61ba1621468c604888b8ca456055a1))
 - Add benchmarking script for performance baseline
-  ([50707c0](https://github.com/zepfu/llama-gguf-inference/commit/50707c0390ae8c6cd24c32d2f326f6724ee2ed1b))
+  ([aeb3d59](https://github.com/zepfu/llama-gguf-inference/commit/aeb3d59bd6ee6ae60c7aedc94144a38659d389aa))
 - Add request queuing and concurrency control
-  ([4600a81](https://github.com/zepfu/llama-gguf-inference/commit/4600a81d39ef96b2abc378846566f6b1c0b10769))
+  ([bfb3581](https://github.com/zepfu/llama-gguf-inference/commit/bfb358107da180c2dd4309fd21f292138d60c0b1))
 - Add API key management CLI tool
-  ([cd42b99](https://github.com/zepfu/llama-gguf-inference/commit/cd42b994089b24884e839a77e8070ff73b90fad0))
+  ([2835b3a](https://github.com/zepfu/llama-gguf-inference/commit/2835b3aae8072c6626be6d6035c4abbe2b372a01))
 - Add CORS headers and Prometheus metrics format
-  ([c8ca8d9](https://github.com/zepfu/llama-gguf-inference/commit/c8ca8d9f4bda27bf352ef304f53a020a2c548d87))
+  ([7f557c1](https://github.com/zepfu/llama-gguf-inference/commit/7f557c160678b225e646384d3fd6537e41d9d658))
 - Add multi-arch support, .dockerignore, and docker-compose
-  ([707b819](https://github.com/zepfu/llama-gguf-inference/commit/707b819de3076d8db03cce8e1f2078ba3734b9d8))
+  ([0103c82](https://github.com/zepfu/llama-gguf-inference/commit/0103c82ba112d90c41e103687e7238405e630bd0))
 - Add unit tests and coverage for auth module
-  ([fea0e43](https://github.com/zepfu/llama-gguf-inference/commit/fea0e436d8d62925d1a24914169e65b1502d4fb2))
+  ([460f513](https://github.com/zepfu/llama-gguf-inference/commit/460f513f35d868514a0513aca9947936449c134b))
 - Add tag-triggered release workflow
-  ([fe7e768](https://github.com/zepfu/llama-gguf-inference/commit/fe7e76863363cd156dcdabd6e7b33e9c74ef2e7f))
+  ([84e6d40](https://github.com/zepfu/llama-gguf-inference/commit/84e6d4011dae74659c4caf8928bb0119cecde715))
 - additional doc updates
-  ([31eb3ca](https://github.com/zepfu/llama-gguf-inference/commit/31eb3ca2a9c527e0281eda8b03c4d1b1257c17f6))
-- Pages fix ([aa1c71a](https://github.com/zepfu/llama-gguf-inference/commit/aa1c71aa11bf89804bc40fd23a8b965ec47fd0f1))
+  ([32feee7](https://github.com/zepfu/llama-gguf-inference/commit/32feee797020a8ad7f2c9b3fa6f0e33ff03fc994))
+- Pages fix ([a63b4d5](https://github.com/zepfu/llama-gguf-inference/commit/a63b4d550a528ed40185bba405880d8995a0e68c))
 - ReadTheDocs fix
-  ([73fe5fe](https://github.com/zepfu/llama-gguf-inference/commit/73fe5fe7c5c66de4d5055e6dc6d2615c5afe0e47))
+  ([815e568](https://github.com/zepfu/llama-gguf-inference/commit/815e568c32b3b47105d19577bf1fcd5e562917ee))
 - ReadTheDocs and documentation automation
-  ([634fa8c](https://github.com/zepfu/llama-gguf-inference/commit/634fa8c6aa207a87125583a3462ad23b9d923d9b))
+  ([d0c4a3a](https://github.com/zepfu/llama-gguf-inference/commit/d0c4a3a4494128a01c25e3a3a4ef1243df40bfae))
 - ReadTheDocs and documentation automation
-  ([7f449b9](https://github.com/zepfu/llama-gguf-inference/commit/7f449b90f2035a5a5280dfe03075373138be3f47))
+  ([b743523](https://github.com/zepfu/llama-gguf-inference/commit/b743523bb6f169105b2dea316fb99565f0892bc8))
 - Add ai-dev-tools as submodule
-  ([146bf8e](https://github.com/zepfu/llama-gguf-inference/commit/146bf8e8778cd266d3b151ceb0d818fc83cb787c))
+  ([3eb2fdf](https://github.com/zepfu/llama-gguf-inference/commit/3eb2fdf40c9c333bf458e4f1b39ff6d2e870d9cc))
 
 ### Changed
 
 - Auto-update documentation [skip ci]
-  ([59787e7](https://github.com/zepfu/llama-gguf-inference/commit/59787e73f84fb7c241d44b879ca1408e648548da))
+  ([70c9736](https://github.com/zepfu/llama-gguf-inference/commit/70c9736569edd4c63efba1e1c49c203ead300a10))
 - Auto-update documentation [skip ci]
-  ([c80ae3c](https://github.com/zepfu/llama-gguf-inference/commit/c80ae3c548df8997402a29be91791c288493a36a))
+  ([a35999f](https://github.com/zepfu/llama-gguf-inference/commit/a35999f5e002260d60b57dbde375f0ebd94e7ef4))
 - Auto-update documentation [skip ci]
-  ([c74d5eb](https://github.com/zepfu/llama-gguf-inference/commit/c74d5ebf6e3bdac2c70b8e8f4ab1e254132467df))
+  ([f5ca5be](https://github.com/zepfu/llama-gguf-inference/commit/f5ca5bea61ca11c8faa86c8481f9f73d797485e3))
 - Auto-update documentation [skip ci]
-  ([df943cb](https://github.com/zepfu/llama-gguf-inference/commit/df943cb8de3eadaaf5c9aab729e26348a9421438))
+  ([5559f08](https://github.com/zepfu/llama-gguf-inference/commit/5559f08b58235c19eea8fbc59915a131c4fae830))
+- Auto-update documentation [skip ci]
+  ([b92e6c6](https://github.com/zepfu/llama-gguf-inference/commit/b92e6c601fa1064bcf955c88e0e4894ef218c8ad))
 - Stop tracking local agent state
-  ([86585a3](https://github.com/zepfu/llama-gguf-inference/commit/86585a3093dcddc8f5fb8c1077622a1ad3b30476))
+  ([6e31873](https://github.com/zepfu/llama-gguf-inference/commit/6e318739ce2dd5540100097461513e995f6d36e0))
 - Auto-update documentation [skip ci]
-  ([0bc90ee](https://github.com/zepfu/llama-gguf-inference/commit/0bc90eeea7482a208a93cd0cbee1a3b5602fd517))
+  ([d11d365](https://github.com/zepfu/llama-gguf-inference/commit/d11d365d389adfb63936899b472684e7c03dc203))
 - Auto-update documentation [skip ci]
-  ([b08ae71](https://github.com/zepfu/llama-gguf-inference/commit/b08ae71d74ae1e252181c96fd985c2c0e61699b5))
+  ([0d1e4da](https://github.com/zepfu/llama-gguf-inference/commit/0d1e4da7a628c669838169c58cb933a476d53c15))
 - Auto-update documentation [skip ci]
-  ([1aa014c](https://github.com/zepfu/llama-gguf-inference/commit/1aa014c3d116386092fca81607fe6781025cd5b6))
+  ([187a768](https://github.com/zepfu/llama-gguf-inference/commit/187a768cabfabc403aedd0ff6c2936630241aeb9))
 - Auto-update documentation [skip ci]
-  ([4bdc83d](https://github.com/zepfu/llama-gguf-inference/commit/4bdc83d323ec60c63aa5ee44c799e4700b27732b))
+  ([10bfc98](https://github.com/zepfu/llama-gguf-inference/commit/10bfc98e84b0655c9022c863749ebd7633d44471))
 - Auto-update documentation [skip ci]
-  ([0f8211a](https://github.com/zepfu/llama-gguf-inference/commit/0f8211ac5aca7e04e0786fe370eec6d912d5b3b5))
+  ([2af8a59](https://github.com/zepfu/llama-gguf-inference/commit/2af8a59f050c2bf1a271a2b3bf1ee6afd6358547))
 - Auto-update documentation [skip ci]
-  ([a78d269](https://github.com/zepfu/llama-gguf-inference/commit/a78d2694f24f6ca12d408cb041d100875afad60b))
+  ([6502573](https://github.com/zepfu/llama-gguf-inference/commit/65025737de2913c1f8ccf6378d5a330633cefd17))
 - Auto-update documentation [skip ci]
-  ([b36edc7](https://github.com/zepfu/llama-gguf-inference/commit/b36edc7dae455b3e29f3bbf479473b79314b3b2f))
+  ([51f9b73](https://github.com/zepfu/llama-gguf-inference/commit/51f9b7309c4aa86450d239a9a7f049206fbc7139))
 - Auto-update documentation [skip ci]
-  ([8deba4e](https://github.com/zepfu/llama-gguf-inference/commit/8deba4e6eda37036349caf5d9643fce6b9b7e06f))
+  ([b9beed3](https://github.com/zepfu/llama-gguf-inference/commit/b9beed382720ad59e11a3d362742a83f22150069))
 - Auto-update documentation [skip ci]
-  ([43f4038](https://github.com/zepfu/llama-gguf-inference/commit/43f403811427453a5c57d3472756ca46b5496315))
+  ([b6989a0](https://github.com/zepfu/llama-gguf-inference/commit/b6989a0328b00a4c0e789cba6d3004b409bc498a))
 - Auto-update documentation [skip ci]
-  ([899f98a](https://github.com/zepfu/llama-gguf-inference/commit/899f98a955e7794902ac5e2e2bb82fe4787f2b8a))
+  ([ef56769](https://github.com/zepfu/llama-gguf-inference/commit/ef5676907b455457e73921a20ad1e7fa7b80b335))
 - Auto-update documentation [skip ci]
-  ([2d085af](https://github.com/zepfu/llama-gguf-inference/commit/2d085af03656d3a7382ed2058fac94efc206d036))
+  ([d9b01b4](https://github.com/zepfu/llama-gguf-inference/commit/d9b01b40846af8f32369c032e98f6f6e577ea7dd))
 - Auto-update documentation [skip ci]
-  ([f53547f](https://github.com/zepfu/llama-gguf-inference/commit/f53547f1c71e8401bb3faa834fa543bf248bc7d0))
+  ([2b9eae7](https://github.com/zepfu/llama-gguf-inference/commit/2b9eae746c77ffa8ecd8283062b595059c9c86c7))
 - Auto-update documentation [skip ci]
-  ([7354bf1](https://github.com/zepfu/llama-gguf-inference/commit/7354bf12b8b1a880e084386aef3544e971ce106a))
+  ([469340b](https://github.com/zepfu/llama-gguf-inference/commit/469340b9119ec948c7c6adc1f5531e80fc637bd4))
 - Auto-update documentation [skip ci]
-  ([70ca31c](https://github.com/zepfu/llama-gguf-inference/commit/70ca31ccff8cb5775752c317a2182736bb11072c))
+  ([5c727d3](https://github.com/zepfu/llama-gguf-inference/commit/5c727d3cf0a3713bf1466807e27a88a7cb00e1cf))
 - Auto-update documentation [skip ci]
-  ([2e47169](https://github.com/zepfu/llama-gguf-inference/commit/2e47169aa5eb2e23f763e38f5e94d95c3f8b30ad))
+  ([8dad3fa](https://github.com/zepfu/llama-gguf-inference/commit/8dad3fa03594c21e63f4deb433af47fc644e1bc6))
 - Auto-update documentation [skip ci]
-  ([e1f8433](https://github.com/zepfu/llama-gguf-inference/commit/e1f84339817c9a51cabd0f9f80bf4d5f40010fec))
+  ([4a3feef](https://github.com/zepfu/llama-gguf-inference/commit/4a3feef32c9a076bc0d31a93b5fd7d528658d1a6))
 - Push coverage to 98% across all modules
-  ([61f70df](https://github.com/zepfu/llama-gguf-inference/commit/61f70dfb52b0a0db9b47e43785aee3a7cc4357fd))
+  ([029118e](https://github.com/zepfu/llama-gguf-inference/commit/029118ea672b134d2c742347e714485ca2fa05ad))
 - Cover remaining uncovered lines for 99% coverage
-  ([c829f8d](https://github.com/zepfu/llama-gguf-inference/commit/c829f8d89031067b5ee54134a9df1a285e5f3a5b))
+  ([4077f40](https://github.com/zepfu/llama-gguf-inference/commit/4077f40ee6ef2a791138770b6468464daf4e5f49))
 - Cover remaining lines for 100% coverage
-  ([58483de](https://github.com/zepfu/llama-gguf-inference/commit/58483de02434a3646d4d431c6c54473d2002ce3a))
+  ([3ae27f7](https://github.com/zepfu/llama-gguf-inference/commit/3ae27f7548a72149aa9379c87da95c7fbce3d4d0))
 - Update documentation for post-v1 features
-  ([89e7920](https://github.com/zepfu/llama-gguf-inference/commit/89e7920c332b561f672d1824d5bbe8cfbf528957))
+  ([0e8fa04](https://github.com/zepfu/llama-gguf-inference/commit/0e8fa0461fd01611772202737e66ab602713f329))
 - Update security audit — all findings resolved
-  ([5e49bec](https://github.com/zepfu/llama-gguf-inference/commit/5e49bec0b7e043086277ef8f0cb9785fad682967))
+  ([e8391cb](https://github.com/zepfu/llama-gguf-inference/commit/e8391cb068e00e690ca8ce9134ad55523e2c2a61))
 - Document hot-reload API keys via SIGHUP and POST /reload
-  ([8d4072d](https://github.com/zepfu/llama-gguf-inference/commit/8d4072d59b9dc9581a0ff3410bcd4e412db48e4d))
+  ([f937129](https://github.com/zepfu/llama-gguf-inference/commit/f937129fb192ce6876d6e861bc903ccfa7206e3e))
 - Add backend response header size limit (SEC-13)
-  ([b25ffe2](https://github.com/zepfu/llama-gguf-inference/commit/b25ffe2a4f092a101987f53728ffad3972a266d7))
+  ([37bd514](https://github.com/zepfu/llama-gguf-inference/commit/37bd514f8a2fb276d91011c3e528d1b90b313e3c))
 - Document LOG_FORMAT env var for structured JSON logging
-  ([86355ed](https://github.com/zepfu/llama-gguf-inference/commit/86355ed6b10e10cdc16429a0151f0ea83d55e645))
+  ([ddf2a18](https://github.com/zepfu/llama-gguf-inference/commit/ddf2a18eaa1a2e2414cb82ce9d5b7fb05eb42ebf))
 - Fix SEC-07/10/11/12/14/15/16 and remove BACKEND_PORT deprecation
-  ([3a5206d](https://github.com/zepfu/llama-gguf-inference/commit/3a5206dac778a65d6061e0186a2175373967dee7))
+  ([43bd67d](https://github.com/zepfu/llama-gguf-inference/commit/43bd67de0ba0519a0cc1504eaee556ebc1304648))
 - Run containers as non-root user (SEC-08)
-  ([1e6d23b](https://github.com/zepfu/llama-gguf-inference/commit/1e6d23b9476a6d5d710781cc7e0fdba7c1e4a08e))
+  ([0a6b6c1](https://github.com/zepfu/llama-gguf-inference/commit/0a6b6c12eb4cd8fdce4142f4c8de8b34c0fa8861))
 - Improve coverage for benchmark, key_mgmt, and health_server modules
-  ([f0e28d3](https://github.com/zepfu/llama-gguf-inference/commit/f0e28d33d2c4fad6c397954be8c3a71e283d77ab))
+  ([0fc7d76](https://github.com/zepfu/llama-gguf-inference/commit/0fc7d76594145ad13cd641e15c0fa9d9fd885c32))
 - Final v1 security audit report
-  ([6a6401f](https://github.com/zepfu/llama-gguf-inference/commit/6a6401f10726745bef5452a6222b91a1f5668321))
+  ([cdaecb7](https://github.com/zepfu/llama-gguf-inference/commit/cdaecb790d1334f4218297c8a5e53631f05eba72))
 - Add API reference documentation
-  ([a66a2e7](https://github.com/zepfu/llama-gguf-inference/commit/a66a2e7956350b0d474aaa186aa20d23bbf0df88))
+  ([90f0718](https://github.com/zepfu/llama-gguf-inference/commit/90f0718e9aab2d528260b50807e9f0eccbd66731))
 - Add coverage threshold gate at 70%
-  ([9ee3959](https://github.com/zepfu/llama-gguf-inference/commit/9ee39599fcde22e004c9cec40ae758866b60dad0))
+  ([f76cc3b](https://github.com/zepfu/llama-gguf-inference/commit/f76cc3b1a0ad0f51704f7063c7ff48f9e6938098))
 - Improve coverage for gateway and auth modules
-  ([76240ec](https://github.com/zepfu/llama-gguf-inference/commit/76240ece499ad886c477eed8f729a7cb4a17af50))
+  ([f21eda7](https://github.com/zepfu/llama-gguf-inference/commit/f21eda76b43c5fac09f2240c770bddb9fd5e9b24))
 - Generate changelog for v1.0.0-rc.1
-  ([8632cf1](https://github.com/zepfu/llama-gguf-inference/commit/8632cf1be3db723353127b65df6e8b81e7992f6e))
+  ([8091845](https://github.com/zepfu/llama-gguf-inference/commit/809184574c82642cffec5ccf2a65d4ae230339fe))
 - Update configuration, testing, and README for current state
-  ([1f1c759](https://github.com/zepfu/llama-gguf-inference/commit/1f1c759f6150a91200b5c36478e5d8ed3708601f))
+  ([803a3d2](https://github.com/zepfu/llama-gguf-inference/commit/803a3d23fa29617a05fe2b00045c9e3257fd1977))
 - Update phase status and add live testing guide
-  ([402dcab](https://github.com/zepfu/llama-gguf-inference/commit/402dcabf65dd1a8c69f3266a0c3bce0bca636e43))
+  ([20e7ac2](https://github.com/zepfu/llama-gguf-inference/commit/20e7ac29921658e7eaaa5e29da5cb50ce73ca3e1))
 - Add body size, header count, and CORS validation limits
-  ([a44d9da](https://github.com/zepfu/llama-gguf-inference/commit/a44d9dad66bfd1e7ef9537bc056a9892f44e3f32))
+  ([92b6a75](https://github.com/zepfu/llama-gguf-inference/commit/92b6a75c14c9ac50e02cb41896387d711c7a6d19))
 - Optimize container image size
-  ([3f8547f](https://github.com/zepfu/llama-gguf-inference/commit/3f8547fdf084d0efa66db791db737842ea6274c6))
+  ([471cc61](https://github.com/zepfu/llama-gguf-inference/commit/471cc61cda8045f2478d30ec4c16cb84ccd0c896))
 - Add migration guide and platform deployment guides
-  ([75ec1bb](https://github.com/zepfu/llama-gguf-inference/commit/75ec1bb745481db09f27d7ef25b35a5c740e0950))
+  ([e98dddc](https://github.com/zepfu/llama-gguf-inference/commit/e98dddcd1a1a0a4438c7008cee54e2740a4b6242))
 - Fix key_id disclosure and CORS cache poisoning
-  ([5c65407](https://github.com/zepfu/llama-gguf-inference/commit/5c6540729d3aaa66e175789dc64734ef7742f260))
+  ([e5e1f6e](https://github.com/zepfu/llama-gguf-inference/commit/e5e1f6e5219c3b5e9fd33b1c9307573d7e7a81bc))
 - Update documentation for Phase 3 features
-  ([607c024](https://github.com/zepfu/llama-gguf-inference/commit/607c024f8ecb7ea5245ed46584a2da827df8d63f))
+  ([eea889d](https://github.com/zepfu/llama-gguf-inference/commit/eea889d2f673927a91c5ec376414be52436630b8))
 - Auto-update documentation [skip ci]
-  ([63053ad](https://github.com/zepfu/llama-gguf-inference/commit/63053ad00191291d0216ce210dd1fd1c0caeb8c4))
+  ([0560a0d](https://github.com/zepfu/llama-gguf-inference/commit/0560a0d7464b385ed86a269a6fd2028f186a3757))
 - Fix critical and high severity findings
-  ([1283071](https://github.com/zepfu/llama-gguf-inference/commit/128307144db378aa3395769090bcf3f126883b47))
+  ([ede7a0b](https://github.com/zepfu/llama-gguf-inference/commit/ede7a0b20653b9aa3c6d181059c305ed5ceba1bd))
 - Add project coordination files
-  ([c8c1972](https://github.com/zepfu/llama-gguf-inference/commit/c8c197249e511258da3c2ab031aacd06135328bc))
+  ([7f1b338](https://github.com/zepfu/llama-gguf-inference/commit/7f1b3384c0941b78f70b397f8954ce4d07e9456a))
 - Complete branch migration master → main
-  ([bbd2152](https://github.com/zepfu/llama-gguf-inference/commit/bbd2152db23b7552eb6145246e78fa4832cf69fb))
+  ([9309ad8](https://github.com/zepfu/llama-gguf-inference/commit/9309ad832cce54c559b12eea93c5610aa6b9652a))
 - Add repo.mk with Docker build/run targets
-  ([c6ef1ed](https://github.com/zepfu/llama-gguf-inference/commit/c6ef1edd6221cb500a9d0cbadbc103632874eb5e))
+  ([f549002](https://github.com/zepfu/llama-gguf-inference/commit/f5490027b450a261f94688843a214133151de79a))
 - Stabilization pass — CI/CD, pre-commit, docs, code quality
-  ([14a8925](https://github.com/zepfu/llama-gguf-inference/commit/14a8925c1dde5844e3a770428d43d458a8bec766))
-- cleanup ([fc6209d](https://github.com/zepfu/llama-gguf-inference/commit/fc6209d31e63976c683c6ac1e35f80ceed133417))
+  ([feb8c33](https://github.com/zepfu/llama-gguf-inference/commit/feb8c33b26d59f7dfb60a821a290c8adbac791c9))
+- cleanup ([ae95098](https://github.com/zepfu/llama-gguf-inference/commit/ae95098c68e41d555d9c79ffd20d6dfcf94f4bf9))
 - workflow updates
-  ([5f4a0fd](https://github.com/zepfu/llama-gguf-inference/commit/5f4a0fd1d99a96a696a12e512f0d40605c4208ad))
+  ([6f20dd6](https://github.com/zepfu/llama-gguf-inference/commit/6f20dd6613f05829bf56c8cbc5bad3a395bf334f))
 - more standards/documentation
-  ([2ef5477](https://github.com/zepfu/llama-gguf-inference/commit/2ef5477adcd11a7b6dde1c04181da89238643644))
+  ([0084974](https://github.com/zepfu/llama-gguf-inference/commit/0084974fbdded76d36db752e63a0e96edfbcdf21))
 - more changes
-  ([ea860a5](https://github.com/zepfu/llama-gguf-inference/commit/ea860a54f2791756bfd6feed40cd364fb92a9c99))
+  ([ac612cc](https://github.com/zepfu/llama-gguf-inference/commit/ac612cc9d333684419d1e08c38f1fea4ae9585ec))
 - standards support
-  ([ba0aeef](https://github.com/zepfu/llama-gguf-inference/commit/ba0aeeff19a0916f469c4d9e5045e478c6e09534))
-- cleaning ([e6467c9](https://github.com/zepfu/llama-gguf-inference/commit/e6467c9cdb1fa98ea751f364b55d32a03b58ef74))
-- perms ([4a76bce](https://github.com/zepfu/llama-gguf-inference/commit/4a76bcef96d97bf05a00644b57ba50965de75081))
+  ([fe41a7b](https://github.com/zepfu/llama-gguf-inference/commit/fe41a7b1cf455f8360690503f4b06a12342d5ed8))
+- cleaning ([f6b076a](https://github.com/zepfu/llama-gguf-inference/commit/f6b076a14180b28c51331155a49261ae9f499b40))
+- perms ([41e387f](https://github.com/zepfu/llama-gguf-inference/commit/41e387f7d5df2c315a579de74db9f5ccf1857c84))
 - updates for auth, gateway, code quality, qol.
-  ([0850d56](https://github.com/zepfu/llama-gguf-inference/commit/0850d5653ed9e50c9ac385e89d83ebc8688c9f04))
+  ([43dbffb](https://github.com/zepfu/llama-gguf-inference/commit/43dbffb69aea5052cafe6bccf7a83a4748b779cf))
 - KAN-4: scale to zero resolution.
-  ([20a10bb](https://github.com/zepfu/llama-gguf-inference/commit/20a10bb30263d11ade3fab67b89115ddb2dc8333))
+  ([aff1e96](https://github.com/zepfu/llama-gguf-inference/commit/aff1e96617cce7895281210eb686bf4bdc67e219))
 - real initial commit...
-  ([ee44290](https://github.com/zepfu/llama-gguf-inference/commit/ee44290a1c071da303a9201db9c581a1c728c1bf))
+  ([ab47a24](https://github.com/zepfu/llama-gguf-inference/commit/ab47a24819c5a2ba6b22b1672ca0939f55d4a4af))
 - Initial commit
-  ([f0755af](https://github.com/zepfu/llama-gguf-inference/commit/f0755afee8c2f6601ccc0340f4182a6519d18061))
+  ([985ee67](https://github.com/zepfu/llama-gguf-inference/commit/985ee67acf06d2ed309ac443148e652bc977e12a))
 
 ### Fixed
 
 - Add pytest-asyncio dependency for async benchmark tests
-  ([ed1a5e2](https://github.com/zepfu/llama-gguf-inference/commit/ed1a5e2ab84f1efe0971dbe0b9d43e018f12e7d9))
+  ([f25ce8c](https://github.com/zepfu/llama-gguf-inference/commit/f25ce8cbb116d71e044d6151ab4b22048a9ef729))
 - Resolve Sphinx build warnings treated as errors
-  ([166e39c](https://github.com/zepfu/llama-gguf-inference/commit/166e39cf1e76b1c56eac6306d04c2e6087c0a360))
+  ([da6d938](https://github.com/zepfu/llama-gguf-inference/commit/da6d93837e2cc37448f9c096b1e1a5e1bacd1438))
 - Fix docs workflow startup_failure
-  ([d8b45ee](https://github.com/zepfu/llama-gguf-inference/commit/d8b45eebd62d5e5592228d5fa2baad53113f991a))
+  ([12b7152](https://github.com/zepfu/llama-gguf-inference/commit/12b7152cbc9fdf7d1d6beeda49a9c623683f8f2b))
 - Generate valid backend key format in mock mode
-  ([a8944c9](https://github.com/zepfu/llama-gguf-inference/commit/a8944c923fb71773a2f42264d5645c9cff466f2e))
+  ([7cda56a](https://github.com/zepfu/llama-gguf-inference/commit/7cda56a2b3031e0f9a228cd8f09f23e33aa3e44e))
 - Fix pre-commit actionlint and integration test timing
-  ([4c4f83d](https://github.com/zepfu/llama-gguf-inference/commit/4c4f83d4a20858e77040ceca069bd152c40b5512))
+  ([843e8eb](https://github.com/zepfu/llama-gguf-inference/commit/843e8eb0812720944b8e64d3e0611bbcad5aefd1))
 - Restore checkmake linting for .mk files
-  ([f3ea83b](https://github.com/zepfu/llama-gguf-inference/commit/f3ea83bdc97d85456419a3e08f46d8695f5cf64a))
-- ci fix ([f588262](https://github.com/zepfu/llama-gguf-inference/commit/f5882623369b3fc0073b53e0b2788759dab582a4))
-- ci fix ([63a3c5e](https://github.com/zepfu/llama-gguf-inference/commit/63a3c5e7e771ee4e392b4358b15c12eeaf69187e))
-- ci fix ([315a6c0](https://github.com/zepfu/llama-gguf-inference/commit/315a6c02b3c6cf48fad996f94a68143bdd762108))
-- ci fix ([3480412](https://github.com/zepfu/llama-gguf-inference/commit/3480412db0d3e071c371bd85777783ce967ec939))
+  ([3600eab](https://github.com/zepfu/llama-gguf-inference/commit/3600eabfc888a1ccd8ab53c35b24ed11e2f6fb58))
+- ci fix ([b237f2b](https://github.com/zepfu/llama-gguf-inference/commit/b237f2b85ab2d838e3c070d2c73fc81214889093))
+- ci fix ([8595a39](https://github.com/zepfu/llama-gguf-inference/commit/8595a3951dedc6abce32309f48d6ab70a9ab6c47))
+- ci fix ([5e35f7a](https://github.com/zepfu/llama-gguf-inference/commit/5e35f7adab19912cbb4fd525e38aa46ff5fc90a5))
+- ci fix ([5fa97f7](https://github.com/zepfu/llama-gguf-inference/commit/5fa97f7c17ce111a867ddb666a8fa9e9c17ca94d))
 
 ### Security
 
 - security updates
-  ([fb3989b](https://github.com/zepfu/llama-gguf-inference/commit/fb3989b91e73e4c56f165cdd35695203fbd26239))
+  ([f1ceb4f](https://github.com/zepfu/llama-gguf-inference/commit/f1ceb4f920446a87ff3b894a622f45b74a4da541))
 
 ______________________________________________________________________
 
