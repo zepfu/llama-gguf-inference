@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-07-20 10:06:27 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-07-27 10:22:36 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -27,7 +27,9 @@ Analyzed **13** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> End([End])
+    Init --> testuptimereflectsstarttime[test_uptime_reflects_start_time]
+    Init --> testqueuedepthstartsatzero[test_queue_depth_starts_at_zero]
+    testqueuedepthstartsatzero --> End([End])
 ```
 
 ## State Diagram
@@ -35,10 +37,15 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> MakeHandler
-    MakeHandler --> [*]
-    Idle --> TestMainHandlesKeyboardInterrupt
-    TestMainHandlesKeyboardInterrupt --> [*]
+    Idle --> TestExceptionDuringRequestHandledGracefully
+    TestExceptionDuringRequestHandledGracefully --> TestOptionsRequestHandled
+    TestOptionsRequestHandled --> TestTimeoutDuringRequestHandledGracefully
+    TestTimeoutDuringRequestHandledGracefully --> TestWriterCloseFailureHandled
+    TestWriterCloseFailureHandled --> [*]
+    Idle --> TestSighupHandlerCallsReload
+    TestSighupHandlerCallsReload --> TestSighupHandlerLogsErrorOnFailure
+    TestSighupHandlerLogsErrorOnFailure --> TestSighupHandlerNoAuthModule
+    TestSighupHandlerNoAuthModule --> [*]
 ```
 
 ## Sequence Diagram
@@ -49,15 +56,15 @@ stateDiagram-v2
 
 ```mermaid
 architecture-beta
-    group scripts(cloud)[Scripts]
-        service scripts_key_mgmt(server)[key_mgmt] in scripts
-        service scripts_gateway(server)[gateway] in scripts
-        service scripts_health_server(server)[health_server] in scripts
-    end
     group tests(cloud)[Tests]
-        service tests_test_health_server(server)[test_health_server] in tests
-        service tests_conftest(server)[conftest] in tests
         service tests_test_gateway(server)[test_gateway] in tests
+        service tests_test_auth(server)[test_auth] in tests
+        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
+    end
+    group scripts(cloud)[Scripts]
+        service scripts_benchmark(server)[benchmark] in scripts
+        service scripts_gateway(server)[gateway] in scripts
+        service scripts_auth(server)[auth] in scripts
     end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
@@ -72,43 +79,6 @@ architecture-beta
 
 ```mermaid
 classDiagram
-    class scripts_gateway_Metrics {
-        +requests_total
-        +requests_success
-        +requests_error
-        +requests_active
-        +requests_authenticated
-        +to_dict()
-        +to_prometheus()
-    }
-    class scripts_health_server_HealthHandler {
-        +do_GET()
-        +log_message(format)
-    }
-    class scripts_auth_APIKeyValidator {
-        +__init__()
-        +_load_keys()
-        +_parse_key_metadata()
-        +validate(headers)
-        +_is_key_expired(key_id)
-    }
-    class tests_test_health_server_TestHealthHandler {
-        +_make_handler()
-        +test_do_get_returns_200()
-        +test_do_get_content_type()
-        +test_do_get_content_length_zero()
-        +test_log_message_suppressed()
-    }
-    class tests_test_health_server_TestHealthServerMain {
-        +test_main_starts_server()
-        +test_main_prints_startup_message(capsys)
-        +test_main_handles_keyboard_interrupt(capsys)
-        +test_main_always_closes_server()
-    }
-    class tests_test_health_server_TestHealthServerModuleConfig {
-        +test_default_port(monkeypatch)
-        +test_custom_port_from_env(monkeypatch)
-    }
     class tests_test_gateway_TestGetCorsHeaders {
         +test_cors_disabled_returns_empty(monkeypatch)
         +test_cors_wildcard_returns_star(monkeypatch)
@@ -158,6 +128,43 @@ classDiagram
         +test_metrics_json_with_application_json(monkeypatch)
         +test_metrics_with_cors(monkeypatch)
     }
+    class tests_test_gateway_TestQueueConfig {
+        +test_default_max_concurrent(monkeypatch)
+        +test_custom_max_concurrent(monkeypatch)
+        +test_default_max_queue_size(monkeypatch)
+        +test_custom_max_queue_size(monkeypatch)
+        +test_semaphore_created_with_correct_value(monkeypatch)
+    }
+    class tests_test_gateway_TestQueueFullResponse {
+        +test_503_status_line(monkeypatch)
+        +test_retry_after_header(monkeypatch)
+        +test_json_body_format(monkeypatch)
+        +test_content_type_json(monkeypatch)
+        +test_cors_headers_included(monkeypatch)
+    }
+    class tests_test_gateway_TestQueueMetrics {
+        +test_queue_fields_in_to_dict(monkeypatch)
+        +test_queue_rejections_in_to_dict(monkeypatch)
+        +test_queue_wait_time_in_to_dict(monkeypatch)
+        +test_queue_depth_in_prometheus(monkeypatch)
+        +test_queue_rejections_in_prometheus(monkeypatch)
+    }
+    class tests_test_gateway_TestHealthQueueInfo {
+        +test_health_contains_queue_section(monkeypatch)
+        +test_health_queue_active_reflects_semaphore(monkeypatch)
+        +test_health_queue_waiting_reflects_depth(monkeypatch)
+    }
+    class tests_test_gateway_TestConcurrencyLimiting {
+        +test_semaphore_limits_concurrent_proxy_calls(monkeypatch)
+        +test_queue_rejection_when_full(monkeypatch)
+        +test_queue_rejection_increments_metric(monkeypatch)
+        +test_health_endpoints_bypass_queue(monkeypatch)
+        +test_unlimited_queue_never_rejects(monkeypatch)
+    }
+    class tests_test_gateway_TestRequestBodySizeConfig {
+        +test_default_max_request_body_size(monkeypatch)
+        +test_custom_max_request_body_size(monkeypatch)
+    }
 ```
 
 ## Journey Diagram
@@ -172,17 +179,17 @@ mindmap
     docs
       conf
     scripts
-      key_mgmt
-      gateway
-      health_server
       benchmark
+      gateway
       auth
+      key_mgmt
+      health_server
     tests
-      test_health_server
-      conftest
       test_gateway
-      test_benchmark
+      test_auth
       test_key_mgmt
+      __init__
+      test_benchmark
 ```
 
 ## Workflow Pipeline Diagram
@@ -202,8 +209,8 @@ flowchart TD
 ```mermaid
 graph TD
     ci[CI]
-    docs[Documentation]
     release[Release]
+    docs[Documentation]
     cd[CD]
 ```
 
