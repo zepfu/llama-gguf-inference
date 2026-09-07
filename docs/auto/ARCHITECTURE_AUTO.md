@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-08-31 16:52:09 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-09-07 14:54:09 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -38,11 +38,10 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> TestLogAccessHandlesPermissionError
-    TestLogAccessHandlesPermissionError --> [*]
-    Idle --> TestReloadHandlesEmptyFile
-    TestReloadHandlesEmptyFile --> TestReloadPreservesRateLimiterState
-    TestReloadPreservesRateLimiterState --> [*]
+    Idle --> MakeHandler
+    MakeHandler --> [*]
+    Idle --> TestMainHandlesKeyboardInterrupt
+    TestMainHandlesKeyboardInterrupt --> [*]
 ```
 
 ## Sequence Diagram
@@ -55,16 +54,16 @@ stateDiagram-v2
 architecture-beta
     group tests(cloud)[Tests]
         service tests___init__(server)[__init__] in tests
-        service tests_conftest(server)[conftest] in tests
-        service tests_test_auth(server)[test_auth] in tests
-    end
-    group docs(cloud)[Docs]
-        service docs_conf(server)[conf] in docs
+        service tests_test_health_server(server)[test_health_server] in tests
+        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
     end
     group scripts(cloud)[Scripts]
         service scripts_benchmark(server)[benchmark] in scripts
-        service scripts_key_mgmt(server)[key_mgmt] in scripts
+        service scripts_health_server(server)[health_server] in scripts
         service scripts_gateway(server)[gateway] in scripts
+    end
+    group docs(cloud)[Docs]
+        service docs_conf(server)[conf] in docs
     end
 ```
 
@@ -76,97 +75,94 @@ architecture-beta
 
 ```mermaid
 classDiagram
-    class tests_test_auth_TestKeyFormatValidation {
-        +test_valid_key(noauth_env, monkeypatch)
-        +test_key_too_short(noauth_env, monkeypatch)
-        +test_key_too_long(noauth_env, monkeypatch)
-        +test_key_min_length(noauth_env, monkeypatch)
-        +test_key_max_length(noauth_env, monkeypatch)
+    class tests_test_health_server_TestHealthHandler {
+        +_make_handler()
+        +test_do_get_returns_200()
+        +test_do_get_content_type()
+        +test_do_get_content_length_zero()
+        +test_log_message_suppressed()
     }
-    class tests_test_auth_TestLoadKeys {
-        +test_load_valid_keys(keys_file, monkeypatch)
-        +test_load_disabled(keys_file, monkeypatch)
-        +test_load_missing_file(monkeypatch)
-        +test_load_empty_file(empty_keys_file, monkeypatch)
-        +test_load_with_comments(tmp_path, monkeypatch)
+    class tests_test_health_server_TestHealthServerMain {
+        +test_main_starts_server()
+        +test_main_prints_startup_message(capsys)
+        +test_main_handles_keyboard_interrupt(capsys)
+        +test_main_always_closes_server()
     }
-    class tests_test_auth_TestValidate {
-        +test_auth_disabled(monkeypatch)
-        +test_no_keys_configured_rejects(monkeypatch)
-        +test_missing_auth_header(keys_file, monkeypatch)
-        +test_empty_auth_header(keys_file, monkeypatch)
-        +test_bearer_prefix(keys_file, monkeypatch)
+    class tests_test_health_server_TestHealthServerModuleConfig {
+        +test_default_port(monkeypatch)
+        +test_custom_port_from_env(monkeypatch)
     }
-    class tests_test_auth_TestRateLimiting {
-        +test_under_limit(keys_file, monkeypatch)
-        +test_over_limit(keys_file, monkeypatch)
-        +test_different_keys_separate_limits(keys_file, monkeypatch)
-        +test_rate_limit_resets(keys_file, monkeypatch)
+    class tests_test_key_mgmt_TestValidateKeyId {
+        +test_valid_alphanumeric()
+        +test_valid_with_hyphens()
+        +test_valid_with_underscores()
+        +test_valid_mixed()
+        +test_valid_single_char()
     }
-    class tests_test_auth_TestMetrics {
-        +test_empty_metrics(noauth_env, monkeypatch)
-        +test_metrics_after_requests(keys_file, monkeypatch)
+    class tests_test_key_mgmt_TestGenerateApiKey {
+        +test_starts_with_prefix()
+        +test_correct_length()
+        +test_unique_keys()
+        +test_valid_characters()
     }
-    class tests_test_auth_TestAuthenticateRequest {
-        +test_authenticate_success_returns_key_id(keys_file, monkeypatch)
-        +test_authenticate_failure_sends_401(keys_file, monkeypatch)
-        +test_authenticate_missing_header_sends_401(keys_file, monkeypatch)
-        +test_authenticate_rate_limited_sends_429(keys_file, monkeypatch)
-        +test_authenticate_disabled_returns_auth_disabled(monkeypatch)
+    class tests_test_key_mgmt_TestGenerate {
+        +test_generate_creates_key(tmp_path)
+        +test_generate_duplicate_name_fails(keys_file)
+        +test_generate_invalid_name_fails(tmp_path)
+        +test_generate_quiet_mode(tmp_path, capsys)
+        +test_generate_preserves_comments(keys_file)
     }
-    class tests_test_auth_TestSendRateLimitError {
-        +test_429_response_format(monkeypatch)
+    class tests_test_key_mgmt_TestList {
+        +test_list_empty_file(empty_keys_file, capsys)
+        +test_list_with_keys(keys_file, capsys)
+        +test_list_never_shows_key_values(keys_file, capsys)
+        +test_list_missing_file(tmp_path, capsys)
     }
-    class tests_test_auth_TestLogAccess {
-        +test_log_access_writes_to_file(monkeypatch, tmp_path)
-        +test_log_access_creates_directory(monkeypatch, tmp_path)
-        +test_log_access_handles_permission_error(monkeypatch, capsys)
+    class tests_test_key_mgmt_TestRemove {
+        +test_remove_existing_key(keys_file)
+        +test_remove_nonexistent_fails(keys_file)
+        +test_remove_preserves_comments(keys_file)
+        +test_remove_missing_file_fails(tmp_path)
     }
-    class tests_test_auth_TestLoadKeysEdgeCases {
-        +test_load_keys_file_read_exception(monkeypatch, tmp_path)
-        +test_load_keys_empty_key_id(tmp_path, monkeypatch)
-        +test_load_keys_invalid_api_key_format(tmp_path, monkeypatch)
+    class tests_test_key_mgmt_TestRotate {
+        +test_rotate_existing_key(keys_file)
+        +test_rotate_nonexistent_fails(keys_file)
+        +test_rotate_quiet_mode(keys_file, capsys)
+        +test_rotate_preserves_other_keys(keys_file)
+        +test_rotate_missing_file_fails(tmp_path)
     }
-    class tests_test_auth_TestValidateEdgeCases {
-        +test_empty_api_key_after_bearer_strip(keys_file, monkeypatch)
-        +test_constant_time_comparison(keys_file, monkeypatch)
-        +test_record_request_appends_timestamp(keys_file, monkeypatch)
-        +test_check_rate_limit_cleans_old_entries(keys_file, monkeypatch)
+    class tests_test_key_mgmt_TestFilePermissions {
+        +test_file_permissions_after_generate(tmp_path)
+        +test_file_permissions_after_remove(keys_file)
+        +test_file_permissions_after_rotate(keys_file)
     }
-    class tests_test_auth_TestSanitizeLogField {
-        +test_clean_value_unchanged(monkeypatch)
-        +test_newline_replaced(monkeypatch)
-        +test_carriage_return_replaced(monkeypatch)
-        +test_tab_replaced(monkeypatch)
-        +test_pipe_replaced(monkeypatch)
+    class tests_test_key_mgmt_TestAtomicWrite {
+        +test_atomic_write_creates_file(tmp_path)
+        +test_atomic_write_replaces_file(tmp_path)
+        +test_atomic_write_no_temp_files_left(tmp_path)
+        +test_atomic_write_permissions(tmp_path)
+        +test_atomic_write_creates_parent_dirs(tmp_path)
     }
-    class tests_test_auth_TestPerKeyRateLimits {
-        +test_per_key_rate_limit_loaded(tmp_path, monkeypatch)
-        +test_per_key_rate_limit_enforced(tmp_path, monkeypatch)
-        +test_per_key_higher_limit(tmp_path, monkeypatch)
-        +test_default_rate_limit_without_per_key(tmp_path, monkeypatch)
-        +test_invalid_rate_limit_skips_key(tmp_path, monkeypatch)
+    class tests_test_key_mgmt_TestCLIIntegration {
+        +test_cli_generate_and_list(tmp_path)
+        +test_cli_quiet_generate(tmp_path)
+        +test_cli_no_command_shows_help()
+        +test_cli_remove_and_verify(tmp_path)
+        +test_cli_rotate_and_verify(tmp_path)
     }
-    class tests_test_auth_TestKeyExpiration {
-        +test_expired_key_rejected(tmp_path, monkeypatch)
-        +test_non_expired_key_accepted(tmp_path, monkeypatch)
-        +test_no_expiration_means_never_expires(tmp_path, monkeypatch)
-        +test_empty_expiration_means_never_expires(tmp_path, monkeypatch)
-        +test_invalid_expiration_skips_key(tmp_path, monkeypatch)
+    class tests_test_key_mgmt_TestGetDefaultKeysFile {
+        +test_auth_keys_file_env(monkeypatch)
+        +test_data_dir_env(monkeypatch)
+        +test_default_path(monkeypatch)
     }
-    class tests_test_auth_TestRateLimiterCleanup {
-        +test_cleanup_removes_stale_entries(keys_file, monkeypatch)
-        +test_cleanup_keeps_active_entries(keys_file, monkeypatch)
-        +test_cleanup_skipped_within_interval(keys_file, monkeypatch)
-        +test_cleanup_triggered_by_check_rate_limit(keys_file, monkeypatch)
-        +test_cleanup_mixed_stale_and_active(keys_file, monkeypatch)
+    class tests_test_key_mgmt_TestLoadKeysFileEdgeCases {
+        +test_nonexistent_file(tmp_path)
+        +test_lines_without_colon(tmp_path)
+        +test_comment_lines(tmp_path)
+        +test_blank_lines(tmp_path)
     }
-    class tests_test_auth_TestBackwardCompatibility {
-        +test_simple_key_format(tmp_path, monkeypatch)
-        +test_key_with_rate_limit_only(tmp_path, monkeypatch)
-        +test_key_with_expiration_only(tmp_path, monkeypatch)
-        +test_key_with_all_fields(tmp_path, monkeypatch)
-        +test_mixed_formats_in_same_file(tmp_path, monkeypatch)
+    class tests_test_key_mgmt_TestAtomicWriteFailure {
+        +test_atomic_write_cleanup_on_failure(tmp_path)
     }
 ```
 
@@ -183,16 +179,16 @@ mindmap
       conf
     scripts
       benchmark
-      key_mgmt
-      gateway
       health_server
+      gateway
+      key_mgmt
       auth
     tests
       __init__
+      test_health_server
+      test_key_mgmt
       conftest
       test_auth
-      test_benchmark
-      test_health_server
 ```
 
 ## Workflow Pipeline Diagram
@@ -211,10 +207,10 @@ flowchart TD
 
 ```mermaid
 graph TD
-    ci[CI]
     release[Release]
-    docs[Documentation]
+    ci[CI]
     cd[CD]
+    docs[Documentation]
 ```
 
 ## Workflow Jobs Diagram
