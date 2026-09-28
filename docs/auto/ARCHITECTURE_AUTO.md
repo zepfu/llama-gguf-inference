@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-09-21 15:45:04 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-09-28 17:28:11 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -27,10 +27,8 @@ Analyzed **13** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> testmainstartsserver[test_main_starts_server]
-    Init --> testmainprintsstartupmessage[test_main_prints_startup_message]
-    Init --> testmainhandleskeyboardinterrupt[test_main_handles_keyboard_interrupt]
-    testmainhandleskeyboardinterrupt --> End([End])
+    Init --> main[main]
+    main --> End([End])
 ```
 
 ## State Diagram
@@ -38,10 +36,11 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> MakeHandler
-    MakeHandler --> [*]
-    Idle --> TestMainHandlesKeyboardInterrupt
-    TestMainHandlesKeyboardInterrupt --> [*]
+    Idle --> TestLogAccessHandlesPermissionError
+    TestLogAccessHandlesPermissionError --> [*]
+    Idle --> TestReloadHandlesEmptyFile
+    TestReloadHandlesEmptyFile --> TestReloadPreservesRateLimiterState
+    TestReloadPreservesRateLimiterState --> [*]
 ```
 
 ## Sequence Diagram
@@ -52,15 +51,15 @@ stateDiagram-v2
 
 ```mermaid
 architecture-beta
-    group tests(cloud)[Tests]
-        service tests___init__(server)[__init__] in tests
-        service tests_test_health_server(server)[test_health_server] in tests
-        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
-    end
     group scripts(cloud)[Scripts]
-        service scripts_benchmark(server)[benchmark] in scripts
+        service scripts_auth(server)[auth] in scripts
         service scripts_health_server(server)[health_server] in scripts
-        service scripts_gateway(server)[gateway] in scripts
+        service scripts_key_mgmt(server)[key_mgmt] in scripts
+    end
+    group tests(cloud)[Tests]
+        service tests_conftest(server)[conftest] in tests
+        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
+        service tests_test_benchmark(server)[test_benchmark] in tests
     end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
@@ -75,22 +74,25 @@ architecture-beta
 
 ```mermaid
 classDiagram
-    class tests_test_health_server_TestHealthHandler {
-        +_make_handler()
-        +test_do_get_returns_200()
-        +test_do_get_content_type()
-        +test_do_get_content_length_zero()
-        +test_log_message_suppressed()
+    class scripts_auth_APIKeyValidator {
+        +__init__()
+        +_load_keys()
+        +_parse_key_metadata()
+        +validate(headers)
+        +_is_key_expired(key_id)
     }
-    class tests_test_health_server_TestHealthServerMain {
-        +test_main_starts_server()
-        +test_main_prints_startup_message(capsys)
-        +test_main_handles_keyboard_interrupt(capsys)
-        +test_main_always_closes_server()
+    class scripts_health_server_HealthHandler {
+        +do_GET()
+        +log_message(format)
     }
-    class tests_test_health_server_TestHealthServerModuleConfig {
-        +test_default_port(monkeypatch)
-        +test_custom_port_from_env(monkeypatch)
+    class scripts_gateway_Metrics {
+        +requests_total
+        +requests_success
+        +requests_error
+        +requests_active
+        +requests_authenticated
+        +to_dict()
+        +to_prometheus()
     }
     class tests_test_key_mgmt_TestValidateKeyId {
         +test_valid_alphanumeric()
@@ -178,17 +180,17 @@ mindmap
     docs
       conf
     scripts
-      benchmark
-      health_server
-      gateway
-      key_mgmt
       auth
+      health_server
+      key_mgmt
+      benchmark
+      gateway
     tests
-      __init__
-      test_health_server
-      test_key_mgmt
       conftest
+      test_key_mgmt
+      test_benchmark
       test_auth
+      test_gateway
 ```
 
 ## Workflow Pipeline Diagram
@@ -207,10 +209,10 @@ flowchart TD
 
 ```mermaid
 graph TD
-    release[Release]
     ci[CI]
-    cd[CD]
     docs[Documentation]
+    release[Release]
+    cd[CD]
 ```
 
 ## Workflow Jobs Diagram
