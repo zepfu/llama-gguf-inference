@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-10-19 16:17:56 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-10-26 15:57:16 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -27,8 +27,10 @@ Analyzed **13** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> main[main]
-    main --> End([End])
+    Init --> testmainstartsserver[test_main_starts_server]
+    Init --> testmainprintsstartupmessage[test_main_prints_startup_message]
+    Init --> testmainhandleskeyboardinterrupt[test_main_handles_keyboard_interrupt]
+    testmainhandleskeyboardinterrupt --> End([End])
 ```
 
 ## State Diagram
@@ -36,11 +38,10 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> TestLogAccessHandlesPermissionError
-    TestLogAccessHandlesPermissionError --> [*]
-    Idle --> TestReloadHandlesEmptyFile
-    TestReloadHandlesEmptyFile --> TestReloadPreservesRateLimiterState
-    TestReloadPreservesRateLimiterState --> [*]
+    Idle --> MakeHandler
+    MakeHandler --> [*]
+    Idle --> TestMainHandlesKeyboardInterrupt
+    TestMainHandlesKeyboardInterrupt --> [*]
 ```
 
 ## Sequence Diagram
@@ -51,18 +52,18 @@ stateDiagram-v2
 
 ```mermaid
 architecture-beta
-    group scripts(cloud)[Scripts]
-        service scripts_auth(server)[auth] in scripts
-        service scripts_health_server(server)[health_server] in scripts
-        service scripts_key_mgmt(server)[key_mgmt] in scripts
-    end
     group tests(cloud)[Tests]
-        service tests_conftest(server)[conftest] in tests
-        service tests_test_key_mgmt(server)[test_key_mgmt] in tests
         service tests_test_benchmark(server)[test_benchmark] in tests
+        service tests_test_health_server(server)[test_health_server] in tests
+        service tests_test_auth(server)[test_auth] in tests
     end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
+    end
+    group scripts(cloud)[Scripts]
+        service scripts_health_server(server)[health_server] in scripts
+        service scripts_key_mgmt(server)[key_mgmt] in scripts
+        service scripts_benchmark(server)[benchmark] in scripts
     end
 ```
 
@@ -74,97 +75,73 @@ architecture-beta
 
 ```mermaid
 classDiagram
-    class scripts_auth_APIKeyValidator {
-        +__init__()
-        +_load_keys()
-        +_parse_key_metadata()
-        +validate(headers)
-        +_is_key_expired(key_id)
+    class tests_test_benchmark_TestPercentile {
+        +test_empty_data()
+        +test_single_value()
+        +test_p50_even_count()
+        +test_p50_odd_count()
+        +test_p95()
     }
-    class scripts_health_server_HealthHandler {
-        +do_GET()
-        +log_message(format)
+    class tests_test_benchmark_TestComputeStats {
+        +test_empty_input()
+        +test_single_value()
+        +test_multiple_values()
+        +test_all_keys_present()
+        +test_all_same_values()
     }
-    class scripts_gateway_Metrics {
-        +requests_total
-        +requests_success
-        +requests_error
-        +requests_active
-        +requests_authenticated
-        +to_dict()
-        +to_prometheus()
+    class tests_test_benchmark_TestParseSSETokens {
+        +test_empty_input()
+        +test_done_sentinel()
+        +test_single_token()
+        +test_multiple_tokens()
+        +test_empty_delta()
     }
-    class tests_test_key_mgmt_TestValidateKeyId {
-        +test_valid_alphanumeric()
-        +test_valid_with_hyphens()
-        +test_valid_with_underscores()
-        +test_valid_mixed()
-        +test_valid_single_char()
+    class tests_test_benchmark_TestCountTokensApprox {
+        +test_empty()
+        +test_single_word()
+        +test_multiple_words()
+        +test_extra_whitespace()
     }
-    class tests_test_key_mgmt_TestGenerateApiKey {
-        +test_starts_with_prefix()
-        +test_correct_length()
-        +test_unique_keys()
-        +test_valid_characters()
+    class tests_test_benchmark_TestFormatTextOutput {
+        +test_gateway_only()
+        +test_inference_only()
+        +test_both()
+        +test_none_both()
     }
-    class tests_test_key_mgmt_TestGenerate {
-        +test_generate_creates_key(tmp_path)
-        +test_generate_duplicate_name_fails(keys_file)
-        +test_generate_invalid_name_fails(tmp_path)
-        +test_generate_quiet_mode(tmp_path, capsys)
-        +test_generate_preserves_comments(keys_file)
+    class tests_test_benchmark_TestFormatJsonOutput {
+        +test_gateway_only()
+        +test_inference_only()
+        +test_valid_json()
+        +test_empty_both()
     }
-    class tests_test_key_mgmt_TestList {
-        +test_list_empty_file(empty_keys_file, capsys)
-        +test_list_with_keys(keys_file, capsys)
-        +test_list_never_shows_key_values(keys_file, capsys)
-        +test_list_missing_file(tmp_path, capsys)
+    class tests_test_benchmark_TestBuildParser {
+        +test_required_url()
+        +test_minimal_args()
+        +test_all_args()
+        +test_invalid_output_format()
     }
-    class tests_test_key_mgmt_TestRemove {
-        +test_remove_existing_key(keys_file)
-        +test_remove_nonexistent_fails(keys_file)
-        +test_remove_preserves_comments(keys_file)
-        +test_remove_missing_file_fails(tmp_path)
+    class tests_test_benchmark_TestParseUrl {
+        +test_http_default_port()
+        +test_https_default_port()
+        +test_custom_port()
+        +test_root_path()
+        +test_query_string()
     }
-    class tests_test_key_mgmt_TestRotate {
-        +test_rotate_existing_key(keys_file)
-        +test_rotate_nonexistent_fails(keys_file)
-        +test_rotate_quiet_mode(keys_file, capsys)
-        +test_rotate_preserves_other_keys(keys_file)
-        +test_rotate_missing_file_fails(tmp_path)
+    class tests_test_benchmark_TestFormatHelpers {
+        +test_fmt_ms()
+        +test_fmt_s()
     }
-    class tests_test_key_mgmt_TestFilePermissions {
-        +test_file_permissions_after_generate(tmp_path)
-        +test_file_permissions_after_remove(keys_file)
-        +test_file_permissions_after_rotate(keys_file)
+    class tests_test_benchmark_TestOpenConnection {
     }
-    class tests_test_key_mgmt_TestAtomicWrite {
-        +test_atomic_write_creates_file(tmp_path)
-        +test_atomic_write_replaces_file(tmp_path)
-        +test_atomic_write_no_temp_files_left(tmp_path)
-        +test_atomic_write_permissions(tmp_path)
-        +test_atomic_write_creates_parent_dirs(tmp_path)
+    class tests_test_benchmark_TestSendRequest {
     }
-    class tests_test_key_mgmt_TestCLIIntegration {
-        +test_cli_generate_and_list(tmp_path)
-        +test_cli_quiet_generate(tmp_path)
-        +test_cli_no_command_shows_help()
-        +test_cli_remove_and_verify(tmp_path)
-        +test_cli_rotate_and_verify(tmp_path)
+    class tests_test_benchmark_TestReadStatusAndHeaders {
     }
-    class tests_test_key_mgmt_TestGetDefaultKeysFile {
-        +test_auth_keys_file_env(monkeypatch)
-        +test_data_dir_env(monkeypatch)
-        +test_default_path(monkeypatch)
+    class tests_test_benchmark_TestBenchEndpoint {
     }
-    class tests_test_key_mgmt_TestLoadKeysFileEdgeCases {
-        +test_nonexistent_file(tmp_path)
-        +test_lines_without_colon(tmp_path)
-        +test_comment_lines(tmp_path)
-        +test_blank_lines(tmp_path)
+    class tests_test_benchmark_TestRunGatewayBenchmark {
     }
-    class tests_test_key_mgmt_TestAtomicWriteFailure {
-        +test_atomic_write_cleanup_on_failure(tmp_path)
+    class tests_test_benchmark_TestInferenceRequest {
     }
 ```
 
@@ -180,17 +157,17 @@ mindmap
     docs
       conf
     scripts
-      auth
       health_server
       key_mgmt
       benchmark
       gateway
+      auth
     tests
-      conftest
-      test_key_mgmt
       test_benchmark
+      test_health_server
       test_auth
-      test_gateway
+      test_key_mgmt
+      conftest
 ```
 
 ## Workflow Pipeline Diagram
@@ -209,9 +186,9 @@ flowchart TD
 
 ```mermaid
 graph TD
-    ci[CI]
     docs[Documentation]
     release[Release]
+    ci[CI]
     cd[CD]
 ```
 
