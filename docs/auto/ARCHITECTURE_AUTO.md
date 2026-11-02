@@ -1,6 +1,6 @@
 # Architecture (Auto-Generated)
 
-**Generated:** 2026-10-26 15:57:16 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
+**Generated:** 2026-11-02 19:17:11 **Project:** /home/runner/work/llama-gguf-inference/llama-gguf-inference
 
 ## Overview
 
@@ -27,10 +27,7 @@ Analyzed **13** Python modules containing:
 ```mermaid
 flowchart TD
     Start([Start]) --> Init[Initialize]
-    Init --> testmainstartsserver[test_main_starts_server]
-    Init --> testmainprintsstartupmessage[test_main_prints_startup_message]
-    Init --> testmainhandleskeyboardinterrupt[test_main_handles_keyboard_interrupt]
-    testmainhandleskeyboardinterrupt --> End([End])
+    Init --> End([End])
 ```
 
 ## State Diagram
@@ -38,10 +35,15 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
-    Idle --> MakeHandler
-    MakeHandler --> [*]
-    Idle --> TestMainHandlesKeyboardInterrupt
-    TestMainHandlesKeyboardInterrupt --> [*]
+    Idle --> TestExceptionDuringRequestHandledGracefully
+    TestExceptionDuringRequestHandledGracefully --> TestOptionsRequestHandled
+    TestOptionsRequestHandled --> TestTimeoutDuringRequestHandledGracefully
+    TestTimeoutDuringRequestHandledGracefully --> TestWriterCloseFailureHandled
+    TestWriterCloseFailureHandled --> [*]
+    Idle --> TestSighupHandlerCallsReload
+    TestSighupHandlerCallsReload --> TestSighupHandlerLogsErrorOnFailure
+    TestSighupHandlerLogsErrorOnFailure --> TestSighupHandlerNoAuthModule
+    TestSighupHandlerNoAuthModule --> [*]
 ```
 
 ## Sequence Diagram
@@ -52,18 +54,18 @@ stateDiagram-v2
 
 ```mermaid
 architecture-beta
-    group tests(cloud)[Tests]
-        service tests_test_benchmark(server)[test_benchmark] in tests
-        service tests_test_health_server(server)[test_health_server] in tests
-        service tests_test_auth(server)[test_auth] in tests
-    end
     group docs(cloud)[Docs]
         service docs_conf(server)[conf] in docs
     end
     group scripts(cloud)[Scripts]
-        service scripts_health_server(server)[health_server] in scripts
         service scripts_key_mgmt(server)[key_mgmt] in scripts
         service scripts_benchmark(server)[benchmark] in scripts
+        service scripts_auth(server)[auth] in scripts
+    end
+    group tests(cloud)[Tests]
+        service tests_conftest(server)[conftest] in tests
+        service tests_test_gateway(server)[test_gateway] in tests
+        service tests_test_health_server(server)[test_health_server] in tests
     end
 ```
 
@@ -75,73 +77,95 @@ architecture-beta
 
 ```mermaid
 classDiagram
-    class tests_test_benchmark_TestPercentile {
-        +test_empty_data()
-        +test_single_value()
-        +test_p50_even_count()
-        +test_p50_odd_count()
-        +test_p95()
+    class scripts_auth_APIKeyValidator {
+        +__init__()
+        +_load_keys()
+        +_parse_key_metadata()
+        +validate(headers)
+        +_is_key_expired(key_id)
     }
-    class tests_test_benchmark_TestComputeStats {
-        +test_empty_input()
-        +test_single_value()
-        +test_multiple_values()
-        +test_all_keys_present()
-        +test_all_same_values()
+    class scripts_gateway_Metrics {
+        +requests_total
+        +requests_success
+        +requests_error
+        +requests_active
+        +requests_authenticated
+        +to_dict()
+        +to_prometheus()
     }
-    class tests_test_benchmark_TestParseSSETokens {
-        +test_empty_input()
-        +test_done_sentinel()
-        +test_single_token()
-        +test_multiple_tokens()
-        +test_empty_delta()
+    class scripts_health_server_HealthHandler {
+        +do_GET()
+        +log_message(format)
     }
-    class tests_test_benchmark_TestCountTokensApprox {
-        +test_empty()
-        +test_single_word()
-        +test_multiple_words()
-        +test_extra_whitespace()
+    class tests_test_gateway_TestGetCorsHeaders {
+        +test_cors_disabled_returns_empty(monkeypatch)
+        +test_cors_wildcard_returns_star(monkeypatch)
+        +test_cors_specific_origin_allowed(monkeypatch)
+        +test_cors_specific_origin_denied(monkeypatch)
+        +test_cors_multiple_origins(monkeypatch)
     }
-    class tests_test_benchmark_TestFormatTextOutput {
-        +test_gateway_only()
-        +test_inference_only()
-        +test_both()
-        +test_none_both()
+    class tests_test_gateway_TestBuildCorsHeaderStr {
+        +test_disabled_returns_empty_string(monkeypatch)
+        +test_enabled_returns_crlf_joined(monkeypatch)
+        +test_denied_origin_returns_empty(monkeypatch)
     }
-    class tests_test_benchmark_TestFormatJsonOutput {
-        +test_gateway_only()
-        +test_inference_only()
-        +test_valid_json()
-        +test_empty_both()
+    class tests_test_gateway_TestCorsEnabled {
+        +test_disabled_when_empty(monkeypatch)
+        +test_enabled_with_origin(monkeypatch)
+        +test_wildcard_detected(monkeypatch)
     }
-    class tests_test_benchmark_TestBuildParser {
-        +test_required_url()
-        +test_minimal_args()
-        +test_all_args()
-        +test_invalid_output_format()
+    class tests_test_gateway_TestWantsPrometheus {
+        +test_empty_accept(monkeypatch)
+        +test_json_accept(monkeypatch)
+        +test_text_plain_accept(monkeypatch)
+        +test_openmetrics_accept(monkeypatch)
+        +test_mixed_accept_with_text_plain(monkeypatch)
     }
-    class tests_test_benchmark_TestParseUrl {
-        +test_http_default_port()
-        +test_https_default_port()
-        +test_custom_port()
-        +test_root_path()
-        +test_query_string()
+    class tests_test_gateway_TestMetricsToPrometheus {
+        +test_default_metrics(monkeypatch)
+        +test_metrics_with_values(monkeypatch)
+        +test_prometheus_format_lines(monkeypatch)
+        +test_uptime_reflects_start_time(monkeypatch)
     }
-    class tests_test_benchmark_TestFormatHelpers {
-        +test_fmt_ms()
-        +test_fmt_s()
+    class tests_test_gateway_TestMetricsToDict {
+        +test_default_values(monkeypatch)
+        +test_values_preserved(monkeypatch)
     }
-    class tests_test_benchmark_TestOpenConnection {
+    class tests_test_gateway_TestOptionsHandling {
+        +test_options_response_format_with_cors(monkeypatch)
+        +test_options_response_without_cors(monkeypatch)
     }
-    class tests_test_benchmark_TestSendRequest {
+    class tests_test_gateway_TestHandlePingCors {
+        +test_ping_with_cors(monkeypatch)
+        +test_ping_without_cors(monkeypatch)
     }
-    class tests_test_benchmark_TestReadStatusAndHeaders {
+    class tests_test_gateway_TestHandleMetricsFormats {
+        +test_metrics_json_default(monkeypatch)
+        +test_metrics_prometheus_text_plain(monkeypatch)
+        +test_metrics_prometheus_openmetrics(monkeypatch)
+        +test_metrics_json_with_application_json(monkeypatch)
+        +test_metrics_with_cors(monkeypatch)
     }
-    class tests_test_benchmark_TestBenchEndpoint {
+    class tests_test_gateway_TestQueueConfig {
+        +test_default_max_concurrent(monkeypatch)
+        +test_custom_max_concurrent(monkeypatch)
+        +test_default_max_queue_size(monkeypatch)
+        +test_custom_max_queue_size(monkeypatch)
+        +test_semaphore_created_with_correct_value(monkeypatch)
     }
-    class tests_test_benchmark_TestRunGatewayBenchmark {
+    class tests_test_gateway_TestQueueFullResponse {
+        +test_503_status_line(monkeypatch)
+        +test_retry_after_header(monkeypatch)
+        +test_json_body_format(monkeypatch)
+        +test_content_type_json(monkeypatch)
+        +test_cors_headers_included(monkeypatch)
     }
-    class tests_test_benchmark_TestInferenceRequest {
+    class tests_test_gateway_TestQueueMetrics {
+        +test_queue_fields_in_to_dict(monkeypatch)
+        +test_queue_rejections_in_to_dict(monkeypatch)
+        +test_queue_wait_time_in_to_dict(monkeypatch)
+        +test_queue_depth_in_prometheus(monkeypatch)
+        +test_queue_rejections_in_prometheus(monkeypatch)
     }
 ```
 
@@ -157,17 +181,17 @@ mindmap
     docs
       conf
     scripts
-      health_server
       key_mgmt
       benchmark
-      gateway
       auth
+      gateway
+      health_server
     tests
-      test_benchmark
+      conftest
+      test_gateway
       test_health_server
       test_auth
-      test_key_mgmt
-      conftest
+      test_benchmark
 ```
 
 ## Workflow Pipeline Diagram
@@ -186,9 +210,9 @@ flowchart TD
 
 ```mermaid
 graph TD
-    docs[Documentation]
-    release[Release]
     ci[CI]
+    release[Release]
+    docs[Documentation]
     cd[CD]
 ```
 
